@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+/* Tokens visuais — PRD seção 5 (aprovado 09/jul/2026). Não inventar cores fora daqui. */
+@theme {
+  --color-parchment: #f1eada; /* fundo de página */
+  --color-card: #fffdf8; /* fundo de card (branco quente) */
+  --color-ink: #2b2a25; /* texto primário */
+  --color-ink-soft: #6b6a5f; /* texto secundário */
+  --color-ink-faint: #8a8874; /* labels, legendas de eixo */
+  --color-bronze: #b8925a; /* destaque — faturamento, IEA */
+  --color-marinho: #1f3347; /* identidade primária — IBVET */
+  --color-salvia: #4c6b50; /* positivo/ativo — clientes menores */
+  --color-terracota: #8c4a5e; /* alertas, métricas secundárias */
+  --color-divider: #ede7d6; /* grid de gráfico, tracks de progresso */
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+
+  --radius-card: 12px;
+  --shadow-card: 0 1px 3px rgba(43, 42, 37, 0.1);
+}
+
+body {
+  background: var(--color-parchment);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
