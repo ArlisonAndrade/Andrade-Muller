@@ -6,6 +6,7 @@ MVP interno (single-tenant) que substitui o Notion da consultoria da Franciele. 
 - `fm_gestao_prd.md` — PRD com módulos, prioridades e especificação visual (seção 5)
 - `fm_gestao_schema.sql` — schema aprovado, rodado como está (não redesenhar)
 - `kickoff_andrade_muller.md` — decisões de arquitetura e dados reais
+- `schema.sql` — módulo financeiro (Família/CNPJ/Carteira Arthur), ainda não rodado. Atenção: o check de `entidades.tipo` dele não inclui `'consultoria'` — o `00_base.sql` já cria as tabelas base com o check corrigido; ao rodar o schema.sql completo, trocar os `create table` de entidades/membros/entidade_membros por `create table if not exists`.
 
 ## Estrutura
 - `web/` — Next.js 16 (App Router) + Tailwind v4 + Chart.js. Tokens visuais em `web/app/globals.css` (`@theme`) — usar somente essas cores/fontes.
