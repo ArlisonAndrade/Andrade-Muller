@@ -62,8 +62,8 @@ export default async function Dashboard() {
           <li className="line-through">Setup Next.js + Tailwind + Supabase</li>
           <li className="line-through">CRM + Funil de Vendas</li>
           <li className="line-through">Reuniões</li>
-          <li>Tarefas</li>
-          <li>Faturamento / NFS-e</li>
+          <li className="line-through">Tarefas</li>
+          <li className="line-through">Faturamento / NFS-e</li>
           <li>Dashboard com gráficos</li>
           <li>Contratos e Metas/OKRs</li>
           <li>Checklist de Saúde Operacional</li>

@@ -14,6 +14,22 @@ export function dataHoraBR(iso: string) {
   return `${dataBR(data)} às ${hora}`;
 }
 
+const MESES = [
+  "janeiro", "fevereiro", "março", "abril", "maio", "junho",
+  "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
+];
+
+export function mesBR(iso: string) {
+  const [ano, mes] = iso.slice(0, 7).split("-");
+  return `${MESES[Number(mes) - 1]} de ${ano}`;
+}
+
+// "2025-10-01" → "4T25"
+export function rotuloTrimestre(iso: string) {
+  const [ano, mes] = iso.slice(0, 7).split("-");
+  return `${Math.ceil(Number(mes) / 3)}T${ano.slice(2)}`;
+}
+
 export function diasDesde(iso: string) {
   const data = new Date(`${iso.slice(0, 10)}T00:00:00`);
   return Math.floor((Date.now() - data.getTime()) / 86_400_000);
