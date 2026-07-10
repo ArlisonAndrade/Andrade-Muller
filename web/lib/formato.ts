@@ -24,6 +24,12 @@ export function mesBR(iso: string) {
   return `${MESES[Number(mes) - 1]} de ${ano}`;
 }
 
+// "2025-10-01" → "out/25" (rótulo curto de eixo)
+export function mesCurto(iso: string) {
+  const [ano, mes] = iso.slice(0, 7).split("-");
+  return `${MESES[Number(mes) - 1].slice(0, 3)}/${ano.slice(2)}`;
+}
+
 // "2025-10-01" → "4T25"
 export function rotuloTrimestre(iso: string) {
   const [ano, mes] = iso.slice(0, 7).split("-");
