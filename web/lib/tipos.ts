@@ -54,3 +54,57 @@ export interface Negocio {
 export function nomeCliente(c: Pick<Cliente, "empresa" | "nome_contato">) {
   return c.empresa ?? c.nome_contato;
 }
+
+export const TIPOS_REUNIAO = [
+  { valor: "kickoff", rotulo: "Kickoff" },
+  { valor: "acompanhamento", rotulo: "Acompanhamento" },
+  { valor: "estrategica", rotulo: "Estratégica" },
+  { valor: "comercial", rotulo: "Comercial" },
+  { valor: "operacional", rotulo: "Operacional" },
+  { valor: "feedback", rotulo: "Feedback" },
+] as const;
+
+export type TipoReuniao = (typeof TIPOS_REUNIAO)[number]["valor"];
+
+export const STATUS_REUNIAO = [
+  { valor: "agendada", rotulo: "Agendada" },
+  { valor: "realizada", rotulo: "Realizada" },
+  { valor: "cancelada", rotulo: "Cancelada" },
+] as const;
+
+export type StatusReuniao = (typeof STATUS_REUNIAO)[number]["valor"];
+
+export interface Reuniao {
+  id: string;
+  cliente_id: string;
+  titulo: string;
+  tipo: TipoReuniao | null;
+  status: StatusReuniao;
+  data_reuniao: string;
+  ata: string | null;
+  decisoes_tomadas: string | null;
+  proximos_passos: string | null;
+  acoes_definidas: string | null;
+  cliente?: Pick<Cliente, "empresa" | "nome_contato"> | null;
+}
+
+export const PRIORIDADES_TAREFA = [
+  { valor: "baixa", rotulo: "Baixa" },
+  { valor: "media", rotulo: "Média" },
+  { valor: "alta", rotulo: "Alta" },
+  { valor: "critica", rotulo: "Crítica" },
+] as const;
+
+export type PrioridadeTarefa = (typeof PRIORIDADES_TAREFA)[number]["valor"];
+
+export interface Tarefa {
+  id: string;
+  cliente_id: string;
+  reuniao_origem_id: string | null;
+  titulo: string;
+  responsavel: string | null;
+  concluida: boolean;
+  prioridade: PrioridadeTarefa;
+  data_prazo: string | null;
+  cliente?: Pick<Cliente, "empresa" | "nome_contato"> | null;
+}

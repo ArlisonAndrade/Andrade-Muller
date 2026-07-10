@@ -61,7 +61,7 @@ export default async function Dashboard() {
         <ol className="list-inside list-decimal space-y-1 text-sm text-ink-soft">
           <li className="line-through">Setup Next.js + Tailwind + Supabase</li>
           <li className="line-through">CRM + Funil de Vendas</li>
-          <li>Reuniões</li>
+          <li className="line-through">Reuniões</li>
           <li>Tarefas</li>
           <li>Faturamento / NFS-e</li>
           <li>Dashboard com gráficos</li>
