@@ -23,8 +23,8 @@ Next.js + Tailwind no web; Supabase (Postgres + RLS) como backend; Chart.js para
 4. ✅ Tarefas
 5. ✅ Faturamento/NFS-e — importação manual + extrato OFX (emissão continua manual na prefeitura)
 6. ✅ Dashboard (gráficos da seção 5.3: área faturamento, barras por cliente, radar saúde, progresso metas)
-7. Contratos e Metas/OKRs
-8. Checklist de Saúde Operacional
+7. ✅ Contratos e Metas/OKRs
+8. ✅ Checklist de Saúde Operacional
 9. Login (Google) — última etapa do projeto todo (decisão do Arlison, 09/jul/2026). Até lá, `04_dev_acesso_anon.sql` libera acesso anônimo em dev; ao construir o login, dropar as policies `dev_anon_*` (script no fim do próprio arquivo) e **não publicar o app na internet antes disso**.
 
 ## Cores por categoria (consistente em todos os gráficos, nunca aleatório)

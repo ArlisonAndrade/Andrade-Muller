@@ -6,19 +6,15 @@ import {
   GraficoRadar,
 } from "@/components/charts/graficos";
 import { nomeCliente, type Cliente } from "@/lib/tipos";
-import { moedaBRL, mesCurto, diasDesde } from "@/lib/formato";
+import { moedaBRL, mesCurto } from "@/lib/formato";
+import { calcularSaude } from "@/lib/saude";
 
 const ESTAGIOS_ABERTOS = ["prospeccao", "proposta", "negociacao"];
-const STATUS_PIPELINE = ["lead", "prospeccao", "proposta", "negociacao"];
 
 function corDoCliente(nome: string): "marinho" | "bronze" | "salvia" {
   if (nome.includes("IBVET")) return "marinho";
   if (nome.includes("IEA")) return "bronze";
   return "salvia";
-}
-
-function percentual(parte: number, total: number) {
-  return total === 0 ? 100 : Math.round((parte / total) * 100);
 }
 
 export default async function Dashboard() {
@@ -92,38 +88,19 @@ export default async function Dashboard() {
   const clientesAtivos = (clientes ?? []).filter((c) => c.status === "cliente_ativo");
   const tarefasPendentes = (tarefas ?? []).filter((t) => !t.concluida);
 
-  // --- Radar de saúde operacional: os 5 itens do checklist, calculados ---
-  const noPipeline = (clientes ?? []).filter((c) => STATUS_PIPELINE.includes(c.status));
-  const leadsEmDia = noPipeline.filter(
-    (c) => c.ultimo_contato && diasDesde(c.ultimo_contato) < 14,
-  );
-  const criticas = tarefasPendentes.filter((t) => t.prioridade === "critica");
-  const criticasComResp = criticas.filter((t) => t.responsavel);
-  const recorrentes = (contratos ?? []).filter((c) => c.tipo === "mensal_recorrente");
-  const lancadosNoMes = new Set(
-    (faturamento ?? [])
-      .filter((f) => f.competencia === competenciaAtual)
-      .map((f) => f.cliente_id),
-  );
-  const recorrentesLancados = recorrentes.filter((c) => lancadosNoMes.has(c.cliente_id));
-  const realizadas = (reunioes ?? []).filter((r) => r.status === "realizada");
-  const comAta = realizadas.filter((r) => r.ata);
-
+  // --- Radar de saúde operacional: mesmas regras da página /saude ---
+  const indicadores = calcularSaude({
+    clientes: clientes ?? [],
+    negocios: negocios ?? [],
+    tarefas: tarefas ?? [],
+    reunioes: reunioes ?? [],
+    contratos: contratos ?? [],
+    faturamento: faturamento ?? [],
+    competenciaAtual,
+  });
   const saude = {
-    eixos: [
-      "Leads em dia",
-      "Follow-up de propostas",
-      "Críticas c/ responsável",
-      "Faturamento lançado",
-      "Atas documentadas",
-    ],
-    valores: [
-      percentual(leadsEmDia.length, noPipeline.length),
-      percentual(abertos.filter((n) => n.proxima_acao).length, abertos.length),
-      percentual(criticasComResp.length, criticas.length),
-      percentual(recorrentesLancados.length, recorrentes.length),
-      percentual(comAta.length, realizadas.length),
-    ],
+    eixos: indicadores.map((i) => i.rotulo),
+    valores: indicadores.map((i) => i.percentual),
   };
 
   // --- Carga de trabalho x valor (o relatório da reprecificação, PRD 1.7) ---
