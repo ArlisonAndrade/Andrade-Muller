@@ -97,6 +97,16 @@ export const PRIORIDADES_TAREFA = [
 
 export type PrioridadeTarefa = (typeof PRIORIDADES_TAREFA)[number]["valor"];
 
+export const QUADRANTES_EISENHOWER = [
+  { valor: "fazer", rotulo: "Fazer agora", descricao: "urgente + importante" },
+  { valor: "agendar", rotulo: "Agendar", descricao: "importante, não urgente" },
+  { valor: "delegar", rotulo: "Delegar", descricao: "urgente, não importante" },
+  { valor: "eliminar", rotulo: "Eliminar", descricao: "nem urgente, nem importante" },
+] as const;
+
+export type QuadranteEisenhower =
+  (typeof QUADRANTES_EISENHOWER)[number]["valor"];
+
 export interface Tarefa {
   id: string;
   cliente_id: string;
@@ -106,5 +116,6 @@ export interface Tarefa {
   concluida: boolean;
   prioridade: PrioridadeTarefa;
   data_prazo: string | null;
+  eisenhower?: QuadranteEisenhower | null;
   cliente?: Pick<Cliente, "empresa" | "nome_contato"> | null;
 }

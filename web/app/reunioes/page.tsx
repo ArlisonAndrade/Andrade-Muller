@@ -6,8 +6,14 @@ import {
   nomeCliente,
   type Cliente,
   type Reuniao,
+  type Tarefa,
 } from "@/lib/tipos";
-import { dataHoraBR } from "@/lib/formato";
+import { dataBR, dataHoraBR } from "@/lib/formato";
+import { segundaDaSemana } from "@/lib/saude";
+import {
+  CalendarioSemana,
+  addDias,
+} from "@/components/reunioes/calendario-semana";
 
 const CORES_STATUS: Record<string, string> = {
   agendada: "text-bronze",
@@ -22,10 +28,32 @@ function rotulo(lista: readonly { valor: string; rotulo: string }[], valor: stri
 export default async function PaginaReunioes({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; cliente?: string }>;
+  searchParams: Promise<{ q?: string; cliente?: string; semana?: string }>;
 }) {
-  const { q, cliente } = await searchParams;
+  const { q, cliente, semana } = await searchParams;
   const supabase = await createClient();
+
+  // Calendário semanal: reuniões + tarefas com prazo na semana escolhida
+  const segunda = /^\d{4}-\d{2}-\d{2}$/.test(semana ?? "")
+    ? (semana as string)
+    : segundaDaSemana();
+  const fimDaSemana = addDias(segunda, 7);
+
+  const [{ data: reunioesSemana }, { data: tarefasSemana }] =
+    await Promise.all([
+      supabase
+        .from("fm_reunioes")
+        .select("*, cliente:fm_clientes(empresa, nome_contato)")
+        .gte("data_reuniao", segunda)
+        .lt("data_reuniao", fimDaSemana)
+        .order("data_reuniao"),
+      supabase
+        .from("fm_tarefas")
+        .select("*, cliente:fm_clientes(empresa, nome_contato)")
+        .gte("data_prazo", segunda)
+        .lt("data_prazo", fimDaSemana)
+        .order("data_prazo"),
+    ]);
 
   let consulta = supabase
     .from("fm_reunioes")
@@ -80,6 +108,67 @@ export default async function PaginaReunioes({
         </Link>
       </div>
 
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="font-display text-lg font-medium text-ink">
+          Semana de {dataBR(segunda)}
+        </h2>
+        <div className="flex gap-2 text-sm">
+          <Link
+            href={`/reunioes?semana=${addDias(segunda, -7)}`}
+            className="rounded-lg border border-divider bg-card px-3 py-1.5 text-ink-soft hover:text-ink"
+          >
+            ← anterior
+          </Link>
+          <Link
+            href="/reunioes"
+            className="rounded-lg border border-divider bg-card px-3 py-1.5 text-ink-soft hover:text-ink"
+          >
+            hoje
+          </Link>
+          <Link
+            href={`/reunioes?semana=${addDias(segunda, 7)}`}
+            className="rounded-lg border border-divider bg-card px-3 py-1.5 text-ink-soft hover:text-ink"
+          >
+            próxima →
+          </Link>
+        </div>
+      </div>
+
+      <div className="mb-8">
+        <CalendarioSemana
+          segunda={segunda}
+          reunioes={(reunioesSemana ?? []) as Reuniao[]}
+          tarefas={(tarefasSemana ?? []) as Tarefa[]}
+        />
+        <p className="mt-1 text-xs text-ink-faint">
+          Tarefas com prazo na semana aparecem no dia do vencimento — classifique
+          cada uma na Matriz de Eisenhower pelo seletor; a matriz montada fica no
+          Dashboard.
+        </p>
+      </div>
+
+      {process.env.NEXT_PUBLIC_GCAL_EMBED_URL ? (
+        <div className="mb-8">
+          <h2 className="mb-3 font-display text-lg font-medium text-ink">
+            Agenda Google
+          </h2>
+          <iframe
+            src={process.env.NEXT_PUBLIC_GCAL_EMBED_URL}
+            className="h-[480px] w-full rounded-card border-0 bg-card shadow-card"
+            title="Google Calendar"
+          />
+        </div>
+      ) : (
+        <p className="mb-8 text-xs text-ink-faint">
+          Para embutir a agenda do Google aqui: Google Calendar → ⚙ Configurações
+          → sua agenda → &quot;Integrar agenda&quot; → copiar o endereço do iframe e colocar
+          em NEXT_PUBLIC_GCAL_EMBED_URL no web/.env.local.
+        </p>
+      )}
+
+      <h2 className="mb-3 font-display text-lg font-medium text-ink">
+        Histórico
+      </h2>
       <form method="GET" className="mb-6 flex gap-3">
         <input
           type="search"

@@ -41,6 +41,19 @@ export async function alternarConclusao(id: string, concluida: boolean) {
   revalidatePath("/tarefas");
 }
 
+// Classificação na Matriz de Eisenhower ("" limpa a classificação)
+export async function definirEisenhower(id: string, quadrante: string) {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("fm_tarefas")
+    .update({ eisenhower: quadrante || null })
+    .eq("id", id);
+  if (error) throw new Error(`Erro ao classificar tarefa: ${error.message}`);
+  revalidatePath("/");
+  revalidatePath("/tarefas");
+  revalidatePath("/reunioes");
+}
+
 export async function excluirTarefa(id: string) {
   const supabase = await createClient();
   const { error } = await supabase.from("fm_tarefas").delete().eq("id", id);

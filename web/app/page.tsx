@@ -5,7 +5,13 @@ import {
   GraficoBarrasClientes,
   GraficoRadar,
 } from "@/components/charts/graficos";
-import { nomeCliente, type Cliente } from "@/lib/tipos";
+import Link from "next/link";
+import {
+  nomeCliente,
+  QUADRANTES_EISENHOWER,
+  type Cliente,
+  type Tarefa,
+} from "@/lib/tipos";
 import { moedaBRL, mesCurto } from "@/lib/formato";
 import { calcularSaude } from "@/lib/saude";
 
@@ -42,9 +48,7 @@ export default async function Dashboard() {
       .select("valor, competencia, cliente_id, cliente:fm_clientes(empresa, nome_contato)"),
     supabase.from("fm_negocios").select("valor, estagio, proxima_acao"),
     supabase.from("fm_clientes").select("id, empresa, nome_contato, status, ultimo_contato"),
-    supabase
-      .from("fm_tarefas")
-      .select("concluida, prioridade, responsavel, cliente_id, created_at"),
+    supabase.from("fm_tarefas").select("*"),
     supabase.from("fm_reunioes").select("status, ata, data_reuniao, cliente_id"),
     supabase
       .from("fm_contratos")
@@ -155,6 +159,78 @@ export default async function Dashboard() {
       </div>
 
       <div className="grid grid-cols-2 gap-6">
+        <Card title="Matriz de Eisenhower" className="col-span-2">
+          {(() => {
+            const pendentes = (tarefas ?? []) as Tarefa[];
+            const abertas = pendentes.filter((t) => !t.concluida);
+            const semClassificacao = abertas.filter((t) => !t.eisenhower);
+            const COR_QUADRANTE: Record<string, string> = {
+              fazer: "border-terracota/40 text-terracota",
+              agendar: "border-marinho/30 text-marinho",
+              delegar: "border-bronze/40 text-bronze",
+              eliminar: "border-divider text-ink-faint",
+            };
+            return (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  {QUADRANTES_EISENHOWER.map((qd) => {
+                    const doQuadrante = abertas.filter(
+                      (t) => t.eisenhower === qd.valor,
+                    );
+                    return (
+                      <div
+                        key={qd.valor}
+                        className={`rounded-card border bg-parchment/50 p-4 ${COR_QUADRANTE[qd.valor]}`}
+                      >
+                        <p className="text-sm font-medium">
+                          {qd.rotulo}{" "}
+                          <span className="text-xs font-normal opacity-70">
+                            · {qd.descricao}
+                          </span>
+                        </p>
+                        <ul className="mt-2 flex flex-col gap-1">
+                          {doQuadrante.slice(0, 5).map((t) => (
+                            <li key={t.id}>
+                              <Link
+                                href={`/tarefas/${t.id}`}
+                                className="text-sm text-ink hover:text-marinho"
+                              >
+                                {t.titulo}
+                              </Link>
+                            </li>
+                          ))}
+                          {doQuadrante.length > 5 && (
+                            <li className="text-xs text-ink-faint">
+                              + {doQuadrante.length - 5} tarefa(s)
+                            </li>
+                          )}
+                          {doQuadrante.length === 0 && (
+                            <li className="text-xs text-ink-faint/70">vazio</li>
+                          )}
+                        </ul>
+                      </div>
+                    );
+                  })}
+                </div>
+                {semClassificacao.length > 0 && (
+                  <p className="mt-3 text-xs text-ink-faint">
+                    {semClassificacao.length} tarefa(s) pendente(s) ainda sem
+                    classificação —{" "}
+                    <Link href="/reunioes" className="text-marinho underline">
+                      classifique no calendário da semana
+                    </Link>{" "}
+                    ou na{" "}
+                    <Link href="/tarefas" className="text-marinho underline">
+                      lista de tarefas
+                    </Link>
+                    .
+                  </p>
+                )}
+              </>
+            );
+          })()}
+        </Card>
+
         <Card title="Tendência de faturamento" className="col-span-2">
           <GraficoArea rotulos={meses.map(mesCurto)} valores={serieMensal} />
         </Card>

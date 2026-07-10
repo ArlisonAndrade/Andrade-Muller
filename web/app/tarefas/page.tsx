@@ -1,14 +1,21 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
-import { alternarConclusao } from "@/lib/acoes/tarefas";
+import { alternarConclusao, definirEisenhower } from "@/lib/acoes/tarefas";
 import { CheckboxTarefa } from "@/components/tarefas/checkbox-tarefa";
+import { SeletorKanban } from "@/components/crm/seletor-kanban";
 import {
   PRIORIDADES_TAREFA,
+  QUADRANTES_EISENHOWER,
   nomeCliente,
   type Cliente,
   type Tarefa,
 } from "@/lib/tipos";
+
+const OPCOES_MATRIZ = [
+  { valor: "", rotulo: "— matriz —" },
+  ...QUADRANTES_EISENHOWER.map((q) => ({ valor: q.valor, rotulo: q.rotulo })),
+];
 import { dataBR } from "@/lib/formato";
 
 const COR_PRIORIDADE: Record<string, string> = {
@@ -39,6 +46,15 @@ function LinhaTarefa({ tarefa, hoje }: { tarefa: Tarefa; hoje: string }) {
       >
         {tarefa.titulo}
       </Link>
+      {!tarefa.concluida && (
+        <span className="w-32 shrink-0 [&_select]:mt-0">
+          <SeletorKanban
+            valor={tarefa.eisenhower ?? ""}
+            opcoes={OPCOES_MATRIZ}
+            aoMudar={definirEisenhower.bind(null, tarefa.id)}
+          />
+        </span>
+      )}
       <span
         className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${COR_PRIORIDADE[tarefa.prioridade] ?? ""}`}
       >
