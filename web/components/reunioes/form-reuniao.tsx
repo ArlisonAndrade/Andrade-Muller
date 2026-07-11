@@ -34,9 +34,11 @@ function Campo({
 export function FormReuniao({
   reuniao,
   clientes,
+  projetos = [],
 }: {
-  reuniao?: Reuniao;
+  reuniao?: Reuniao & { projeto_id?: string | null };
   clientes: Pick<Cliente, "id" | "empresa" | "nome_contato">[];
+  projetos?: { id: string; nome: string }[];
 }) {
   return (
     <form action={salvarReuniao} className="grid grid-cols-2 gap-4">
@@ -86,6 +88,23 @@ export function FormReuniao({
           ))}
         </select>
       </Campo>
+
+      {projetos.length > 0 && (
+        <Campo rotulo="Projeto (opcional)" className="col-span-2">
+          <select
+            name="projeto_id"
+            defaultValue={reuniao?.projeto_id ?? ""}
+            className={estiloInput}
+          >
+            <option value="">— sem projeto —</option>
+            {projetos.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.nome}
+              </option>
+            ))}
+          </select>
+        </Campo>
+      )}
 
       <Campo rotulo="Ata (resumo executivo)" className="col-span-2">
         <textarea name="ata" rows={4} defaultValue={reuniao?.ata ?? ""} className={estiloInput} />

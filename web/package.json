@@ -9,6 +9,7 @@
     "lint": "node node_modules/eslint/bin/eslint.js"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.111.0",
     "@supabase/ssr": "^0.12.0",
     "@supabase/supabase-js": "^2.110.2",
     "chart.js": "^4.5.1",

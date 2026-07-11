@@ -63,6 +63,16 @@ const modulos = [
     ),
   },
   {
+    href: "/projetos",
+    label: "Projetos",
+    icone: (
+      <Icone>
+        <path d="M12 3l9 5-9 5-9-5 9-5z" />
+        <path d="M3 13l9 5 9-5" />
+      </Icone>
+    ),
+  },
+  {
     href: "/financeiro",
     label: "Financeiro",
     icone: (

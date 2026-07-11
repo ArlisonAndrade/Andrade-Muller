@@ -1,9 +1,15 @@
 import { notFound } from "next/navigation";
 import { Card } from "@/components/ui/card";
 import { FormReuniao } from "@/components/reunioes/form-reuniao";
+import { AnaliseIa } from "@/components/reunioes/analise-ia";
 import { createClient } from "@/lib/supabase/server";
 import { criarTarefaDaReuniao } from "@/lib/acoes/reunioes";
-import { PRIORIDADES_TAREFA, type Reuniao, type Tarefa } from "@/lib/tipos";
+import {
+  PRIORIDADES_TAREFA,
+  nomeCliente,
+  type Reuniao,
+  type Tarefa,
+} from "@/lib/tipos";
 import { dataBR } from "@/lib/formato";
 
 const estiloInput =
@@ -17,10 +23,15 @@ export default async function EditarReuniao({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: reuniao }, { data: clientes }, { data: tarefas }] =
+  const [{ data: reuniao }, { data: clientes }, { data: projetos }, { data: tarefas }] =
     await Promise.all([
-      supabase.from("fm_reunioes").select("*").eq("id", id).maybeSingle(),
+      supabase
+        .from("fm_reunioes")
+        .select("*, cliente:fm_clientes(empresa, nome_contato)")
+        .eq("id", id)
+        .maybeSingle(),
       supabase.from("fm_clientes").select("id, empresa, nome_contato").order("empresa"),
+      supabase.from("fm_projetos").select("id, nome").order("nome"),
       supabase
         .from("fm_tarefas")
         .select("*")
@@ -38,8 +49,27 @@ export default async function EditarReuniao({
         {r.titulo}
       </h1>
 
-      <Card>
-        <FormReuniao reuniao={r} clientes={clientes ?? []} />
+      <Card title="Analisar reunião com IA">
+        <AnaliseIa
+          reuniaoId={r.id}
+          clienteId={r.cliente_id}
+          clienteNome={r.cliente ? nomeCliente(r.cliente) : "—"}
+          projetoId={(r as Reuniao & { projeto_id?: string | null }).projeto_id ?? null}
+          tituloReuniao={r.titulo}
+          dataReuniao={r.data_reuniao.slice(0, 10)}
+        />
+      </Card>
+
+      {(r as Reuniao & { relatorio_analise?: string | null }).relatorio_analise && (
+        <Card title="Análise consultiva" className="mt-6">
+          <p className="whitespace-pre-line text-sm text-ink-soft">
+            {(r as Reuniao & { relatorio_analise?: string | null }).relatorio_analise}
+          </p>
+        </Card>
+      )}
+
+      <Card title="Ata e detalhes" className="mt-6">
+        <FormReuniao reuniao={r} clientes={clientes ?? []} projetos={projetos ?? []} />
       </Card>
 
       <Card title="Ações desta reunião → tarefas" className="mt-6">

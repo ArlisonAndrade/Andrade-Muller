@@ -15,6 +15,7 @@ export async function salvarReuniao(fd: FormData) {
   const id = texto(fd, "id");
   const dados = {
     cliente_id: texto(fd, "cliente_id"),
+    projeto_id: texto(fd, "projeto_id"),
     titulo: texto(fd, "titulo") ?? "(sem título)",
     tipo: texto(fd, "tipo"),
     status: texto(fd, "status") ?? "agendada",

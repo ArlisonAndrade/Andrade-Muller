@@ -42,6 +42,7 @@ export default async function Dashboard() {
     { data: reunioes },
     { data: contratos },
     { data: metas },
+    { data: projetos },
   ] = await Promise.all([
     supabase
       .from("fm_faturamento")
@@ -55,6 +56,11 @@ export default async function Dashboard() {
       .select("cliente_id, valor_mensal, tipo")
       .eq("ativo", true),
     supabase.from("fm_metas_okrs").select("*").order("created_at"),
+    supabase
+      .from("fm_projetos")
+      .select("*, cliente:fm_clientes(empresa, nome_contato)")
+      .eq("status", "ativo")
+      .order("created_at", { ascending: false }),
   ]);
 
   // --- Série mensal de faturamento (últimos 12 meses com lançamento) ---
@@ -270,6 +276,59 @@ export default async function Dashboard() {
                       <div
                         className="h-full rounded-full bg-bronze"
                         style={{ width: `${progresso}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Card>
+
+        <Card title="Projetos em andamento">
+          {(projetos ?? []).length === 0 ? (
+            <p className="text-sm text-ink-faint">
+              Nenhum projeto ativo —{" "}
+              <Link href="/projetos/novo" className="text-marinho underline">
+                criar o primeiro
+              </Link>
+              .
+            </p>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {(projetos ?? []).map((p) => {
+                const doProjeto = ((tarefas ?? []) as Tarefa[]).filter(
+                  (t) =>
+                    (t as Tarefa & { projeto_id?: string | null }).projeto_id ===
+                    p.id,
+                );
+                const feitas = doProjeto.filter((t) => t.concluida).length;
+                const pct =
+                  doProjeto.length > 0
+                    ? Math.round((feitas / doProjeto.length) * 100)
+                    : 0;
+                const cliente = p.cliente as unknown as Pick<
+                  Cliente,
+                  "empresa" | "nome_contato"
+                > | null;
+                return (
+                  <div key={p.id}>
+                    <div className="mb-1 flex items-baseline justify-between gap-3">
+                      <Link
+                        href={`/projetos/${p.id}`}
+                        className="text-sm font-medium text-ink hover:text-marinho"
+                      >
+                        {p.nome}
+                      </Link>
+                      <span className="shrink-0 text-xs text-ink-faint">
+                        {cliente ? nomeCliente(cliente) : "—"} · {feitas}/
+                        {doProjeto.length}
+                      </span>
+                    </div>
+                    <div className="h-2 overflow-hidden rounded-full bg-divider">
+                      <div
+                        className="h-full rounded-full bg-salvia"
+                        style={{ width: `${pct}%` }}
                       />
                     </div>
                   </div>

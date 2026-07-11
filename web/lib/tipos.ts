@@ -91,6 +91,40 @@ export interface Transacao {
   conta?: Conta | null;
 }
 
+// ---------- Projetos (consultoria individual / micro) ----------
+export const FASES_PROJETO = [
+  { valor: "onboarding", rotulo: "Onboarding" },
+  { valor: "diagnostico", rotulo: "Diagnóstico" },
+  { valor: "planejamento", rotulo: "Planejamento" },
+  { valor: "execucao", rotulo: "Execução" },
+  { valor: "encerramento", rotulo: "Encerramento" },
+] as const;
+
+export type FaseProjeto = (typeof FASES_PROJETO)[number]["valor"];
+
+export interface Projeto {
+  id: string;
+  cliente_id: string;
+  nome: string;
+  descricao: string | null;
+  status: "ativo" | "pausado" | "concluido";
+  data_inicio: string;
+  data_fim_prevista: string | null;
+  cliente?: Pick<Cliente, "empresa" | "nome_contato"> | null;
+}
+
+export interface TemplateTarefa {
+  id: string;
+  nome: string;
+  categoria: string | null;
+  descricao: string | null;
+  exemplo_uso: string | null;
+  fase: FaseProjeto;
+  prazo_dias: number;
+  prioridade: string;
+  ativo: boolean;
+}
+
 export const TIPOS_REUNIAO = [
   { valor: "kickoff", rotulo: "Kickoff" },
   { valor: "acompanhamento", rotulo: "Acompanhamento" },

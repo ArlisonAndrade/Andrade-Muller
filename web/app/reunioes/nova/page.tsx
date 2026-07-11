@@ -4,10 +4,10 @@ import { createClient } from "@/lib/supabase/server";
 
 export default async function NovaReuniao() {
   const supabase = await createClient();
-  const { data: clientes } = await supabase
-    .from("fm_clientes")
-    .select("id, empresa, nome_contato")
-    .order("empresa");
+  const [{ data: clientes }, { data: projetos }] = await Promise.all([
+    supabase.from("fm_clientes").select("id, empresa, nome_contato").order("empresa"),
+    supabase.from("fm_projetos").select("id, nome").neq("status", "concluido").order("nome"),
+  ]);
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -15,7 +15,7 @@ export default async function NovaReuniao() {
         Nova reunião
       </h1>
       <Card>
-        <FormReuniao clientes={clientes ?? []} />
+        <FormReuniao clientes={clientes ?? []} projetos={projetos ?? []} />
       </Card>
     </div>
   );
