@@ -10,7 +10,7 @@ MVP interno (single-tenant) que substitui o Notion da consultoria da Franciele. 
 
 ## Estrutura
 - `web/` — Next.js 16 (App Router) + Tailwind v4 + Chart.js. Tokens visuais em `web/app/globals.css` (`@theme`) — usar somente essas cores/fontes.
-- `supabase/migrations/` — rodar em ordem no SQL Editor do projeto Supabase: `00_base.sql` (entidades mínimas), `01_fm_gestao.sql` (cópia verbatim do schema), `02_rls_policies.sql`, `03_seed.sql` (dados reais).
+- `supabase/migrations/` — rodar em ordem no SQL Editor do projeto Supabase (00→07). A partir da 06, o Financeiro usa categorias/contas/transacoes (estrutura do schema.sql financeiro) com coluna extra grupo_dre; a 07 carrega os dados reais migrados da planilha da Franciele (fonte: Google Sheets, jul/2026). fm_faturamento = notas (competência); transacoes = impostos/despesas/destinação.
 - Mobile (`/mobile`) fica para depois da unificação — não criar agora.
 
 ## Stack (decidida, não debater)

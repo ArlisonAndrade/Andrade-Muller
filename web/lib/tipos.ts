@@ -55,6 +55,42 @@ export function nomeCliente(c: Pick<Cliente, "empresa" | "nome_contato">) {
   return c.empresa ?? c.nome_contato;
 }
 
+// ---------- Financeiro (caixa — tabelas do schema.sql financeiro) ----------
+export const CONTA_PADRAO_ID = "f2000000-0000-0000-0000-000000000001"; // Nubank PJ
+
+export type GrupoDre =
+  | "imposto"
+  | "cps"
+  | "folha"
+  | "fixa"
+  | "variavel"
+  | "destinacao";
+
+export interface Categoria {
+  id: string;
+  nome: string;
+  tipo: "receita" | "despesa";
+  grupo_dre?: GrupoDre | null;
+}
+
+export interface Conta {
+  id: string;
+  nome: string;
+}
+
+export interface Transacao {
+  id: string;
+  conta_id: string | null;
+  categoria_id: string | null;
+  descricao: string;
+  valor: number;
+  data: string;
+  recorrente: boolean;
+  ofx_fitid?: string | null;
+  categoria?: Categoria | null;
+  conta?: Conta | null;
+}
+
 export const TIPOS_REUNIAO = [
   { valor: "kickoff", rotulo: "Kickoff" },
   { valor: "acompanhamento", rotulo: "Acompanhamento" },

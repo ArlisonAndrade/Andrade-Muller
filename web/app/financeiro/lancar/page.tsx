@@ -83,7 +83,7 @@ export default async function LancarNfse() {
             >
               Lançar
             </button>
-            <Link href="/faturamento" className="text-sm text-ink-faint hover:text-ink">
+            <Link href="/financeiro" className="text-sm text-ink-faint hover:text-ink">
               Cancelar
             </Link>
           </div>

@@ -63,8 +63,8 @@ const modulos = [
     ),
   },
   {
-    href: "/faturamento",
-    label: "Faturamento",
+    href: "/financeiro",
+    label: "Financeiro",
     icone: (
       <Icone>
         <path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3z" />
