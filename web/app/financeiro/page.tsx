@@ -346,7 +346,7 @@ export default async function PaginaFinanceiro({
                       : dreDoMes(m).lucro;
                   return (
                     <td key={m} className="px-2 py-1.5 text-right font-display text-sm font-semibold text-bronze">
-                      {fat > 0 ? `${((lucro / fat) * 100).toFixed(1)}%` : "—"}
+                      {fat > 0 ? `${((lucro / fat) * 100).toFixed(1).replace(".", ",")}%` : "—"}
                     </td>
                   );
                 })}
@@ -403,7 +403,7 @@ export default async function PaginaFinanceiro({
                   }
                   return (
                     <td key={m} className="px-2 py-1.5 text-right font-display text-sm font-semibold text-bronze">
-                      {pct === null ? "—" : `${(pct * 100).toFixed(1)}%`}
+                      {pct === null ? "—" : `${(pct * 100).toFixed(1).replace(".", ",")}%`}
                     </td>
                   );
                 })}
@@ -458,7 +458,7 @@ export default async function PaginaFinanceiro({
                           : "text-terracota"
                     }`}
                   >
-                    {f.fator === null ? "—" : `${(f.fator * 100).toFixed(2)}%`}
+                    {f.fator === null ? "—" : `${(f.fator * 100).toFixed(2).replace(".", ",")}%`}
                   </td>
                   <td
                     className={`px-2 py-1.5 text-xs font-medium ${
