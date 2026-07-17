@@ -1,0 +1,306 @@
+/*
+ * Identidade visual do portal da família — paleta madeira/dourado e fontes
+ * Cinzel + Cormorant Garamond, à parte dos tokens do FM Gestão (globals.css).
+ * Escopado a este grupo de rotas via CSS Module: não vaza para o resto do app.
+ */
+
+.shell {
+  --wood-dark: #17110b;
+  --wood-mid: #241a10;
+  --wood-warm: #33230f;
+  --gold: #c9a24b;
+  --gold-soft: #e3c476;
+  --gold-dim: rgba(201, 162, 75, 0.35);
+  --ink: #efe6d3;
+  --card-bg: #2a1e13;
+
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  background: radial-gradient(
+    ellipse 900px 700px at 50% 30%,
+    var(--wood-warm) 0%,
+    var(--wood-mid) 45%,
+    var(--wood-dark) 100%
+  );
+  font-family: var(--font-cormorant), serif;
+  color: var(--ink);
+}
+
+.grain {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+}
+
+/* ---------- brasão ---------- */
+.crestWrap {
+  position: relative;
+  width: clamp(120px, 15vw, 210px);
+}
+
+.glow {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: clamp(200px, 22vw, 320px);
+  height: clamp(200px, 22vw, 320px);
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(227, 196, 118, 0.28) 0%, rgba(227, 196, 118, 0.06) 45%, transparent 70%);
+  filter: blur(14px);
+  opacity: 0;
+  animation: glowIn 2.2s ease-out 0.1s forwards;
+  pointer-events: none;
+}
+
+@keyframes glowIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+.crestImg {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: auto;
+  opacity: 0;
+  filter: blur(10px) drop-shadow(0 18px 40px rgba(0, 0, 0, 0.55));
+  transform: scale(1.05);
+  animation: crestIn 1.8s ease-out 0.25s forwards;
+}
+
+@keyframes crestIn {
+  0% { opacity: 0; filter: blur(10px) drop-shadow(0 18px 40px rgba(0, 0, 0, 0.55)); transform: scale(1.05); }
+  100% { opacity: 1; filter: blur(0) drop-shadow(0 18px 40px rgba(0, 0, 0, 0.55)); transform: scale(1); }
+}
+
+/* ---------- tela de entrada (login) ---------- */
+.portal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.eyebrow {
+  margin: 34px 0 0;
+  font-family: var(--font-cinzel), serif;
+  font-size: 12px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--gold-soft);
+  opacity: 0;
+  animation: fadeUp 1s ease 0.9s forwards;
+}
+
+@keyframes fadeUp {
+  0% { opacity: 0; transform: translateY(8px); }
+  100% { opacity: 0.85; transform: translateY(0); }
+}
+
+.googleBtn {
+  position: relative;
+  margin-top: 34px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 28px;
+  background: var(--wood-mid);
+  border: 1px solid var(--gold-dim);
+  border-radius: 3px;
+  color: var(--ink);
+  font-family: var(--font-cinzel), serif;
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+  opacity: 0;
+  animation: fadeUp 1s ease 1.25s forwards;
+  transition: border-color 0.3s ease, background 0.3s ease, transform 0.2s ease;
+}
+.googleBtn:hover { border-color: var(--gold); background: var(--wood-warm); transform: translateY(-1px); }
+.googleBtn:active { transform: translateY(0); }
+.googleBtn:disabled { cursor: default; }
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  flex: none;
+  border: 2px solid rgba(239, 230, 211, 0.25);
+  border-top-color: var(--gold-soft);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.fineprint {
+  margin-top: 20px;
+  font-size: 12px;
+  color: rgba(239, 230, 211, 0.35);
+  opacity: 0;
+  animation: fadeUp 1s ease 1.4s forwards;
+}
+
+.erro {
+  margin-top: 20px;
+  border-radius: 4px;
+  background: rgba(140, 74, 94, 0.25);
+  padding: 10px 16px;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+/* ---------- hub ---------- */
+.hub {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 760px;
+}
+
+.hubTopbar {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.cornerCrest {
+  width: clamp(44px, 6vw, 60px);
+  height: auto;
+  opacity: 0.9;
+}
+
+.accountArea {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.accountChip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: rgba(239, 230, 211, 0.65);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #7bbf7b;
+  box-shadow: 0 0 6px #7bbf7b;
+}
+
+.signout {
+  background: none;
+  border: none;
+  font-family: var(--font-cormorant), serif;
+  font-size: 14px;
+  color: rgba(239, 230, 211, 0.55);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.signout:hover { color: var(--gold-soft); }
+
+.hubTitle {
+  margin: 6vh 0 4px;
+  font-family: var(--font-cinzel), serif;
+  font-size: 15px;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--gold-soft);
+  text-align: center;
+}
+
+.hubSub {
+  margin: 0 0 6vh;
+  font-size: 14px;
+  color: rgba(239, 230, 211, 0.4);
+  text-align: center;
+}
+
+.hubCards {
+  display: flex;
+  gap: 48px;
+  flex-wrap: wrap;
+  justify-content: center;
+  padding: 0 24px;
+}
+
+.envCard {
+  width: 220px;
+  padding: 34px 20px 26px;
+  background: linear-gradient(180deg, var(--card-bg), var(--wood-mid));
+  border: 1px solid var(--gold-dim);
+  border-radius: 4px;
+  text-decoration: none;
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  transition: transform 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+}
+.envCard:hover { border-color: var(--gold); box-shadow: 0 16px 34px rgba(0, 0, 0, 0.45); transform: translateY(-4px); }
+
+.envCardMuted { opacity: 0.55; }
+.envCardMuted:hover { border-color: var(--gold-dim); box-shadow: none; transform: none; }
+
+.envShield {
+  width: 64px;
+  height: 74px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: var(--wood-warm);
+  border: 1px solid var(--gold-dim);
+  clip-path: polygon(0 0, 100% 0, 100% 65%, 50% 100%, 0 65%);
+  font-family: var(--font-cinzel), serif;
+  font-size: 20px;
+  color: var(--gold-soft);
+}
+
+.envLabel {
+  font-family: var(--font-cinzel), serif;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.envNote {
+  font-size: 12px;
+  color: rgba(239, 230, 211, 0.35);
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .hubTitle { margin-top: 96px; font-size: 13px; }
+  .hubCards { gap: 22px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crestImg, .eyebrow, .googleBtn, .fineprint {
+    animation-duration: 0.01ms !important;
+  }
+  .envCard {
+    transition-duration: 0.01ms !important;
+  }
+}

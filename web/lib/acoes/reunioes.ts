@@ -3,6 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import {
+  sincronizarEventoDaReuniao,
+  removerEvento,
+} from "@/lib/google/calendar";
+import type { Reuniao } from "@/lib/tipos";
 
 function texto(fd: FormData, campo: string): string | null {
   const v = fd.get(campo);
@@ -26,17 +31,51 @@ export async function salvarReuniao(fd: FormData) {
     acoes_definidas: texto(fd, "acoes_definidas"),
   };
 
-  const { error } = id
-    ? await supabase.from("fm_reunioes").update(dados).eq("id", id)
-    : await supabase.from("fm_reunioes").insert(dados);
+  let reuniaoId = id;
+  if (id) {
+    const { error } = await supabase.from("fm_reunioes").update(dados).eq("id", id);
+    if (error) throw new Error(`Erro ao salvar reunião: ${error.message}`);
+  } else {
+    const { data, error } = await supabase
+      .from("fm_reunioes")
+      .insert(dados)
+      .select("id")
+      .single();
+    if (error) throw new Error(`Erro ao salvar reunião: ${error.message}`);
+    reuniaoId = data.id;
+  }
 
-  if (error) throw new Error(`Erro ao salvar reunião: ${error.message}`);
+  // Espelha no Google Agenda se conectado. A função é silenciosa: qualquer
+  // falha do Google não pode impedir o salvamento da reunião.
+  if (reuniaoId) {
+    const { data: r } = await supabase
+      .from("fm_reunioes")
+      .select("*, cliente:fm_clientes(empresa, nome_contato)")
+      .eq("id", reuniaoId)
+      .single();
+    if (r) {
+      const { gcalEventId } = await sincronizarEventoDaReuniao(r as Reuniao);
+      if (gcalEventId !== (r.gcal_event_id ?? null)) {
+        await supabase
+          .from("fm_reunioes")
+          .update({ gcal_event_id: gcalEventId })
+          .eq("id", reuniaoId);
+      }
+    }
+  }
+
   revalidatePath("/reunioes");
   redirect("/reunioes");
 }
 
 export async function excluirReuniao(id: string) {
   const supabase = await createClient();
+  // Guarda o vínculo do Google antes de apagar, para remover o evento depois.
+  const { data: r } = await supabase
+    .from("fm_reunioes")
+    .select("gcal_event_id")
+    .eq("id", id)
+    .maybeSingle();
   // Tarefas nascidas da reunião continuam existindo, só perdem o vínculo
   // (sem isso a FK reuniao_origem_id impediria a exclusão).
   await supabase
@@ -45,6 +84,7 @@ export async function excluirReuniao(id: string) {
     .eq("reuniao_origem_id", id);
   const { error } = await supabase.from("fm_reunioes").delete().eq("id", id);
   if (error) throw new Error(`Erro ao excluir reunião: ${error.message}`);
+  if (r?.gcal_event_id) await removerEvento(r.gcal_event_id);
   revalidatePath("/reunioes");
   redirect("/reunioes");
 }

@@ -14,6 +14,9 @@ import {
   CalendarioSemana,
   addDias,
 } from "@/components/reunioes/calendario-semana";
+import { PainelGoogle } from "@/components/reunioes/painel-google";
+import { googleConfigurado } from "@/lib/google/oauth";
+import { lerIntegracao } from "@/lib/google/calendar";
 
 const CORES_STATUS: Record<string, string> = {
   agendada: "text-bronze",
@@ -28,10 +31,17 @@ function rotulo(lista: readonly { valor: string; rotulo: string }[], valor: stri
 export default async function PaginaReunioes({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; cliente?: string; semana?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    cliente?: string;
+    semana?: string;
+    google?: string;
+  }>;
 }) {
-  const { q, cliente, semana } = await searchParams;
+  const { q, cliente, semana, google } = await searchParams;
   const supabase = await createClient();
+
+  const integracaoGoogle = await lerIntegracao();
 
   // Calendário semanal: reuniões + tarefas com prazo na semana escolhida
   const segunda = /^\d{4}-\d{2}-\d{2}$/.test(semana ?? "")
@@ -147,7 +157,16 @@ export default async function PaginaReunioes({
         </p>
       </div>
 
-      {process.env.NEXT_PUBLIC_GCAL_EMBED_URL ? (
+      <div className="mb-8">
+        <PainelGoogle
+          configurado={googleConfigurado()}
+          conectado={Boolean(integracaoGoogle?.refresh_token)}
+          email={integracaoGoogle?.email ?? null}
+          status={google}
+        />
+      </div>
+
+      {process.env.NEXT_PUBLIC_GCAL_EMBED_URL && (
         <div className="mb-8">
           <h2 className="mb-3 font-display text-lg font-medium text-ink">
             Agenda Google
@@ -158,12 +177,6 @@ export default async function PaginaReunioes({
             title="Google Calendar"
           />
         </div>
-      ) : (
-        <p className="mb-8 text-xs text-ink-faint">
-          Para embutir a agenda do Google aqui: Google Calendar → ⚙ Configurações
-          → sua agenda → &quot;Integrar agenda&quot; → copiar o endereço do iframe e colocar
-          em NEXT_PUBLIC_GCAL_EMBED_URL no web/.env.local.
-        </p>
       )}
 
       <h2 className="mb-3 font-display text-lg font-medium text-ink">

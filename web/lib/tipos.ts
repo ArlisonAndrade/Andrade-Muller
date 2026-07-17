@@ -155,6 +155,7 @@ export interface Reuniao {
   decisoes_tomadas: string | null;
   proximos_passos: string | null;
   acoes_definidas: string | null;
+  gcal_event_id?: string | null;
   cliente?: Pick<Cliente, "empresa" | "nome_contato"> | null;
 }
 

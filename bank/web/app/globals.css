@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+/* Tokens visuais — bank/design_tokens.md (direção "Avenue": minimalista,
+   serifa no destaque, muito espaço em branco, zero gradiente). Não
+   inventar cores/fontes fora daqui. */
+@theme {
+  --color-surface-2: #ffffff; /* fundo da página */
+  --color-surface-1: #f7f6f3; /* cards de destaque (ex: próxima fatura) */
+  --color-text-primary: #0b0b0b; /* números e títulos — mesma cor do wordmark da logo */
+  --color-text-secondary: #6b6a64; /* labels, legendas */
+  --color-text-faint: #9b9a93; /* captions/metadata */
+  --color-text-accent: #2f6f52; /* valores positivos, links — verde discreto */
+  --color-text-alert: #a6483f; /* fatura/vencimento, valores negativos */
+  --color-border: #e4e2dc; /* divisórias e cards de ação, 0.5px */
+  --color-arthur: #3b5b74; /* acento próprio da seção Carteira Arthur */
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-source-serif), Georgia, "Times New Roman", serif;
+
+  --radius-card: 12px;
+}
+
+body {
+  background: var(--color-surface-2);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+}
+
+/* Cards de ação/conteúdo: borda fina 0.5px, nunca sombra. */
+.card-borda {
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-card);
+}
