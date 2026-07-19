@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter } from "next/font/google";
 import "./globals.css";
 
@@ -15,6 +15,12 @@ const fraunces = Fraunces({
 export const metadata: Metadata = {
   title: "FM Gestão e Estratégica",
   description: "Sistema operacional interno da FM Gestão e Estratégica",
+};
+
+// Sem isto o celular renderiza numa "tela virtual" de ~980px e encolhe tudo.
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
