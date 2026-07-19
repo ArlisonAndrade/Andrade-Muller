@@ -15,7 +15,7 @@
 
 create table if not exists entidades (
   id uuid primary key default gen_random_uuid(),
-  nome text not null,                    -- 'Família Andrade&Muller', 'Smart 360 (CNPJ)', 'Carteira Arthur'
+  nome text not null,                    -- 'Família Andrade Muller', 'Smart 360 (CNPJ)', 'Carteira Arthur'
   tipo text not null check (tipo in ('familia', 'cnpj', 'carteira_infantil', 'consultoria')),
   created_at timestamptz default now()
 );
@@ -66,7 +66,7 @@ values ('a0000000-0000-0000-0000-00000000f001', 'FM Gestão e Estratégia', 'con
 -- FM GESTÃO E ESTRATÉGICA — módulo consultoria Franciele
 -- v2 — reconstruído a partir do Notion real ("Sistema Operacional
 -- da FM Gestão Estratégica"), não mais um chute de estrutura genérica.
--- Entidade separada, mesmo projeto Supabase do Andrade&Muller.
+-- Entidade separada, mesmo projeto Supabase do Andrade Muller.
 -- Uso interno (single-tenant) — sem portal de cliente neste escopo.
 -- ============================================================
 

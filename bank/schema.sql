@@ -9,7 +9,7 @@
 -- RLS depois garante que só quem tem permissão acessa cada entidade.
 create table entidades (
   id uuid primary key default gen_random_uuid(),
-  nome text not null,                    -- 'Família Andrade&Muller', 'Smart 360 (CNPJ)', 'Carteira Arthur'
+  nome text not null,                    -- 'Família Andrade Muller', 'Smart 360 (CNPJ)', 'Carteira Arthur'
   tipo text not null check (tipo in ('familia', 'cnpj', 'carteira_infantil')),
   created_at timestamptz default now()
 );

@@ -1,4 +1,4 @@
-# Andrade&Muller — Documento de Kickoff
+# Andrade Muller — Documento de Kickoff
 
 **Objetivo do projeto:** construir um ecossistema de apps (financeiro família + CNPJ + Carteira Arthur + FM Gestão) validando arquitetura e processo antes de vender algo semelhante como produto.
 
@@ -9,9 +9,9 @@
 ## 1. Ordem de construção
 
 1. **FM Gestão e Estratégia** ← módulo atual, começando agora
-2. Andrade&Muller Bank (Família + CNPJ)
+2. Andrade Muller Bank (Família + CNPJ)
 3. Carteira do Arthur
-4. Unificação num painel único (Andrade&Muller) com troca de workspace
+4. Unificação num painel único (Andrade Muller) com troca de workspace
 
 Cada módulo nasce como uma `entidade` isolada no mesmo backend Supabase — não são apps separados de verdade, então a unificação no passo 4 não exige migração, só shell de navegação.
 

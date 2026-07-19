@@ -11,7 +11,7 @@ export function Nav() {
         <Circle cx={46} cy={82} r={26} fill="none" stroke="#2C2C2A" strokeWidth={2} />
         <Circle cx={80} cy={82} r={26} fill="none" stroke="#2C2C2A" strokeWidth={2} />
         <SvgText x={130} y={96} fontFamily="Georgia, serif" fontSize={44} fontWeight={500} fill="#0B0B0B">
-          Andrade&Muller
+          Andrade Muller
         </SvgText>
         <SvgText x={130} y={130} fontFamily="Helvetica" fontSize={15} letterSpacing={3} fill="#52514E">
           BANK

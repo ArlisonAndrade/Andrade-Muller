@@ -2,7 +2,7 @@
 -- FM GESTÃO E ESTRATÉGICA — módulo consultoria Franciele
 -- v2 — reconstruído a partir do Notion real ("Sistema Operacional
 -- da FM Gestão Estratégica"), não mais um chute de estrutura genérica.
--- Entidade separada, mesmo projeto Supabase do Andrade&Muller.
+-- Entidade separada, mesmo projeto Supabase do Andrade Muller.
 -- Uso interno (single-tenant) — sem portal de cliente neste escopo.
 -- ============================================================
 

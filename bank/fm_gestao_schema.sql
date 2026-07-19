@@ -1,6 +1,6 @@
 -- ============================================================
 -- FM GESTÃO E ESTRATÉGIA — módulo consultoria Franciele
--- Entidade separada, mesmo projeto Supabase do Andrade&Muller
+-- Entidade separada, mesmo projeto Supabase do Andrade Muller
 -- ============================================================
 
 -- Entidade já existe no schema principal (entidades.tipo = 'consultoria')

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relatório Gerencial Trimestral — 2T26 — FM Gestão e Estratégia</title>
+<style>
+  body { margin:0; padding:0; background:#f4f2ee; font-family: Arial, Helvetica, sans-serif; color:#1F3347; }
+  .wrap { max-width:720px; margin:0 auto; padding:24px 16px; }
+  .card { background:#ffffff; border-radius:8px; padding:24px 28px; margin-bottom:16px; border:1px solid #e3ded6; }
+  h1 { font-family: Georgia, 'Times New Roman', serif; font-size:26px; margin:0 0 4px; color:#1F3347; }
+  h2 { font-family: Georgia, 'Times New Roman', serif; font-size:18px; margin:0 0 12px; color:#1F3347; border-bottom:2px solid #B8925A; padding-bottom:6px; }
+  h3 { font-size:13px; text-transform:uppercase; letter-spacing:1px; color:#B8925A; margin:18px 0 6px; }
+  p { font-size:14px; line-height:1.55; margin:8px 0; }
+  .sub { color:#6b7684; font-size:13px; margin:0 0 2px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th { text-align:left; padding:8px 6px; border-bottom:2px solid #1F3347; font-size:12px; text-transform:uppercase; letter-spacing:0.5px; color:#1F3347; }
+  th.num, td.num { text-align:right; font-variant-numeric: tabular-nums; }
+  td { padding:7px 6px; border-bottom:1px solid #eee8df; }
+  tr.total td { border-top:2px solid #1F3347; border-bottom:none; font-weight:bold; background:#faf8f4; }
+  tr.sub td { font-weight:bold; background:#faf8f4; }
+  .pos { color:#4C6B50; font-weight:bold; }
+  .neg { color:#8C4A5E; font-weight:bold; }
+  .kpis { width:100%; border-collapse:separate; border-spacing:8px 0; margin:0 -8px; }
+  .kpi { background:#1F3347; border-radius:8px; padding:14px 16px; width:33%; vertical-align:top; }
+  .kpi .label { color:#B8925A; font-size:11px; text-transform:uppercase; letter-spacing:1px; }
+  .kpi .value { color:#ffffff; font-family: Georgia, serif; font-size:24px; margin-top:4px; }
+  .kpi .delta { color:#cfd8e0; font-size:12px; margin-top:4px; }
+  .note { background:#faf6ee; border-left:3px solid #B8925A; padding:10px 14px; font-size:12.5px; color:#5b5648; border-radius:0 6px 6px 0; margin:12px 0; }
+  .alert { background:#f9f1f3; border-left:3px solid #8C4A5E; padding:10px 14px; font-size:12.5px; color:#5b3a44; border-radius:0 6px 6px 0; margin:12px 0; }
+  .footer { text-align:center; color:#9aa3ad; font-size:11px; padding:8px 0 24px; }
+  .tag { display:inline-block; background:#4C6B50; color:#fff; font-size:11px; padding:2px 10px; border-radius:10px; letter-spacing:0.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="card" style="background:#1F3347; border:none;">
+    <p class="sub" style="color:#B8925A; text-transform:uppercase; letter-spacing:2px; font-size:11px;">Andrade Muller · FM Gestão e Estratégia</p>
+    <h1 style="color:#ffffff;">Relatório Gerencial Trimestral</h1>
+    <p class="sub" style="color:#cfd8e0;">2º trimestre de 2026 (abril – junho) · Comparativo: 1T26 · Emitido em 18/07/2026</p>
+  </div>
+
+  <!-- RESUMO EXECUTIVO -->
+  <div class="card">
+    <h2>Resumo executivo</h2>
+    <table class="kpis" role="presentation">
+      <tr>
+        <td class="kpi">
+          <div class="label">Faturamento bruto</div>
+          <div class="value">R$ 23.922,50</div>
+          <div class="delta">▼ 5,0% vs 1T26 (R$ 25.185,00)</div>
+        </td>
+        <td class="kpi">
+          <div class="label">Lucro líquido</div>
+          <div class="value">R$ 12.383,15</div>
+          <div class="delta">▲ 9,0% vs 1T26 (R$ 11.365,80)</div>
+        </td>
+        <td class="kpi">
+          <div class="label">Margem de lucro</div>
+          <div class="value">51,76%</div>
+          <div class="delta">▲ 6,6 p.p. vs 1T26 (45,13%)</div>
+        </td>
+      </tr>
+    </table>
+    <p style="margin-top:16px;"><span class="tag">RESULTADO: LUCRO</span></p>
+    <p>A empresa <strong>fechou o 2T26 com lucro de R$ 12.383,15</strong>. Mesmo com faturamento 5% menor que o 1T26 (não houve receita extraordinária como a de fevereiro/março), o lucro <em>cresceu</em> 9%, puxado pela queda de 35,7% na carga tributária — efeito direto do enquadramento no <strong>Anexo III do Simples Nacional (alíquota efetiva de 6%)</strong>, garantido pelo Fator R acima de 28% em todos os meses do trimestre.</p>
+  </div>
+
+  <!-- DRE -->
+  <div class="card">
+    <h2>1. DRE — Demonstração do Resultado do Exercício</h2>
+    <table>
+      <tr>
+        <th></th><th class="num">Abr/26</th><th class="num">Mai/26</th><th class="num">Jun/26</th><th class="num">2T26</th><th class="num">1T26</th>
+      </tr>
+      <tr><td>Receita bruta de serviços</td><td class="num">8.802,50</td><td class="num">7.500,00</td><td class="num">7.620,00</td><td class="num"><strong>23.922,50</strong></td><td class="num">25.185,00</td></tr>
+      <tr><td>(−) Impostos — DAS Simples Nacional</td><td class="num">(528,15)</td><td class="num">(450,00)</td><td class="num">(457,20)</td><td class="num">(1.435,35)</td><td class="num">(2.231,20)</td></tr>
+      <tr class="sub"><td>= Receita líquida</td><td class="num">8.274,35</td><td class="num">7.050,00</td><td class="num">7.162,80</td><td class="num">22.487,15</td><td class="num">22.953,80</td></tr>
+      <tr><td>(−) Custo dos serviços prestados</td><td class="num">0,00</td><td class="num">0,00</td><td class="num">0,00</td><td class="num">0,00</td><td class="num">0,00</td></tr>
+      <tr class="sub"><td>= Lucro bruto</td><td class="num">8.274,35</td><td class="num">7.050,00</td><td class="num">7.162,80</td><td class="num">22.487,15</td><td class="num">22.953,80</td></tr>
+      <tr><td>(−) Pró-labore líquido</td><td class="num">(2.670,00)</td><td class="num">(2.670,00)</td><td class="num">(2.670,00)</td><td class="num">(8.010,00)</td><td class="num">—</td></tr>
+      <tr><td>(−) Encargos s/ pró-labore (INSS 11%)</td><td class="num">(330,00)</td><td class="num">(330,00)</td><td class="num">(330,00)</td><td class="num">(990,00)</td><td class="num">—</td></tr>
+      <tr><td>(−) Contabilidade</td><td class="num">(149,00)</td><td class="num">(149,00)</td><td class="num">(149,00)</td><td class="num">(447,00)</td><td class="num">—</td></tr>
+      <tr><td>(−) Ferramentas e softwares</td><td class="num">(218,00)</td><td class="num">(218,00)</td><td class="num">(221,00)</td><td class="num">(657,00)</td><td class="num">—</td></tr>
+      <tr class="sub"><td>Total de despesas operacionais</td><td class="num">(3.367,00)</td><td class="num">(3.367,00)</td><td class="num">(3.370,00)</td><td class="num">(10.104,00)</td><td class="num">(11.588,00)</td></tr>
+      <tr class="total"><td>= LUCRO LÍQUIDO</td><td class="num pos">4.907,35</td><td class="num pos">3.683,00</td><td class="num pos">3.792,80</td><td class="num pos">12.383,15</td><td class="num">11.365,80</td></tr>
+      <tr><td>Margem de lucro</td><td class="num">55,75%</td><td class="num">49,11%</td><td class="num">49,77%</td><td class="num"><strong>51,76%</strong></td><td class="num">45,13%</td></tr>
+    </table>
+
+    <h3>Receita por cliente no trimestre</h3>
+    <table>
+      <tr><th>Cliente</th><th class="num">Valor (R$)</th><th class="num">Participação</th></tr>
+      <tr><td>IBVET</td><td class="num">12.000,00</td><td class="num">50,2%</td></tr>
+      <tr><td>IEA</td><td class="num">10.500,00</td><td class="num">43,9%</td></tr>
+      <tr><td>Fernanda</td><td class="num">1.222,50</td><td class="num">5,1%</td></tr>
+      <tr><td>Juliana</td><td class="num">200,00</td><td class="num">0,8%</td></tr>
+      <tr class="total"><td>Total</td><td class="num">23.922,50</td><td class="num">100%</td></tr>
+    </table>
+    <div class="alert"><strong>Ponto de atenção:</strong> IBVET + IEA respondem por 94,1% da receita. A concentração em dois clientes é o principal risco do negócio hoje.</div>
+
+    <h3>Fator R / Simples Nacional</h3>
+    <p>O Fator R ficou entre <strong>30,54% e 32,13%</strong> nos meses do trimestre — confortavelmente acima do piso de 28% —, mantendo a empresa no <strong>Anexo III (6%)</strong>. Em janeiro/26, com Fator R de 16,01%, a alíquota havia sido de 15,5% (Anexo V): manter o pró-labore em dia continua sendo a decisão tributária mais importante da empresa.</p>
+  </div>
+
+  <!-- BP -->
+  <div class="card">
+    <h2>2. Balanço Patrimonial Gerencial (estimado) — 30/06/2026</h2>
+    <div class="note"><strong>Ressalva metodológica:</strong> a planilha contábil segue regime de caixa gerencial e não mantém contas de ativo e passivo (contas a receber, contas a pagar, imobilizado). O balanço abaixo é uma <em>aproximação</em> construída a partir dos saldos disponíveis na planilha.</div>
+    <table>
+      <tr><th>ATIVO</th><th class="num">R$</th></tr>
+      <tr><td>Caixa — conta corrente (último saldo registrado, mar/26)*</td><td class="num">77,53</td></tr>
+      <tr><td>Reserva de Emergência acumulada (aplicação)</td><td class="num">2.367,16</td></tr>
+      <tr class="total"><td>Total do Ativo (estimado)</td><td class="num">2.444,69</td></tr>
+    </table>
+    <br>
+    <table>
+      <tr><th>PASSIVO E PATRIMÔNIO LÍQUIDO</th><th class="num">R$</th></tr>
+      <tr><td>DAS competência jun/26 a recolher (venc. jul/26, estimado)</td><td class="num">457,20</td></tr>
+      <tr class="sub"><td>Total do Passivo (estimado)</td><td class="num">457,20</td></tr>
+      <tr><td>Patrimônio líquido (lucros retidos, por diferença)</td><td class="num">1.987,49</td></tr>
+      <tr class="total"><td>Total do Passivo + PL</td><td class="num">2.444,69</td></tr>
+    </table>
+    <p style="font-size:12px; color:#6b7684;">* O campo "Saldo em conta" não foi preenchido na planilha de abr–jun/26; foi usado o último valor registrado. A empresa distribui praticamente todo o lucro (dividendos + pró-labore), por isso o patrimônio retido se resume à Reserva de Emergência.</p>
+    <div class="note"><strong>Leitura:</strong> o patrimônio da empresa é enxuto por decisão de gestão — 82,66% do lucro do trimestre foi para o acionista. A Reserva de Emergência (R$ 2.367,16) cobre hoje cerca de <strong>0,7 mês de despesas operacionais</strong> (R$ 3.368/mês em média). Recomenda-se elevar a meta da reserva para 3 meses de despesas (~R$ 10.100).</div>
+  </div>
+
+  <!-- DFC -->
+  <div class="card">
+    <h2>3. DFC — Demonstração do Fluxo de Caixa (método direto)</h2>
+    <table>
+      <tr><th>Fluxo de caixa — 2T26</th><th class="num">R$</th></tr>
+      <tr><td colspan="2" style="font-weight:bold; color:#B8925A; text-transform:uppercase; font-size:12px;">Atividades operacionais</td></tr>
+      <tr><td>(+) Recebimentos de clientes</td><td class="num pos">23.922,50</td></tr>
+      <tr><td>(−) Impostos pagos (DAS)</td><td class="num">(1.435,35)</td></tr>
+      <tr><td>(−) Pró-labore líquido</td><td class="num">(8.010,00)</td></tr>
+      <tr><td>(−) INSS sobre pró-labore</td><td class="num">(990,00)</td></tr>
+      <tr><td>(−) Contabilidade</td><td class="num">(447,00)</td></tr>
+      <tr><td>(−) Ferramentas e softwares</td><td class="num">(657,00)</td></tr>
+      <tr class="sub"><td>= Caixa gerado nas operações</td><td class="num pos">12.383,15</td></tr>
+      <tr><td colspan="2" style="font-weight:bold; color:#B8925A; text-transform:uppercase; font-size:12px; padding-top:14px;">Atividades de investimento</td></tr>
+      <tr><td>(−) Aporte à Reserva de Emergência</td><td class="num">(619,16)</td></tr>
+      <tr><td colspan="2" style="font-weight:bold; color:#B8925A; text-transform:uppercase; font-size:12px; padding-top:14px;">Atividades de financiamento</td></tr>
+      <tr><td>(−) Dividendos pagos ao acionista</td><td class="num">(11.763,99)</td></tr>
+      <tr class="total"><td>= Variação líquida de caixa no trimestre</td><td class="num">0,00</td></tr>
+    </table>
+    <div class="note"><strong>Leitura de liquidez:</strong> a operação gera caixa de forma consistente (R$ 12,4 mil no trimestre, 100% do lucro convertido em caixa — não há contas a receber em aberto nem inadimplência registrada). Porém, a distribuição integral do resultado mantém o caixa livre da empresa próximo de zero ao fim de cada mês. Qualquer atraso de recebimento de IBVET ou IEA exigiria uso imediato da reserva.</div>
+    <p style="font-size:12px; color:#6b7684;">Nota: a planilha não registra datas efetivas de pagamento/recebimento; assumiu-se caixa = competência (prática atual da empresa, que liquida tudo dentro do mês).</p>
+  </div>
+
+  <!-- DESTINAÇÃO -->
+  <div class="card">
+    <h2>4. Destinação do lucro do trimestre</h2>
+    <table>
+      <tr><th>Destino</th><th class="num">R$</th><th class="num">% do lucro</th></tr>
+      <tr><td>Dividendos ao acionista</td><td class="num">11.763,99</td><td class="num">95,0%</td></tr>
+      <tr><td>Reserva de Emergência</td><td class="num">619,16</td><td class="num">5,0%</td></tr>
+      <tr class="total"><td>Lucro líquido do trimestre</td><td class="num">12.383,15</td><td class="num">100%</td></tr>
+    </table>
+    <p>Somando pró-labore líquido + dividendos, o <strong>lucro do acionista</strong> no trimestre foi de <strong>R$ 19.773,99 (82,66% </strong>do resultado gerado<strong>)</strong>, ante 87,35% no 1T26.</p>
+  </div>
+
+  <!-- CONCLUSÕES -->
+  <div class="card">
+    <h2>5. Conclusões e recomendações</h2>
+    <p><strong>1. Resultado sólido e margem em recuperação.</strong> Lucro de R$ 12.383,15 com margem de 51,76% — a melhor desde o 4T25, agora com estrutura de despesas realista (pró-labore cheio).</p>
+    <p><strong>2. O Fator R é o ativo tributário da empresa.</strong> A economia de imposto vs. Anexo V é de ~R$ 2.270/trimestre. Manter folha ≥ 28% da receita dos últimos 12 meses é prioridade permanente.</p>
+    <p><strong>3. Concentração de clientes (94% em IBVET + IEA).</strong> A entrada de Fernanda e Juliana é positiva, mas ainda marginal (5,9%). Meta sugerida: clientes menores ≥ 15% da receita até o 4T26.</p>
+    <p><strong>4. Reserva de emergência abaixo do ideal.</strong> R$ 2.367 cobre ~3 semanas de operação. Sugestão: elevar o aporte de 5% para 10–15% do lucro até atingir R$ 10 mil.</p>
+    <p><strong>5. Qualidade do dado contábil.</strong> Para o próximo relatório, preencher o "Saldo em conta" mensalmente e registrar datas de pagamento permitirá um Balanço Patrimonial e uma DFC exatos, sem estimativas.</p>
+  </div>
+
+  <div class="footer">
+    Relatório gerado automaticamente a partir da planilha contábil (Google Sheets) · FM Gestão e Estratégia · Andrade Muller<br>
+    Período: 01/04/2026 – 30/06/2026 · Documento gerencial interno — não substitui as demonstrações contábeis oficiais.
+  </div>
+
+</div>
+</body>
+</html>

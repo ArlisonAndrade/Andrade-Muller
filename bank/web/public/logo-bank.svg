@@ -1,10 +1,10 @@
 <svg width="640" height="200" viewBox="0 0 640 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
-  <title id="title">Andrade&amp;Muller Bank</title>
+  <title id="title">Andrade Muller Bank</title>
   <desc id="desc">Wordmark minimalista em serifa com dois círculos entrelaçados representando a união de duas entidades (família e CNPJ) ponte por ponte</desc>
 
   <circle cx="46" cy="82" r="26" fill="none" stroke="#2C2C2A" stroke-width="2"/>
   <circle cx="80" cy="82" r="26" fill="none" stroke="#2C2C2A" stroke-width="2"/>
 
-  <text x="130" y="96" font-family="Georgia, 'Times New Roman', serif" font-size="44" font-weight="500" fill="#0B0B0B">Andrade&amp;Muller</text>
+  <text x="130" y="96" font-family="Georgia, 'Times New Roman', serif" font-size="44" font-weight="500" fill="#0B0B0B">Andrade Muller</text>
   <text x="130" y="130" font-family="Helvetica, Arial, sans-serif" font-size="15" letter-spacing="3" fill="#52514E">BANK</text>
 </svg>

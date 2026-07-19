@@ -262,19 +262,17 @@
 .envCardMuted { opacity: 0.55; }
 .envCardMuted:hover { border-color: var(--gold-dim); box-shadow: none; transform: none; }
 
-.envShield {
-  width: 64px;
-  height: 74px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  background: var(--wood-warm);
-  border: 1px solid var(--gold-dim);
-  clip-path: polygon(0 0, 100% 0, 100% 65%, 50% 100%, 0 65%);
-  font-family: var(--font-cinzel), serif;
-  font-size: 20px;
-  color: var(--gold-soft);
+.fmLogo {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+}
+
+.bankLogo {
+  width: 150px;
+  height: auto;
+  /* wordmark é traço escuro pra fundo claro — inverte pra ler no card escuro */
+  filter: invert(1) brightness(1.15);
 }
 
 .envLabel {

@@ -10,7 +10,7 @@
 -- ============================================================
 
 insert into entidades (id, nome, tipo) values
-  ('b0000000-0000-0000-0000-000000000001', 'Família Andrade&Muller', 'familia'),
+  ('b0000000-0000-0000-0000-000000000001', 'Família Andrade Muller', 'familia'),
   ('b0000000-0000-0000-0000-000000000003', 'Carteira Arthur', 'carteira_infantil')
 on conflict (id) do nothing;
 

@@ -4,7 +4,7 @@ import { BotaoSair } from "@/components/entrada/botao-sair";
 import styles from "../entrada.module.css";
 
 // Tela 2 (hub): mesmo fundo da capa, brasão menor no canto como marca-d'água
-// da família + ambientes do ecossistema. FM Gestão e Andrade&Muller Bank
+// da família + ambientes do ecossistema. FM Gestão e Andrade Muller Bank
 // já existem (apps Next.js separados, mesmo backend Supabase).
 export default function PaginaHub() {
   const urlBank = process.env.NEXT_PUBLIC_BANK_URL;
@@ -28,29 +28,27 @@ export default function PaginaHub() {
       </div>
 
       <p className={styles.hubTitle}>Escolha um ambiente</p>
-      <p className={styles.hubSub}>Ecossistema Andrade&amp;Muller</p>
+      <p className={styles.hubSub}>Ecossistema Andrade Muller</p>
 
       <div className={styles.hubCards}>
         {/* FM Gestão e Estratégica — ativo */}
         <Link href="/" className={styles.envCard}>
-          <div className={styles.envShield}>
-            <Image src="/logo-fm.png" alt="" width={40} height={40} />
-          </div>
+          <Image src="/logo-fm.png" alt="FM Gestão" width={72} height={72} className={styles.fmLogo} />
           <span className={styles.envLabel}>FM Gestão</span>
           <span className={styles.envNote}>CRM, reuniões, financeiro e metas</span>
         </Link>
 
-        {/* Andrade&Muller Bank — app separado (bank/web), mesmo backend Supabase */}
+        {/* Andrade Muller Bank — app separado (bank/web), mesmo backend Supabase */}
         {urlBank ? (
           <a href={urlBank} className={styles.envCard}>
-            <div className={styles.envShield}>A&amp;M</div>
-            <span className={styles.envLabel}>Andrade&amp;Muller Bank</span>
+            <Image src="/logo-bank.svg" alt="Andrade Muller Bank" width={150} height={47} className={styles.bankLogo} />
+            <span className={styles.envLabel}>Andrade Muller Bank</span>
             <span className={styles.envNote}>Patrimônio, orçamento e investimentos</span>
           </a>
         ) : (
           <div className={`${styles.envCard} ${styles.envCardMuted}`}>
-            <div className={styles.envShield}>A&amp;M</div>
-            <span className={styles.envLabel}>Andrade&amp;Muller Bank</span>
+            <Image src="/logo-bank.svg" alt="Andrade Muller Bank" width={150} height={47} className={styles.bankLogo} />
+            <span className={styles.envLabel}>Andrade Muller Bank</span>
             <span className={styles.envNote}>Configure NEXT_PUBLIC_BANK_URL</span>
           </div>
         )}

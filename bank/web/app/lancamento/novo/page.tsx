@@ -5,7 +5,7 @@ import { ENTIDADE_FAMILIA, ENTIDADE_ARTHUR } from "@/lib/tipos";
 
 // CNPJ não aparece aqui — a vida financeira da consultoria fica só no FM Gestão.
 const ENTIDADES = [
-  { id: ENTIDADE_FAMILIA, nome: "Família Andrade&Muller" },
+  { id: ENTIDADE_FAMILIA, nome: "Família Andrade Muller" },
   { id: ENTIDADE_ARTHUR, nome: "Carteira Arthur" },
 ];
 

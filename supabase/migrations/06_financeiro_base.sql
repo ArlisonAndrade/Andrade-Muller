@@ -3,7 +3,7 @@
 -- espelhando a planilha real da Franciele (10/jul/2026).
 -- Tabelas categorias/contas/transacoes idênticas ao schema.sql
 -- do módulo financeiro (create table if not exists — quando o
--- Andrade&Muller Bank rodar o schema.sql completo, reaproveita).
+-- Andrade Muller Bank rodar o schema.sql completo, reaproveita).
 -- fm_faturamento continua sendo as NOTAS (receita/competência);
 -- transacoes recebe impostos, despesas e destinação de lucro.
 -- ============================================================

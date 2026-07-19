@@ -1,4 +1,4 @@
-# Design tokens — Andrade&Muller Bank
+# Design tokens — Andrade Muller Bank
 
 Extraído da direção visual aprovada (estilo Avenue: minimalista, serifa no destaque, muito espaço em branco).
 

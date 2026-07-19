@@ -12,7 +12,7 @@
 
 create table if not exists entidades (
   id uuid primary key default gen_random_uuid(),
-  nome text not null,                    -- 'Família Andrade&Muller', 'Smart 360 (CNPJ)', 'Carteira Arthur'
+  nome text not null,                    -- 'Família Andrade Muller', 'Smart 360 (CNPJ)', 'Carteira Arthur'
   tipo text not null check (tipo in ('familia', 'cnpj', 'carteira_infantil', 'consultoria')),
   created_at timestamptz default now()
 );

@@ -1,2 +1,5 @@
 # Dados fiscais/bancários reais — ficam fora do versionamento
 Fiscal/
+
+# Credenciais de envio de e-mail (senha de app do Gmail)
+relatorios/.env.envio

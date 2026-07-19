@@ -16,7 +16,7 @@ export function Nav() {
         <Link href="/" className="flex items-center">
           <Image
             src="/logo-bank.svg"
-            alt="Andrade&Muller Bank"
+            alt="Andrade Muller Bank"
             width={160}
             height={50}
             priority

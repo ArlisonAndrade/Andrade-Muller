@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { ENTIDADE_FAMILIA, ENTIDADE_ARTHUR } from "@/lib/tipos";
 
 const ENTIDADES = [
-  { id: ENTIDADE_FAMILIA, nome: "Família Andrade&Muller" },
+  { id: ENTIDADE_FAMILIA, nome: "Família Andrade Muller" },
   { id: ENTIDADE_ARTHUR, nome: "Carteira Arthur" },
 ];
 

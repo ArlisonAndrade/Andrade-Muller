@@ -15,8 +15,8 @@ const sourceSerif = Source_Serif_4({
 });
 
 export const metadata: Metadata = {
-  title: "Andrade&Muller Bank",
-  description: "Painel de controle financeiro familiar Andrade&Muller",
+  title: "Andrade Muller Bank",
+  description: "Painel de controle financeiro familiar Andrade Muller",
 };
 
 export default function RootLayout({
