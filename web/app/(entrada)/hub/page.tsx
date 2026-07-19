@@ -4,11 +4,9 @@ import { BotaoSair } from "@/components/entrada/botao-sair";
 import styles from "../entrada.module.css";
 
 // Tela 2 (hub): mesmo fundo da capa, brasão menor no canto como marca-d'água
-// da família + ambientes do ecossistema. FM Gestão e Andrade Muller Bank
-// já existem (apps Next.js separados, mesmo backend Supabase).
+// da família + ambientes do ecossistema. FM Gestão em / e Bank em /bank —
+// mesmo app, mesmo login (não há mais domínio/SSO separado).
 export default function PaginaHub() {
-  const urlBank = process.env.NEXT_PUBLIC_BANK_URL;
-
   return (
     <div className={styles.hub}>
       <div className={styles.hubTopbar}>
@@ -38,20 +36,12 @@ export default function PaginaHub() {
           <span className={styles.envNote}>CRM, reuniões, financeiro e metas</span>
         </Link>
 
-        {/* Andrade Muller Bank — app separado (bank/web), mesmo backend Supabase */}
-        {urlBank ? (
-          <a href="/api/bank-sso" className={styles.envCard}>
-            <Image src="/logo-bank.svg" alt="Andrade Muller Bank" width={150} height={47} className={styles.bankLogo} />
-            <span className={styles.envLabel}>Andrade Muller Bank</span>
-            <span className={styles.envNote}>Patrimônio, orçamento e investimentos</span>
-          </a>
-        ) : (
-          <div className={`${styles.envCard} ${styles.envCardMuted}`}>
-            <Image src="/logo-bank.svg" alt="Andrade Muller Bank" width={150} height={47} className={styles.bankLogo} />
-            <span className={styles.envLabel}>Andrade Muller Bank</span>
-            <span className={styles.envNote}>Configure NEXT_PUBLIC_BANK_URL</span>
-          </div>
-        )}
+        {/* Andrade Muller Bank — seção /bank do mesmo app, mesmo backend Supabase */}
+        <Link href="/bank" className={styles.envCard}>
+          <Image src="/logo-bank.svg" alt="Andrade Muller Bank" width={150} height={47} className={styles.bankLogo} />
+          <span className={styles.envLabel}>Andrade Muller Bank</span>
+          <span className={styles.envNote}>Patrimônio, orçamento e investimentos</span>
+        </Link>
       </div>
     </div>
   );

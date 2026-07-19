@@ -18,10 +18,31 @@
 
   --radius-card: 12px;
   --shadow-card: 0 1px 3px rgba(43, 42, 37, 0.1);
+
+  /* ---- Tokens da seção Bank (/bank) — direção "Avenue" (bank/design_tokens.md).
+     Nomes disjuntos dos do FM, então coexistem no mesmo app. O fundo branco
+     do Bank NÃO é global (não há body{} do Bank); vem do web/app/bank/layout.tsx. */
+  --color-surface-2: #ffffff; /* fundo da página no Bank */
+  --color-surface-1: #f7f6f3; /* cards de destaque */
+  --color-text-primary: #0b0b0b; /* números e títulos */
+  --color-text-secondary: #6b6a64; /* labels, legendas */
+  --color-text-faint: #9b9a93; /* captions/metadata */
+  --color-text-accent: #2f6f52; /* positivos, links */
+  --color-text-alert: #a6483f; /* vencimentos, negativos */
+  --color-border: #e4e2dc; /* divisórias e cards de ação, 0.5px */
+  --color-arthur: #3b5b74; /* acento da Carteira Arthur */
+
+  --font-serif: var(--font-source-serif), Georgia, "Times New Roman", serif;
 }
 
 body {
   background: var(--color-parchment);
   color: var(--color-ink);
   font-family: var(--font-sans);
+}
+
+/* Cards de ação/conteúdo do Bank: borda fina 0.5px, nunca sombra. */
+.card-borda {
+  border: 0.5px solid var(--color-border);
+  border-radius: var(--radius-card);
 }
