@@ -20,8 +20,11 @@ const sourceSerif = Source_Serif_4({
 });
 
 export const metadata: Metadata = {
-  title: "FM Gestão e Estratégica",
-  description: "Sistema operacional interno da FM Gestão e Estratégica",
+  title: {
+    default: "Portal Andrade Muller",
+    template: "%s · Andrade Muller",
+  },
+  description: "Portal do ecossistema Andrade Muller — FM Gestão e Bank",
 };
 
 // Sem isto o celular renderiza numa "tela virtual" de ~980px e encolhe tudo.

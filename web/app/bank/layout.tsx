@@ -1,4 +1,11 @@
+import type { Metadata } from "next";
 import { Nav } from "@/components/bank/ui/nav";
+
+// Título específico do módulo Bank (o portal em si usa "Portal Andrade
+// Muller" — ver web/app/layout.tsx).
+export const metadata: Metadata = {
+  title: "Andrade Muller Bank",
+};
 
 // Layout da seção Bank (/bank). O visual "Avenue" (fundo branco, serifa nos
 // números, borda 0.5px) fica ESCOPADO neste wrapper — as fontes/tokens vêm
