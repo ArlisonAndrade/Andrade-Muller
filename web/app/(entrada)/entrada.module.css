@@ -291,7 +291,9 @@
 
 @media (max-width: 640px) {
   .hubTitle { margin-top: 96px; font-size: 13px; }
-  .hubCards { gap: 22px; }
+  .hubCards { gap: 22px; padding: 0 12px; }
+  /* cards ocupam a largura disponível (com teto) em vez de 220px fixo */
+  .envCard { width: 100%; max-width: 300px; padding: 28px 18px 22px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

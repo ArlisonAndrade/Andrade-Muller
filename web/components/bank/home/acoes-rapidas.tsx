@@ -2,14 +2,14 @@ import Link from "next/link";
 import { IconPlus, IconArrowsExchange, IconUpload } from "@/components/bank/ui/icones";
 
 const ACOES = [
-  { href: "/lancamento/novo", rotulo: "Lançamento", Icone: IconPlus },
-  { href: "/transferir-pro-labore", rotulo: "Transferir pró-labore", Icone: IconArrowsExchange },
-  { href: "/importar-fatura", rotulo: "Importar fatura", Icone: IconUpload },
+  { href: "/bank/lancamento/novo", rotulo: "Lançamento", Icone: IconPlus },
+  { href: "/bank/transferir-pro-labore", rotulo: "Transferir pró-labore", Icone: IconArrowsExchange },
+  { href: "/bank/importar-fatura", rotulo: "Importar fatura", Icone: IconUpload },
 ];
 
 export function AcoesRapidas() {
   return (
-    <div className="mb-8 grid grid-cols-3 gap-4">
+    <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
       {ACOES.map(({ href, rotulo, Icone }) => (
         <Link
           key={href}

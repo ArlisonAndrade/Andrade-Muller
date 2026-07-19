@@ -9,7 +9,7 @@ export function MetasAtivas({ metas }: { metas: Meta[] }) {
       {metas.length === 0 ? (
         <p className="text-sm text-text-faint">
           Nenhuma meta em andamento —{" "}
-          <Link href="/metas/nova" className="text-text-accent underline">
+          <Link href="/bank/metas/nova" className="text-text-accent underline">
             criar a primeira
           </Link>
           .
@@ -40,7 +40,7 @@ export function MetasAtivas({ metas }: { metas: Meta[] }) {
               </div>
             );
           })}
-          <Link href="/metas/nova" className="text-xs text-text-accent underline">
+          <Link href="/bank/metas/nova" className="text-xs text-text-accent underline">
             + Nova meta
           </Link>
         </div>

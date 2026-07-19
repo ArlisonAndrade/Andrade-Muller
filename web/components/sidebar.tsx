@@ -114,11 +114,11 @@ const modulos = [
   },
 ];
 
-export function Sidebar() {
+export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
 
   return (
-    <aside className="w-60 shrink-0 border-r border-divider bg-card px-4 py-6">
+    <aside className="flex h-full w-60 shrink-0 flex-col border-r border-divider bg-card px-4 py-6">
       <div className="mb-8 flex items-center gap-3 px-2">
         {/* mix-blend-multiply funde o fundo branco da logo com o creme do card */}
         <Image
@@ -144,6 +144,7 @@ export function Sidebar() {
             <Link
               key={href}
               href={href}
+              onClick={onNavigate}
               className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition-colors ${
                 ativo
                   ? "bg-parchment font-medium text-marinho"
@@ -158,6 +159,7 @@ export function Sidebar() {
       </nav>
       <Link
         href="/hub"
+        onClick={onNavigate}
         className="mt-6 flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-ink-faint transition-colors hover:bg-parchment/60 hover:text-ink"
       >
         <Icone>

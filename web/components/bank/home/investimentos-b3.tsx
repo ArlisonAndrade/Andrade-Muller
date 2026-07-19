@@ -17,7 +17,7 @@ export function InvestimentosB3({
       {ativas.length === 0 ? (
         <p className="text-sm text-text-faint">
           Nenhuma posição em carteira —{" "}
-          <Link href="/investimentos/novo" className="text-text-accent underline">
+          <Link href="/bank/investimentos/novo" className="text-text-accent underline">
             lançar a primeira
           </Link>
           .
@@ -57,7 +57,7 @@ export function InvestimentosB3({
           </tbody>
         </table>
       )}
-      <Link href="/investimentos/novo" className="mt-3 inline-block text-xs text-text-accent underline">
+      <Link href="/bank/investimentos/novo" className="mt-3 inline-block text-xs text-text-accent underline">
         + Novo investimento
       </Link>
     </Card>

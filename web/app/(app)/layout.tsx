@@ -1,14 +1,10 @@
-import { Sidebar } from "@/components/sidebar";
+import { AppShell } from "@/components/app-shell";
 
 // Layout dos módulos internos (com sidebar). A capa/login e o hub ficam no
-// grupo (entrada), sem sidebar.
+// grupo (entrada), sem sidebar. O AppShell cuida do responsivo: sidebar fixa
+// no desktop, drawer com hambúrguer no mobile.
 export default function AppLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  return (
-    <div className="flex min-h-screen">
-      <Sidebar />
-      <main className="flex-1 px-8 py-8">{children}</main>
-    </div>
-  );
+  return <AppShell>{children}</AppShell>;
 }

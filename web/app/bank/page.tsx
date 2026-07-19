@@ -130,14 +130,14 @@ export default async function Home({
       <SeletorEntidade visaoAtual={visao} />
       <HeroPatrimonio visao={visao} valor={valorPatrimonio} />
 
-      <div className="mb-8 grid grid-cols-2 gap-4">
+      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <ProximaFatura fatura={proximaFatura} />
         <PonteProLabore pontes={pontes} />
       </div>
 
       <AcoesRapidas />
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         {visao === "familia" && (
           <Orcamento503020 totalReceita={totalReceita} gastoPorGrupo={gastoPorGrupo} />
         )}

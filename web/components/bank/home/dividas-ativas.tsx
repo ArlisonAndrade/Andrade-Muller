@@ -18,7 +18,7 @@ export function DividasAtivas({ dividas }: { dividas: Divida[] }) {
       {dividas.length === 0 ? (
         <p className="text-sm text-text-faint">
           Nenhuma dívida em aberto —{" "}
-          <Link href="/dividas/nova" className="text-text-accent underline">
+          <Link href="/bank/dividas/nova" className="text-text-accent underline">
             cadastrar uma
           </Link>
           .
@@ -56,7 +56,7 @@ export function DividasAtivas({ dividas }: { dividas: Divida[] }) {
               </div>
             );
           })}
-          <Link href="/dividas/nova" className="text-xs text-text-accent underline">
+          <Link href="/bank/dividas/nova" className="text-xs text-text-accent underline">
             + Nova dívida
           </Link>
         </div>
