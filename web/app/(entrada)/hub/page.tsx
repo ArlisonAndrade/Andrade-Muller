@@ -40,7 +40,7 @@ export default function PaginaHub() {
 
         {/* Andrade Muller Bank — app separado (bank/web), mesmo backend Supabase */}
         {urlBank ? (
-          <a href={urlBank} className={styles.envCard}>
+          <a href="/api/bank-sso" className={styles.envCard}>
             <Image src="/logo-bank.svg" alt="Andrade Muller Bank" width={150} height={47} className={styles.bankLogo} />
             <span className={styles.envLabel}>Andrade Muller Bank</span>
             <span className={styles.envNote}>Patrimônio, orçamento e investimentos</span>

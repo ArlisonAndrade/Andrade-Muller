@@ -156,6 +156,17 @@ export function Sidebar() {
           );
         })}
       </nav>
+      <Link
+        href="/hub"
+        className="mt-6 flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-ink-faint transition-colors hover:bg-parchment/60 hover:text-ink"
+      >
+        <Icone>
+          <path d="M12 3v6M12 3l4 4M12 3L8 7" />
+          <rect x="4" y="13" width="7" height="7" rx="1" />
+          <rect x="13" y="13" width="7" height="7" rx="1" />
+        </Icone>
+        Trocar ambiente
+      </Link>
     </aside>
   );
 }

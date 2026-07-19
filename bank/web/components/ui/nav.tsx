@@ -33,6 +33,12 @@ export function Nav() {
               {item.rotulo}
             </Link>
           ))}
+          <a
+            href={`${process.env.NEXT_PUBLIC_FM_URL ?? ""}/hub`}
+            className="text-sm text-text-secondary transition-colors hover:text-text-primary"
+          >
+            Hub
+          </a>
         </nav>
 
         <div className="flex h-8 w-8 items-center justify-center rounded-full border-[0.5px] border-border text-xs font-medium text-text-secondary">
