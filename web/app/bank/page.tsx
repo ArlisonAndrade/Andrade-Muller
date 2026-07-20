@@ -10,6 +10,8 @@ import { MetasAtivas } from "@/components/bank/home/metas-ativas";
 import { DividasAtivas } from "@/components/bank/home/dividas-ativas";
 import { TransacoesRecentes } from "@/components/bank/home/transacoes-recentes";
 import { ProximasContas, type ContaProxima } from "@/components/bank/home/proximas-contas";
+import { ScoreSaude } from "@/components/bank/home/score-saude";
+import { calcularScoreSaude } from "@/lib/bank/score";
 import { EvolucaoPatrimonio } from "@/components/bank/investimentos/evolucao-patrimonio";
 import { DonutAlocacao } from "@/components/bank/investimentos/donut-alocacao";
 import { patrimonio, valorInvestido } from "@/lib/bank/calculos";
@@ -112,6 +114,9 @@ export default async function Home({
       .eq("entidade_id", ENTIDADE_FAMILIA)
       .eq("ativa", true),
   ]);
+
+  // Score de saúde financeira (sempre baseado na Família).
+  const score = await calcularScoreSaude(supabase);
 
   const cotacoesMap = new Map(
     (cotacoesRaw ?? []).map((c) => [c.ativo_id, Number(c.preco_atual)]),
@@ -329,6 +334,7 @@ export default async function Home({
 
       {/* Grade de módulos */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <ScoreSaude score={score} />
         {visao === "familia" && (
           <Orcamento503020 totalReceita={receitasMes} gastoPorGrupo={gastoPorGrupo} />
         )}
