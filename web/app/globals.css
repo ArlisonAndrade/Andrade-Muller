@@ -19,18 +19,39 @@
   --radius-card: 12px;
   --shadow-card: 0 1px 3px rgba(43, 42, 37, 0.1);
 
-  /* ---- Tokens da seção Bank (/bank) — direção "Avenue" (bank/design_tokens.md).
-     Nomes disjuntos dos do FM, então coexistem no mesmo app. O fundo branco
-     do Bank NÃO é global (não há body{} do Bank); vem do web/app/bank/layout.tsx. */
-  --color-surface-2: #ffffff; /* fundo da página no Bank */
-  --color-surface-1: #f7f6f3; /* cards de destaque */
-  --color-text-primary: #0b0b0b; /* números e títulos */
-  --color-text-secondary: #6b6a64; /* labels, legendas */
-  --color-text-faint: #9b9a93; /* captions/metadata */
-  --color-text-accent: #2f6f52; /* positivos, links */
-  --color-text-alert: #a6483f; /* vencimentos, negativos */
-  --color-border: #e4e2dc; /* divisórias e cards de ação, 0.5px */
+  /* ---- Tokens da seção Bank (/bank) — visual novo (19/jul/2026, decisão do
+     Arlison): dashboard estilo Investidor10, light, cards brancos com sombra
+     suave sobre fundo cinza-azulado. Substitui a direção "Avenue".
+     Nomes disjuntos dos do FM, então coexistem no mesmo app. O fundo NÃO é
+     global (não há body{} do Bank); vem do web/app/bank/layout.tsx. */
+  --color-surface-2: #f4f6f8; /* fundo da página no Bank */
+  --color-surface-1: #ffffff; /* cards */
+  --color-surface-3: #eef1f4; /* fundos de chip/track/hover */
+  --color-text-primary: #1a1d21; /* números e títulos */
+  --color-text-secondary: #5b6470; /* labels, legendas */
+  --color-text-faint: #8b93a0; /* captions/metadata */
+  --color-text-accent: #16a34a; /* positivos, ganhos */
+  --color-text-alert: #dc2626; /* negativos, vencimentos */
+  --color-border: #e5e9ef; /* divisórias e bordas de card */
   --color-arthur: #3b5b74; /* acento da Carteira Arthur */
+
+  /* Métricas e ação */
+  --color-bank-positivo: #16a34a;
+  --color-bank-positivo-bg: #dcfce7;
+  --color-bank-negativo: #dc2626;
+  --color-bank-negativo-bg: #fee2e2;
+  --color-bank-primaria: #2563eb; /* links, CTAs, foco */
+  --color-bank-primaria-bg: #dbeafe;
+
+  /* Acento por classe de ativo (consistente em donut, linhas e badges) */
+  --color-classe-acao: #2563eb;
+  --color-classe-fii: #7c3aed;
+  --color-classe-renda-fixa: #0d9488;
+  --color-classe-etf-int: #ea580c;
+  --color-classe-cripto: #f59e0b;
+  --color-classe-fundo: #db2777;
+  --color-classe-tesouro: #64748b;
+  --color-classe-caixa: #94a3b8;
 
   --font-serif: var(--font-source-serif), Georgia, "Times New Roman", serif;
 }
@@ -41,8 +62,22 @@ body {
   font-family: var(--font-sans);
 }
 
-/* Cards de ação/conteúdo do Bank: borda fina 0.5px, nunca sombra. */
+/* Cards de ação/conteúdo do Bank: borda fina 0.5px, nunca sombra.
+   (legado "Avenue" — componentes migram pro .card-bank aos poucos) */
 .card-borda {
   border: 0.5px solid var(--color-border);
   border-radius: var(--radius-card);
+}
+
+/* Card do visual novo do Bank: branco, cantos 12px, sombra suave. */
+.card-bank {
+  background: var(--color-surface-1);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: 0 1px 2px rgba(26, 29, 33, 0.05);
+}
+
+/* Números alinhados em tabelas e métricas do Bank. */
+.numeros-tabulares {
+  font-variant-numeric: tabular-nums;
 }

@@ -12,6 +12,7 @@ import { MetasAtivas } from "@/components/bank/home/metas-ativas";
 import { DividasAtivas } from "@/components/bank/home/dividas-ativas";
 import { TransacoesRecentes } from "@/components/bank/home/transacoes-recentes";
 import { patrimonio } from "@/lib/bank/calculos";
+import { gerarRecorrenciasPendentes } from "@/lib/bank/acoes/recorrencias";
 import {
   ENTIDADE_FAMILIA,
   ENTIDADE_ARTHUR,
@@ -36,6 +37,9 @@ export default async function Home({
 
   const { visao: visaoParam } = await searchParams;
   const visao: VisaoEntidade = visaoParam === "familia" ? "familia" : "consolidado";
+
+  // Materializa as recorrências do mês antes das queries (idempotente).
+  await gerarRecorrenciasPendentes();
 
   // O CNPJ não é uma visão do Bank — a vida financeira da consultoria fica só no
   // FM Gestão. "Consolidado" = Família + Carteira Arthur; "Família" = só a Família.

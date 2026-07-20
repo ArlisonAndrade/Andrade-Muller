@@ -30,6 +30,17 @@ export type Categoria = {
   tipo: "receita" | "despesa";
 };
 
+export type FormaPagamento = "debito" | "credito" | "pix" | "dinheiro" | "outro";
+
+export type Cartao = {
+  id: string;
+  entidade_id: string;
+  nome: string;
+  limite: number | null;
+  dia_fechamento: number | null;
+  dia_vencimento: number | null;
+};
+
 export type Transacao = {
   id: string;
   entidade_id: string;
@@ -40,6 +51,26 @@ export type Transacao = {
   data: string;
   transacao_vinculada_id: string | null;
   recorrente: boolean;
+  forma_pagamento: FormaPagamento | null;
+  cartao_id: string | null;
+  recorrencia_id: string | null;
+  competencia_recorrencia: string | null;
+  categoria?: Pick<Categoria, "nome" | "tipo" | "grupo_orcamento"> | null;
+};
+
+export type Recorrencia = {
+  id: string;
+  entidade_id: string;
+  descricao: string;
+  valor: number;
+  categoria_id: string | null;
+  conta_id: string | null;
+  cartao_id: string | null;
+  forma_pagamento: FormaPagamento | null;
+  dia_do_mes: number;
+  ativa: boolean;
+  data_inicio: string;
+  data_fim: string | null;
   categoria?: Pick<Categoria, "nome" | "tipo" | "grupo_orcamento"> | null;
 };
 

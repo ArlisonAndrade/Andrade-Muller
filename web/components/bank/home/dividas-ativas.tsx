@@ -49,7 +49,7 @@ export function DividasAtivas({ dividas }: { dividas: Divida[] }) {
                     {d.parcelas_total ? ` · ${d.parcelas_pagas ?? 0}/${d.parcelas_total} parcelas` : ""}
                     {d.data_vencimento_proxima ? ` · próx. ${dataBR(d.data_vencimento_proxima)}` : ""}
                   </p>
-                  <Link href={`/dividas/${d.id}/amortizar`} className="shrink-0 text-xs text-text-accent underline">
+                  <Link href={`/bank/dividas/${d.id}/amortizar`} className="shrink-0 text-xs text-text-accent underline">
                     Amortizar
                   </Link>
                 </div>
