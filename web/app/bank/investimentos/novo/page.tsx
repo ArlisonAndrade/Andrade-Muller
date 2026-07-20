@@ -51,8 +51,11 @@ export default function NovoInvestimento() {
             >
               <option value="acao">Ação</option>
               <option value="fii">FII</option>
-              <option value="tesouro">Tesouro Direto</option>
               <option value="renda_fixa">Renda fixa</option>
+              <option value="etf_internacional">ETF internacional</option>
+              <option value="cripto">Criptomoeda</option>
+              <option value="fundo">Fundo de investimento</option>
+              <option value="tesouro">Tesouro Direto</option>
               <option value="outro">Outro</option>
             </select>
           </label>
