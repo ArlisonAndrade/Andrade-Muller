@@ -48,7 +48,7 @@ export function InvestimentosB3({
                   <td className="py-2 pr-3 text-right text-text-secondary">
                     {moedaBRL(Number(p.preco_medio ?? 0))}
                   </td>
-                  <td className="py-2 text-right font-serif font-medium text-text-primary">
+                  <td className="py-2 text-right font-medium text-text-primary">
                     {moedaBRL(posicaoAtual)}
                   </td>
                 </tr>

@@ -33,11 +33,11 @@ export function DividasAtivas({ dividas }: { dividas: Divida[] }) {
               <div key={d.id}>
                 <div className="mb-1 flex items-baseline justify-between gap-3">
                   <p className="text-sm text-text-primary">{d.descricao}</p>
-                  <span className="font-serif text-sm font-medium text-text-alert">
+                  <span className="text-sm font-medium text-text-alert">
                     {progresso}% pago
                   </span>
                 </div>
-                <div className="h-1.5 overflow-hidden rounded-full bg-surface-1">
+                <div className="h-1.5 overflow-hidden rounded-full bg-surface-3">
                   <div
                     className="h-full rounded-full bg-text-alert"
                     style={{ width: `${progresso}%` }}

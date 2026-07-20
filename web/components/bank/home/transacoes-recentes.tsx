@@ -22,7 +22,7 @@ export function TransacoesRecentes({ transacoes }: { transacoes: Transacao[] }) 
                 <span className="flex-1 truncate text-sm text-text-primary">{t.descricao}</span>
                 <span className="text-xs text-text-faint">{dataBR(t.data)}</span>
                 <span
-                  className={`font-serif text-sm font-medium ${despesa ? "text-text-alert" : "text-text-accent"}`}
+                  className={`text-sm font-medium ${despesa ? "text-text-alert" : "text-text-accent"}`}
                 >
                   {despesa ? "−" : "+"}
                   {moedaBRL(Number(t.valor))}

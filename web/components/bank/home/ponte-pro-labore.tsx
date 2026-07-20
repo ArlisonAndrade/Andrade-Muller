@@ -23,7 +23,7 @@ export function PonteProLabore({ pontes }: { pontes: Ponte[] }) {
               <IconArrowsExchange size={18} className="shrink-0 text-text-accent" stroke={1.5} />
               <span className="flex-1 text-sm text-text-primary">{p.descricao}</span>
               <span className="text-xs text-text-faint">{dataBR(p.data)}</span>
-              <span className="font-serif text-sm font-medium text-text-accent">
+              <span className="text-sm font-medium text-text-accent">
                 {moedaBRL(p.valor)}
               </span>
             </li>

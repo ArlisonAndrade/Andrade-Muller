@@ -24,11 +24,11 @@ export function MetasAtivas({ metas }: { metas: Meta[] }) {
               <div key={m.id}>
                 <div className="mb-1 flex items-baseline justify-between gap-3">
                   <p className="text-sm text-text-primary">{m.titulo}</p>
-                  <span className="font-serif text-sm font-medium text-text-accent">
+                  <span className="text-sm font-medium text-text-accent">
                     {progresso}%
                   </span>
                 </div>
-                <div className="h-1.5 overflow-hidden rounded-full bg-surface-1">
+                <div className="h-1.5 overflow-hidden rounded-full bg-surface-3">
                   <div
                     className="h-full rounded-full bg-text-accent"
                     style={{ width: `${progresso}%` }}

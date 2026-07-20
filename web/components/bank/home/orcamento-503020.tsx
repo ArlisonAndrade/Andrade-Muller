@@ -30,7 +30,7 @@ export function Orcamento503020({
                   {moedaBRL(gasto)} de {moedaBRL(alvoValor)}
                 </span>
               </div>
-              <div className="h-1.5 overflow-hidden rounded-full bg-surface-1">
+              <div className="h-1.5 overflow-hidden rounded-full bg-surface-3">
                 <div
                   className={`h-full rounded-full ${estourou ? "bg-text-alert" : "bg-text-accent"}`}
                   style={{ width: `${Math.min(100, pct)}%` }}

@@ -13,7 +13,7 @@ export function CarteiraArthur({
   return (
     <section className="rounded-card border-[0.5px] border-arthur/30 bg-surface-2 p-6">
       <p className="text-sm font-medium text-arthur">Carteira Arthur</p>
-      <p className="mt-2 font-serif text-3xl font-medium text-arthur">
+      <p className="mt-2 text-3xl font-medium text-arthur">
         {moedaBRL(patrimonio)}
       </p>
       {ativas.length === 0 ? (
