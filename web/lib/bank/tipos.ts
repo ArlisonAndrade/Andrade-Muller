@@ -14,8 +14,6 @@ export const ENTIDADE_ARTHUR = "b0000000-0000-0000-0000-000000000003";
 // pra lançar a distribuição na mesma DRE/Fator R da consultoria.
 export const ENTIDADE_CONSULTORIA = "a0000000-0000-0000-0000-00000000f001";
 
-export type VisaoEntidade = "consolidado" | "familia";
-
 export type GrupoOrcamento =
   | "essencial_50"
   | "liberdade_30"
@@ -82,6 +80,46 @@ export type Meta = {
   valor_atual: number;
   data_alvo: string | null;
   status: "em_andamento" | "concluida" | "pausada";
+};
+
+// ---- Aba Norte (Planejamento) ----
+export type Pessoa = {
+  id: string;
+  entidade_id: string;
+  nome: string;
+  cor: string | null;
+  renda_base: number;
+  ordem: number;
+  ativo: boolean;
+};
+
+export type OrcamentoItem = {
+  id: string;
+  entidade_id: string;
+  item: string;
+  valor: number;
+  categoria_id: string | null;
+  grupo_orcamento: GrupoOrcamento | null;
+  metodo: string | null;
+  cartao_id: string | null;
+  responsavel_id: string | null;
+  obs: string | null;
+  ordem: number;
+  ativo: boolean;
+};
+
+// Rótulos do orçamento 50/30/20 (esquema do Bank, consistente com a home).
+export const ROTULO_GRUPO: Record<GrupoOrcamento, string> = {
+  essencial_50: "Essenciais 50%",
+  liberdade_30: "Estilo de vida 30%",
+  investimento_20: "Investimento 20%",
+  nao_aplica: "Não se aplica",
+};
+
+export const PCT_GRUPO: Record<Exclude<GrupoOrcamento, "nao_aplica">, number> = {
+  essencial_50: 0.5,
+  liberdade_30: 0.3,
+  investimento_20: 0.2,
 };
 
 export type PosicaoAtivo = {

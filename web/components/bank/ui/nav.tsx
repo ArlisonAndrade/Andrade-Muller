@@ -8,6 +8,7 @@ import { IconPlus } from "@/components/bank/ui/icones";
 
 const ITENS_MENU = [
   { rotulo: "Início", href: "/bank" },
+  { rotulo: "Norte", href: "/bank/norte" },
   { rotulo: "Extrato", href: "/bank/lancamentos" },
   { rotulo: "Investimentos", href: "/bank/investimentos" },
   { rotulo: "Dívidas", href: "/bank/dividas" },

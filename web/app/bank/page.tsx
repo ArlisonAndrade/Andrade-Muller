@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { EstadoSemConfiguracao } from "@/components/bank/home/estado-sem-configuracao";
-import { SeletorEntidade } from "@/components/bank/ui/seletor-entidade";
 import { CardMetrica } from "@/components/bank/ui/card-metrica";
 import { PonteProLabore } from "@/components/bank/home/ponte-pro-labore";
 import { Orcamento503020 } from "@/components/bank/home/orcamento-503020";
@@ -30,7 +29,6 @@ import {
   ENTIDADE_FAMILIA,
   ENTIDADE_ARTHUR,
   ENTIDADE_CONSULTORIA,
-  type VisaoEntidade,
   type Transacao,
 } from "@/lib/bank/tipos";
 
@@ -39,26 +37,18 @@ function supabaseConfigurado() {
   return !!url && !url.includes("SEU-PROJETO");
 }
 
-export default async function Home({
-  searchParams,
-}: {
-  searchParams: Promise<{ visao?: string }>;
-}) {
+export default async function Home() {
   if (!supabaseConfigurado()) {
     return <EstadoSemConfiguracao />;
   }
-
-  const { visao: visaoParam } = await searchParams;
-  const visao: VisaoEntidade = visaoParam === "familia" ? "familia" : "consolidado";
 
   // Materializa recorrências e a foto mensal antes das queries (idempotentes).
   await gerarRecorrenciasPendentes();
   await garantirSnapshotDoMes();
 
-  // O CNPJ não é uma visão do Bank — a vida financeira da consultoria fica só no
-  // FM Gestão. "Consolidado" = Família + Carteira Arthur; "Família" = só a Família.
-  const entidadesDaVisao =
-    visao === "familia" ? [ENTIDADE_FAMILIA] : [ENTIDADE_FAMILIA, ENTIDADE_ARTHUR];
+  // A Home é a visão da Família. Arthur tem aba própria (mas mantém um card
+  // glanceável aqui) e o CNPJ vive só no FM Gestão.
+  const entidadesDaVisao = [ENTIDADE_FAMILIA];
 
   const hoje = new Date();
   const inicioMes = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-01`;
@@ -252,12 +242,10 @@ export default async function Home({
 
   return (
     <div className="flex flex-col gap-6">
-      <SeletorEntidade visaoAtual={visao} />
-
       {/* Métricas do topo */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <CardMetrica
-          label={visao === "familia" ? "Patrimônio da Família" : "Patrimônio consolidado"}
+          label="Patrimônio da Família"
           valor={moedaBRL(valorPatrimonio)}
           icone={<IconPigMoney size={18} stroke={1.7} />}
         />
@@ -335,9 +323,7 @@ export default async function Home({
       {/* Grade de módulos */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <ScoreSaude score={score} />
-        {visao === "familia" && (
-          <Orcamento503020 totalReceita={receitasMes} gastoPorGrupo={gastoPorGrupo} />
-        )}
+        <Orcamento503020 totalReceita={receitasMes} gastoPorGrupo={gastoPorGrupo} />
         <ProximasContas contas={proximas} />
         <CarteiraArthur patrimonio={patrimonioArthur} posicoes={posicoesArthur ?? []} />
         <DividasAtivas dividas={dividas ?? []} />

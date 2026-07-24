@@ -7,6 +7,7 @@ import {
   criarRecorrencia,
   alternarRecorrencia,
 } from "@/lib/bank/acoes/recorrencias";
+import { LinhaTransacao } from "@/components/bank/lancamentos/linha-transacao";
 
 export const metadata = { title: "Extrato" };
 
@@ -53,7 +54,7 @@ export default async function PaginaLancamentos({
       supabase
         .from("transacoes")
         .select(
-          "id, descricao, valor, data, forma_pagamento, cartao_id, recorrencia_id, categoria:categorias(nome, tipo, grupo_orcamento)",
+          "id, descricao, valor, data, categoria_id, forma_pagamento, cartao_id, recorrencia_id, categoria:categorias(nome, tipo, grupo_orcamento)",
         )
         .eq("entidade_id", ENTIDADE_FAMILIA)
         .gte("data", inicio)
@@ -78,6 +79,7 @@ export default async function PaginaLancamentos({
     descricao: string;
     valor: number;
     data: string;
+    categoria_id: string | null;
     forma_pagamento: FormaPagamento | null;
     cartao_id: string | null;
     recorrencia_id: string | null;
@@ -184,34 +186,30 @@ export default async function PaginaLancamentos({
             <div className="flex flex-col gap-2.5">
               {itens.map((t) => {
                 const receita = t.categoria?.tipo === "receita";
+                const formaLabel = t.forma_pagamento
+                  ? ROTULO_FORMA[t.forma_pagamento as FormaPagamento]
+                  : null;
+                const cartao =
+                  t.cartao_id && nomeCartao.has(t.cartao_id)
+                    ? nomeCartao.get(t.cartao_id)!
+                    : null;
+                const detalhe =
+                  [formaLabel, cartao ? `(${cartao})` : null].filter(Boolean).join(" ") ||
+                  null;
                 return (
-                  <div key={t.id} className="flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm text-text-primary">
-                        {t.descricao}
-                        {t.recorrencia_id && (
-                          <span className="ml-1.5 rounded-full bg-surface-3 px-1.5 py-0.5 text-[10px] text-text-faint">
-                            recorrente
-                          </span>
-                        )}
-                      </p>
-                      <p className="text-xs text-text-faint">
-                        {t.categoria?.nome ?? "Sem categoria"}
-                        {t.forma_pagamento &&
-                          ` · ${ROTULO_FORMA[t.forma_pagamento as FormaPagamento]}`}
-                        {t.cartao_id && nomeCartao.has(t.cartao_id)
-                          ? ` (${nomeCartao.get(t.cartao_id)})`
-                          : ""}
-                      </p>
-                    </div>
-                    <p
-                      className={`shrink-0 text-sm font-medium ${
-                        receita ? "text-bank-positivo" : "text-text-primary"
-                      }`}
-                    >
-                      {receita ? "+" : "−"} {moedaBRL(Number(t.valor))}
-                    </p>
-                  </div>
+                  <LinhaTransacao
+                    key={t.id}
+                    id={t.id}
+                    descricao={t.descricao}
+                    valor={Number(t.valor)}
+                    data={t.data}
+                    categoria_id={t.categoria_id}
+                    categoriaNome={t.categoria?.nome ?? null}
+                    receita={receita}
+                    recorrente={!!t.recorrencia_id}
+                    detalhe={detalhe}
+                    categorias={categorias ?? []}
+                  />
                 );
               })}
             </div>
