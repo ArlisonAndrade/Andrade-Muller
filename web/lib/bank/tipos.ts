@@ -108,10 +108,11 @@ export type OrcamentoItem = {
   ativo: boolean;
 };
 
-// Rótulos do orçamento 50/30/20 (esquema do Bank, consistente com a home).
+// Rótulos do orçamento 50/30/20 no vocabulário do Notion do Arlison:
+// o bucket de 50% é a Despesa Variável, o de 30% é a Despesa Fixa.
 export const ROTULO_GRUPO: Record<GrupoOrcamento, string> = {
-  essencial_50: "Essenciais 50%",
-  liberdade_30: "Estilo de vida 30%",
+  essencial_50: "Despesa Variável 50%",
+  liberdade_30: "Despesa Fixa 30%",
   investimento_20: "Investimento 20%",
   nao_aplica: "Não se aplica",
 };
