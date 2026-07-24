@@ -29,20 +29,13 @@ export type ItemView = {
   categoriaNome: string | null;
   responsavel_id: string | null;
   responsavelNome: string | null;
+  transferencia: boolean;
   obs: string | null;
 };
 
 type Opcao = { id: string; nome: string };
 
-type Props = {
-  entidadeId: string;
-  itens: ItemView[];
-  pessoas: Opcao[];
-  categorias: Opcao[];
-  cartoes: Opcao[];
-};
-
-function valorMetodo(item: Pick<ItemView, "cartao_id" | "metodo">) {
+function valorMetodo(item: { cartao_id: string | null; metodo: string | null }) {
   if (item.cartao_id) return `cartao:${item.cartao_id}`;
   return item.metodo ?? "";
 }
@@ -95,7 +88,7 @@ function CamposItem({
         defaultValue={defaults.grupo_orcamento ?? ""}
         className="rounded-[8px] border border-border bg-surface-1 px-2 py-2 text-sm outline-none sm:col-span-2"
       >
-        <option value="">Grupo 50/30/20</option>
+        <option value="">Grupo</option>
         {GRUPOS.map((g) => (
           <option key={g} value={g}>
             {ROTULO_GRUPO[g]}
@@ -134,6 +127,15 @@ function CamposItem({
           </option>
         ))}
       </select>
+      <label className="col-span-2 flex items-center gap-1.5 text-xs text-text-secondary sm:col-span-2">
+        <input
+          type="checkbox"
+          name="transferencia"
+          defaultChecked={defaults.transferencia ?? false}
+          className="rounded border-border"
+        />
+        precisa transferir
+      </label>
       <input
         name="obs"
         defaultValue={defaults.obs ?? ""}
@@ -144,7 +146,7 @@ function CamposItem({
   );
 }
 
-function Linha({
+export function LinhaItem({
   item,
   pessoas,
   categorias,
@@ -202,7 +204,9 @@ function Linha({
       <span className="min-w-0">
         <span className="block truncate text-sm text-text-primary">{item.item}</span>
         <span className="block truncate text-xs text-text-faint">
-          {[item.categoriaNome, metodoLabel, item.obs].filter(Boolean).join(" · ") || "—"}
+          {[item.categoriaNome, metodoLabel, item.transferencia ? "a transferir" : null, item.obs]
+            .filter(Boolean)
+            .join(" · ") || "—"}
         </span>
       </span>
       <span className="shrink-0 text-sm font-medium text-text-primary">
@@ -212,124 +216,55 @@ function Linha({
   );
 }
 
-export function TabelaDivisao({ entidadeId, itens, pessoas, categorias, cartoes }: Props) {
-  const [agrupamento, setAgrupamento] = useState<"responsavel" | "cartao">("responsavel");
+export function FormAdicionarItem({
+  entidadeId,
+  pessoas,
+  categorias,
+  cartoes,
+  defaultsIniciais,
+}: {
+  entidadeId: string;
+  pessoas: Opcao[];
+  categorias: Opcao[];
+  cartoes: Opcao[];
+  defaultsIniciais?: Partial<ItemView>;
+}) {
   const [adicionando, setAdicionando] = useState(false);
 
-  const nomePessoa = new Map(pessoas.map((p) => [p.id, p.nome]));
-  const nomeCartao = new Map(cartoes.map((c) => [c.id, c.nome]));
-
-  const chave = (i: ItemView) =>
-    agrupamento === "responsavel"
-      ? (i.responsavel_id ?? "sem")
-      : (i.cartao_id ?? "sem");
-  const rotuloGrupo = (k: string) => {
-    if (k === "sem") return agrupamento === "responsavel" ? "Sem responsável" : "Sem cartão";
-    return (agrupamento === "responsavel" ? nomePessoa.get(k) : nomeCartao.get(k)) ?? "—";
-  };
-
-  const grupos = new Map<string, ItemView[]>();
-  for (const i of itens) {
-    const k = chave(i);
-    grupos.set(k, [...(grupos.get(k) ?? []), i]);
+  if (!adicionando) {
+    return (
+      <button
+        type="button"
+        onClick={() => setAdicionando(true)}
+        className="mt-1 rounded-[8px] border border-dashed border-border px-3 py-2 text-left text-sm text-text-secondary hover:text-text-primary"
+      >
+        + Adicionar item
+      </button>
+    );
   }
-  const total = itens.reduce((s, i) => s + Number(i.valor), 0);
 
   return (
-    <section className="card-bank p-4 sm:p-5">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h2 className="text-sm font-semibold">Divisão dos pagamentos</h2>
-          <p className="text-xs text-text-faint">
-            O que é pago todo mês — {moedaBRL(total)} no total
-          </p>
-        </div>
-        <div className="flex gap-1 rounded-full border border-border p-1">
-          {(["responsavel", "cartao"] as const).map((op) => (
-            <button
-              key={op}
-              type="button"
-              onClick={() => setAgrupamento(op)}
-              className={`rounded-full px-3 py-1 text-xs transition-colors ${
-                agrupamento === op
-                  ? "bg-text-primary text-surface-1"
-                  : "text-text-secondary hover:text-text-primary"
-              }`}
-            >
-              {op === "responsavel" ? "Por responsável" : "Por cartão"}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {itens.length === 0 && (
-        <p className="py-6 text-center text-sm text-text-faint">
-          Nenhum pagamento cadastrado ainda. Adicione o primeiro abaixo.
-        </p>
-      )}
-
-      <div className="flex flex-col gap-4">
-        {[...grupos.entries()].map(([k, lista]) => {
-          const subtotal = lista.reduce((s, i) => s + Number(i.valor), 0);
-          return (
-            <div key={k}>
-              <div className="mb-1 flex items-baseline justify-between border-b border-border pb-1">
-                <span className="text-xs font-semibold uppercase tracking-wide text-text-faint">
-                  {rotuloGrupo(k)}
-                </span>
-                <span className="text-xs font-medium text-text-secondary">
-                  {moedaBRL(subtotal)}
-                </span>
-              </div>
-              <div className="flex flex-col">
-                {lista.map((i) => (
-                  <Linha
-                    key={i.id}
-                    item={i}
-                    pessoas={pessoas}
-                    categorias={categorias}
-                    cartoes={cartoes}
-                  />
-                ))}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Adicionar item */}
-      {adicionando ? (
-        <form
-          action={criarOrcamentoItem}
-          className="mt-4 grid grid-cols-2 gap-2 rounded-[10px] bg-surface-2 p-3 sm:grid-cols-12"
+    <form
+      action={criarOrcamentoItem}
+      className="grid grid-cols-2 gap-2 rounded-[10px] bg-surface-2 p-3 sm:grid-cols-12"
+    >
+      <input type="hidden" name="entidade_id" value={entidadeId} />
+      <CamposItem defaults={defaultsIniciais ?? {}} pessoas={pessoas} categorias={categorias} cartoes={cartoes} />
+      <div className="col-span-2 flex gap-2 sm:col-span-12">
+        <button
+          type="submit"
+          className="rounded-[8px] bg-bank-primaria px-3 py-1.5 text-sm font-medium text-white"
         >
-          <input type="hidden" name="entidade_id" value={entidadeId} />
-          <CamposItem defaults={{}} pessoas={pessoas} categorias={categorias} cartoes={cartoes} />
-          <div className="col-span-2 flex gap-2 sm:col-span-12">
-            <button
-              type="submit"
-              className="rounded-[8px] bg-bank-primaria px-3 py-1.5 text-sm font-medium text-white"
-            >
-              Adicionar
-            </button>
-            <button
-              type="button"
-              onClick={() => setAdicionando(false)}
-              className="rounded-[8px] border border-border px-3 py-1.5 text-sm text-text-secondary"
-            >
-              Cancelar
-            </button>
-          </div>
-        </form>
-      ) : (
+          Adicionar
+        </button>
         <button
           type="button"
-          onClick={() => setAdicionando(true)}
-          className="mt-4 rounded-[8px] border border-dashed border-border px-3 py-2 text-sm text-text-secondary hover:text-text-primary"
+          onClick={() => setAdicionando(false)}
+          className="rounded-[8px] border border-border px-3 py-1.5 text-sm text-text-secondary"
         >
-          + Adicionar pagamento
+          Cancelar
         </button>
-      )}
-    </section>
+      </div>
+    </form>
   );
 }

@@ -1,14 +1,18 @@
 import { createClient } from "@/lib/supabase/server";
 import { moedaBRL } from "@/lib/bank/formato";
 import { ProgressBar } from "@/components/bank/ui/progress-bar";
-import { TabelaDivisao, type ItemView } from "@/components/bank/norte/tabela-divisao";
-import { atualizarRendaPessoa } from "@/lib/bank/acoes/norte";
+import { RendaFamilia } from "@/components/bank/norte/renda-familia";
+import { DivisaoPresets } from "@/components/bank/norte/divisao-presets";
+import { CardsResponsavel } from "@/components/bank/norte/cards-responsavel";
+import { CartoesVisual } from "@/components/bank/norte/cartoes-visual";
+import type { ItemView } from "@/components/bank/norte/tabela-divisao";
 import {
   ENTIDADE_FAMILIA,
   ROTULO_GRUPO,
-  PCT_GRUPO,
   type GrupoOrcamento,
   type Pessoa,
+  type DivisaoConfig,
+  type Cartao,
 } from "@/lib/bank/tipos";
 
 export const metadata = { title: "Norte" };
@@ -22,6 +26,7 @@ type ItemRow = {
   metodo: string | null;
   cartao_id: string | null;
   responsavel_id: string | null;
+  transferencia: boolean;
   obs: string | null;
   categoria: { nome: string } | null;
   cartao: { nome: string } | null;
@@ -34,46 +39,64 @@ type ItemRow = {
 export default async function PaginaNorte() {
   const supabase = await createClient();
 
-  const [{ data: pessoasRaw }, { data: itensRaw }, { data: categorias }, { data: cartoes }] =
-    await Promise.all([
-      supabase
-        .from("pessoas")
-        .select("id, entidade_id, nome, cor, renda_base, ordem, ativo")
-        .eq("entidade_id", ENTIDADE_FAMILIA)
-        .eq("ativo", true)
-        .order("ordem"),
-      supabase
-        .from("orcamento_planejado")
-        .select(
-          "id, item, valor, categoria_id, grupo_orcamento, metodo, cartao_id, responsavel_id, obs, categoria:categorias(nome), cartao:cartoes(nome), responsavel:pessoas(nome)",
-        )
-        .eq("entidade_id", ENTIDADE_FAMILIA)
-        .eq("ativo", true)
-        .order("ordem")
-        .order("valor", { ascending: false }),
-      supabase
-        .from("categorias")
-        .select("id, nome")
-        .eq("entidade_id", ENTIDADE_FAMILIA)
-        .order("nome"),
-      supabase
-        .from("cartoes")
-        .select("id, nome")
-        .eq("entidade_id", ENTIDADE_FAMILIA)
-        .order("nome"),
-    ]);
+  const [
+    { data: pessoasRaw },
+    { data: itensRaw },
+    { data: categorias },
+    { data: cartoesRaw },
+    { data: configRaw },
+  ] = await Promise.all([
+    supabase
+      .from("pessoas")
+      .select("id, entidade_id, nome, cor, renda_base, ordem, ativo")
+      .eq("entidade_id", ENTIDADE_FAMILIA)
+      .eq("ativo", true)
+      .order("ordem"),
+    supabase
+      .from("orcamento_planejado")
+      .select(
+        "id, item, valor, categoria_id, grupo_orcamento, metodo, cartao_id, responsavel_id, transferencia, obs, categoria:categorias(nome), cartao:cartoes(nome), responsavel:pessoas(nome)",
+      )
+      .eq("entidade_id", ENTIDADE_FAMILIA)
+      .eq("ativo", true)
+      .order("ordem")
+      .order("valor", { ascending: false }),
+    supabase
+      .from("categorias")
+      .select("id, nome")
+      .eq("entidade_id", ENTIDADE_FAMILIA)
+      .order("nome"),
+    supabase
+      .from("cartoes")
+      .select("id, entidade_id, nome, titular, bandeira, limite, dia_fechamento, dia_vencimento")
+      .eq("entidade_id", ENTIDADE_FAMILIA)
+      .order("nome"),
+    supabase
+      .from("divisao_orcamento_config")
+      .select("*")
+      .eq("entidade_id", ENTIDADE_FAMILIA)
+      .maybeSingle(),
+  ]);
 
   const pessoas = (pessoasRaw ?? []) as Pessoa[];
   const itens = (itensRaw ?? []) as unknown as ItemRow[];
+  const cartoes = (cartoesRaw ?? []) as Cartao[];
+  const config: DivisaoConfig = configRaw ?? {
+    entidade_id: ENTIDADE_FAMILIA,
+    preset: "50_30_20",
+    pct_essencial: 50,
+    pct_liberdade: 30,
+    pct_investimento: 20,
+    pct_extra: 0,
+    extra_nome: null,
+  };
 
   const rendaTotal = pessoas.reduce((s, p) => s + Number(p.renda_base), 0);
 
-  // Planejado por grupo 50/30/20.
   const planejadoPorGrupo: Record<string, number> = {};
   for (const i of itens) {
     if (!i.grupo_orcamento) continue;
-    planejadoPorGrupo[i.grupo_orcamento] =
-      (planejadoPorGrupo[i.grupo_orcamento] ?? 0) + Number(i.valor);
+    planejadoPorGrupo[i.grupo_orcamento] = (planejadoPorGrupo[i.grupo_orcamento] ?? 0) + Number(i.valor);
   }
 
   const itensView: ItemView[] = itens.map((i) => ({
@@ -88,10 +111,17 @@ export default async function PaginaNorte() {
     categoriaNome: i.categoria?.nome ?? null,
     responsavel_id: i.responsavel_id,
     responsavelNome: i.responsavel?.nome ?? null,
+    transferencia: i.transferencia,
     obs: i.obs,
   }));
 
-  const gruposMeta = Object.keys(PCT_GRUPO) as (keyof typeof PCT_GRUPO)[];
+  const gruposBarra: { chave: GrupoOrcamento; pct: number }[] = [
+    { chave: "essencial_50", pct: Number(config.pct_essencial) },
+    { chave: "liberdade_30", pct: Number(config.pct_liberdade) },
+    { chave: "investimento_20", pct: Number(config.pct_investimento) },
+  ];
+
+  const opcoesPessoas = pessoas.map((p) => ({ id: p.id, nome: p.nome }));
 
   return (
     <div className="flex flex-col gap-6">
@@ -103,87 +133,58 @@ export default async function PaginaNorte() {
         </p>
       </div>
 
-      {/* Renda da família */}
-      <section className="card-bank p-4 sm:p-5">
-        <div className="mb-3 flex items-baseline justify-between">
-          <h2 className="text-sm font-semibold">Renda da família</h2>
-          <span className="text-sm font-semibold text-bank-positivo">
-            {moedaBRL(rendaTotal)}/mês
-          </span>
-        </div>
-        <div className="flex flex-col gap-2">
-          {pessoas.length === 0 && (
-            <p className="text-sm text-text-faint">
-              Nenhuma pessoa cadastrada. Rode a migration 10_norte.sql para semear Arlison e
-              Franciele.
-            </p>
-          )}
-          {pessoas.map((p) => (
-            <form
-              key={p.id}
-              action={atualizarRendaPessoa}
-              className="flex items-center gap-2"
-            >
-              <input type="hidden" name="id" value={p.id} />
-              <span
-                className="h-2.5 w-2.5 shrink-0 rounded-full"
-                style={{ background: p.cor ?? "var(--color-bank-primaria)" }}
-              />
-              <span className="w-28 shrink-0 text-sm text-text-primary">{p.nome}</span>
-              <input
-                name="renda_base"
-                type="number"
-                step="0.01"
-                min="0"
-                defaultValue={Number(p.renda_base)}
-                className="w-36 rounded-[8px] border border-border bg-surface-1 px-3 py-1.5 text-sm outline-none"
-              />
-              <button
-                type="submit"
-                className="rounded-[8px] border border-border px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary"
-              >
-                Salvar
-              </button>
-            </form>
-          ))}
-        </div>
-      </section>
+      <RendaFamilia pessoas={pessoas} />
 
-      {/* Metas 50/30/20: meta (sobre a renda) vs planejado */}
+      <DivisaoPresets entidadeId={ENTIDADE_FAMILIA} config={config} rendaTotal={rendaTotal} />
+
       <section className="card-bank p-4 sm:p-5">
-        <h2 className="mb-3 text-sm font-semibold">Divisão 50/30/20</h2>
+        <h2 className="mb-3 text-sm font-semibold">Sua divisão hoje</h2>
         <div className="flex flex-col gap-4">
-          {gruposMeta.map((g) => {
-            const meta = rendaTotal * PCT_GRUPO[g];
-            const planejado = planejadoPorGrupo[g] ?? 0;
-            const pct = meta > 0 ? Math.min(100, (planejado / meta) * 100) : 0;
+          {gruposBarra.map(({ chave, pct }) => {
+            const meta = (rendaTotal * pct) / 100;
+            const planejado = planejadoPorGrupo[chave] ?? 0;
+            const pctBarra = meta > 0 ? Math.min(100, (planejado / meta) * 100) : 0;
             const estourou = meta > 0 && planejado > meta;
             return (
-              <div key={g}>
+              <div key={chave}>
                 <div className="mb-1 flex items-baseline justify-between text-sm">
-                  <span className="text-text-primary">{ROTULO_GRUPO[g as GrupoOrcamento]}</span>
+                  <span className="text-text-primary">{ROTULO_GRUPO[chave]}</span>
                   <span className="text-text-secondary">
-                    {moedaBRL(planejado)}{" "}
-                    <span className="text-text-faint">/ {moedaBRL(meta)}</span>
+                    {moedaBRL(planejado)} <span className="text-text-faint">/ {moedaBRL(meta)}</span>
                   </span>
                 </div>
                 <ProgressBar
-                  percentual={pct}
+                  percentual={pctBarra}
                   cor={estourou ? "var(--color-bank-negativo)" : "var(--color-bank-positivo)"}
                 />
               </div>
             );
           })}
+          {config.pct_extra > 0 && (
+            <div className="flex items-baseline justify-between border-t border-border pt-3 text-sm">
+              <span className="text-text-primary">{config.extra_nome ?? "Extra"}</span>
+              <span className="text-text-secondary">
+                {moedaBRL((rendaTotal * Number(config.pct_extra)) / 100)} (meta)
+              </span>
+            </div>
+          )}
         </div>
       </section>
 
-      {/* Divisão dos pagamentos (o "Norte" das saídas) */}
-      <TabelaDivisao
+      <CardsResponsavel
         entidadeId={ENTIDADE_FAMILIA}
+        pessoas={pessoas}
         itens={itensView}
-        pessoas={pessoas.map((p) => ({ id: p.id, nome: p.nome }))}
         categorias={categorias ?? []}
-        cartoes={cartoes ?? []}
+        cartoes={cartoes.map((c) => ({ id: c.id, nome: c.nome }))}
+      />
+
+      <CartoesVisual
+        entidadeId={ENTIDADE_FAMILIA}
+        cartoes={cartoes}
+        itens={itensView}
+        pessoas={opcoesPessoas}
+        categorias={categorias ?? []}
       />
     </div>
   );

@@ -34,6 +34,8 @@ export type Cartao = {
   id: string;
   entidade_id: string;
   nome: string;
+  titular: string | null;
+  bandeira: string | null;
   limite: number | null;
   dia_fechamento: number | null;
   dia_vencimento: number | null;
@@ -103,6 +105,7 @@ export type OrcamentoItem = {
   metodo: string | null;
   cartao_id: string | null;
   responsavel_id: string | null;
+  transferencia: boolean;
   obs: string | null;
   ordem: number;
   ativo: boolean;
@@ -122,6 +125,53 @@ export const PCT_GRUPO: Record<Exclude<GrupoOrcamento, "nao_aplica">, number> = 
   liberdade_30: 0.3,
   investimento_20: 0.2,
 };
+
+// ---- Divisão 50/30/20: presets + personalizada ----
+export type PresetDivisao = "50_30_20" | "45_35_20" | "40_30_30" | "personalizada";
+
+export type DivisaoConfig = {
+  entidade_id: string;
+  preset: PresetDivisao;
+  pct_essencial: number;
+  pct_liberdade: number;
+  pct_investimento: number;
+  pct_extra: number;
+  extra_nome: string | null;
+};
+
+export const PRESETS_DIVISAO: {
+  valor: PresetDivisao;
+  nome: string;
+  descricao: string;
+  pct_essencial: number;
+  pct_liberdade: number;
+  pct_investimento: number;
+}[] = [
+  {
+    valor: "50_30_20",
+    nome: "Clássico 50/30/20",
+    descricao: "O padrão que vocês já usam: metade no variável do dia a dia, 30% nas contas fixas, 20% investindo.",
+    pct_essencial: 50,
+    pct_liberdade: 30,
+    pct_investimento: 20,
+  },
+  {
+    valor: "45_35_20",
+    nome: "Equilibrado 45/35/20",
+    descricao: "Um pouco mais de fôlego pras contas fixas, mantendo o investimento em 20%.",
+    pct_essencial: 45,
+    pct_liberdade: 35,
+    pct_investimento: 20,
+  },
+  {
+    valor: "40_30_30",
+    nome: "Investidor 40/30/30",
+    descricao: "Reduz o variável pra acelerar o aporte — empurra na direção da meta dos R$ 6M.",
+    pct_essencial: 40,
+    pct_liberdade: 30,
+    pct_investimento: 30,
+  },
+];
 
 export type PosicaoAtivo = {
   entidade_id: string;
