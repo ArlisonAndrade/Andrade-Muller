@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { moedaBRL } from "@/lib/bank/formato";
 import { atualizarRendaPessoa } from "@/lib/bank/acoes/norte";
 import { IconUser } from "@/components/bank/ui/icones";
+import { ValorMoeda } from "@/components/bank/norte/privacidade";
 import type { Pessoa } from "@/lib/bank/tipos";
 
 function CardPessoa({ pessoa }: { pessoa: Pessoa }) {
@@ -74,7 +74,7 @@ function CardPessoa({ pessoa }: { pessoa: Pessoa }) {
         {pessoa.nome}
       </span>
       <span className="font-serif text-2xl font-medium text-text-primary">
-        {moedaBRL(Number(pessoa.renda_base))}
+        <ValorMoeda valor={Number(pessoa.renda_base)} />
       </span>
       <span className="text-[11px] text-text-faint">toque para editar</span>
     </button>
@@ -97,7 +97,7 @@ export function RendaFamilia({ pessoas }: { pessoas: Pessoa[] }) {
         <div className="flex flex-col items-center justify-center rounded-[10px] bg-bank-primaria-bg p-4 sm:w-44">
           <span className="text-xs text-text-secondary">Total mensal</span>
           <span className="font-serif text-2xl font-semibold text-bank-primaria">
-            {moedaBRL(total)}
+            <ValorMoeda valor={total} />
           </span>
         </div>
       </div>

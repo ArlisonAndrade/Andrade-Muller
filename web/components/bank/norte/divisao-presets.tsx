@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { moedaBRL } from "@/lib/bank/formato";
 import { selecionarDivisaoPreset, salvarDivisaoPersonalizada } from "@/lib/bank/acoes/norte";
 import { PRESETS_DIVISAO, type DivisaoConfig } from "@/lib/bank/tipos";
+import { ValorMoeda } from "@/components/bank/norte/privacidade";
 
 export function DivisaoPresets({
   entidadeId,
@@ -20,7 +20,7 @@ export function DivisaoPresets({
     <section className="card-bank p-4 sm:p-5">
       <h2 className="mb-1 text-sm font-semibold">Divisão 50/30/20</h2>
       <p className="mb-3 text-xs text-text-faint">
-        Escolha como dividir os {moedaBRL(rendaTotal)} da família — ou crie a sua.
+        Escolha como dividir os <ValorMoeda valor={rendaTotal} /> da família — ou crie a sua.
       </p>
 
       <div className="flex flex-col gap-2">
@@ -46,9 +46,9 @@ export function DivisaoPresets({
                 </div>
                 <p className="mt-0.5 text-xs text-text-faint">{p.descricao}</p>
                 <p className="mt-1 text-xs text-text-secondary">
-                  {p.pct_essencial}% variável ({moedaBRL((rendaTotal * p.pct_essencial) / 100)}) ·{" "}
-                  {p.pct_liberdade}% fixa ({moedaBRL((rendaTotal * p.pct_liberdade) / 100)}) ·{" "}
-                  {p.pct_investimento}% investimento ({moedaBRL((rendaTotal * p.pct_investimento) / 100)})
+                  {p.pct_essencial}% variável (<ValorMoeda valor={(rendaTotal * p.pct_essencial) / 100} />) ·{" "}
+                  {p.pct_liberdade}% fixa (<ValorMoeda valor={(rendaTotal * p.pct_liberdade) / 100} />) ·{" "}
+                  {p.pct_investimento}% investimento (<ValorMoeda valor={(rendaTotal * p.pct_investimento) / 100} />)
                 </p>
               </button>
             </form>

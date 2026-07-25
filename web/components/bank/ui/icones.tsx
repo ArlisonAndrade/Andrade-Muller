@@ -33,4 +33,9 @@ export {
   IconChevronRight,
   IconRefresh,
   IconUser,
+  IconEye,
+  IconEyeOff,
+  IconSchool,
+  IconHeartbeat,
+  IconCar,
 } from "@tabler/icons-react";

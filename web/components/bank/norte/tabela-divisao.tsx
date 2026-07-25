@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { moedaBRL } from "@/lib/bank/formato";
 import { ROTULO_GRUPO, type GrupoOrcamento } from "@/lib/bank/tipos";
 import {
   criarOrcamentoItem,
   editarOrcamentoItem,
   excluirOrcamentoItem,
 } from "@/lib/bank/acoes/norte";
+import { IconeCategoria } from "@/lib/bank/icone-categoria";
+import { ValorMoeda } from "@/components/bank/norte/privacidade";
 
 const METODOS_SIMPLES = ["Débito Automático", "Débito", "PIX", "Boleto", "Dinheiro"];
 const GRUPOS: GrupoOrcamento[] = [
@@ -212,10 +213,13 @@ export function LinhaItem({
     <button
       type="button"
       onClick={() => setEditando(true)}
-      className="flex w-full items-center justify-between gap-3 rounded-[8px] px-2 py-2 text-left hover:bg-surface-2"
+      className="flex w-full items-center gap-3 rounded-[8px] px-2 py-2 text-left hover:bg-surface-2"
       title="Editar"
     >
-      <span className="min-w-0">
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-3 text-text-secondary">
+        <IconeCategoria categoria={item.categoriaNome} />
+      </span>
+      <span className="min-w-0 flex-1">
         <span className="block truncate text-sm text-text-primary">{item.item}</span>
         <span className="block truncate text-xs text-text-faint">
           {[item.categoriaNome, metodoLabel, item.transferencia ? "a transferir" : null, item.obs]
@@ -224,7 +228,7 @@ export function LinhaItem({
         </span>
       </span>
       <span className="shrink-0 text-sm font-medium text-text-primary">
-        {moedaBRL(Number(item.valor))}
+        <ValorMoeda valor={Number(item.valor)} />
       </span>
     </button>
   );

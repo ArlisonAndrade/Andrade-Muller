@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { moedaBRL } from "@/lib/bank/formato";
 import { LinhaItem, FormAdicionarItem, type ItemView } from "@/components/bank/norte/tabela-divisao";
+import { ValorMoeda } from "@/components/bank/norte/privacidade";
 import type { Cartao } from "@/lib/bank/tipos";
 
 type Opcao = { id: string; nome: string };
@@ -35,7 +35,7 @@ export function CartoesVisual({
       {cartoesComItens.length === 0 && (
         <p className="text-sm text-text-faint">Nenhum pagamento em cartão ainda.</p>
       )}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
         {cartoesComItens.map((c) => {
           const itensCartao = itens.filter((i) => i.cartao_id === c.id);
           const total = itensCartao.reduce((s, i) => s + i.valor, 0);
@@ -45,18 +45,20 @@ export function CartoesVisual({
           const expandido = aberto === c.id;
 
           return (
-            <div key={c.id} className="flex flex-col gap-2">
+            <div key={c.id} className="mx-auto flex w-full max-w-[170px] flex-col gap-2">
               <button
                 type="button"
                 onClick={() => setAberto(expandido ? null : c.id)}
-                className="flex aspect-[1.586/1] flex-col justify-between rounded-[14px] p-4 text-left shadow-md transition-transform hover:-translate-y-0.5"
+                className="flex aspect-[1.586/1] flex-col justify-between rounded-[10px] p-3 text-left shadow-md transition-transform hover:-translate-y-0.5"
                 style={{ background: estilo.fundo, color: estilo.texto }}
               >
-                <span className="text-xl font-semibold italic tracking-tight">{estilo.marca}</span>
+                <span className="text-sm font-semibold italic tracking-tight">{estilo.marca}</span>
                 <div>
-                  <p className="text-[10px] uppercase tracking-wide opacity-75">{c.titular ?? "—"}</p>
-                  <p className="mt-1 text-lg font-semibold">{moedaBRL(total)}</p>
-                  <p className="text-[10px] opacity-70">fatura planejada</p>
+                  <p className="text-[9px] uppercase tracking-wide opacity-75">{c.titular ?? "—"}</p>
+                  <p className="mt-0.5 text-xs font-semibold">
+                    <ValorMoeda valor={total} />
+                  </p>
+                  <p className="text-[8px] opacity-70">fatura planejada</p>
                 </div>
               </button>
               {expandido && (

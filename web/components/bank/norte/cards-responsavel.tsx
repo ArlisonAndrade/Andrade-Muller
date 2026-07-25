@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { moedaBRL } from "@/lib/bank/formato";
 import { LinhaItem, FormAdicionarItem, type ItemView } from "@/components/bank/norte/tabela-divisao";
 import { IconUser } from "@/components/bank/ui/icones";
+import { ValorMoeda } from "@/components/bank/norte/privacidade";
 import type { Pessoa } from "@/lib/bank/tipos";
 
 type Opcao = { id: string; nome: string };
@@ -60,12 +60,12 @@ export function CardsResponsavel({
                   </span>
                 </div>
                 <div className="flex items-baseline justify-between text-sm">
-                  <span className="text-bank-positivo">recebe {moedaBRL(recebe)}</span>
-                  <span className="text-bank-primaria">paga {moedaBRL(paga)}</span>
+                  <span className="text-bank-positivo">recebe <ValorMoeda valor={recebe} /></span>
+                  <span className="text-bank-primaria">paga <ValorMoeda valor={paga} /></span>
                 </div>
                 {aTransferir > 0 && (
                   <p className="rounded-[8px] bg-surface-2 px-2 py-1.5 text-xs text-text-secondary">
-                    transfere <span className="font-medium text-text-primary">{moedaBRL(aTransferir)}</span> pro Arlison
+                    transfere <span className="font-medium text-text-primary"><ValorMoeda valor={aTransferir} /></span> pro Arlison
                   </p>
                 )}
                 <span className="text-[11px] text-text-faint">

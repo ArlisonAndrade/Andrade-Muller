@@ -1,10 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
-import { moedaBRL } from "@/lib/bank/formato";
 import { ProgressBar } from "@/components/bank/ui/progress-bar";
 import { RendaFamilia } from "@/components/bank/norte/renda-familia";
 import { DivisaoPresets } from "@/components/bank/norte/divisao-presets";
 import { CardsResponsavel } from "@/components/bank/norte/cards-responsavel";
 import { CartoesVisual } from "@/components/bank/norte/cartoes-visual";
+import { ProvedorPrivacidade, BotaoPrivacidade, ValorMoeda } from "@/components/bank/norte/privacidade";
 import type { ItemView } from "@/components/bank/norte/tabela-divisao";
 import {
   ENTIDADE_FAMILIA,
@@ -15,7 +15,7 @@ import {
   type Cartao,
 } from "@/lib/bank/tipos";
 
-export const metadata = { title: "Norte" };
+export const metadata = { title: "Planejamento" };
 
 type ItemRow = {
   id: string;
@@ -124,13 +124,17 @@ export default async function PaginaNorte() {
   const opcoesPessoas = pessoas.map((p) => ({ id: p.id, nome: p.nome }));
 
   return (
+    <ProvedorPrivacidade>
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-lg font-semibold">Norte</h1>
-        <p className="text-sm text-text-faint">
-          O plano fixo do mês — renda de cada um, quem paga o quê e em qual cartão. É a
-          meta que o dia a dia (Extrato) persegue.
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-lg font-semibold">Planejamento</h1>
+          <p className="text-sm text-text-faint">
+            O plano fixo do mês — renda de cada um, quem paga o quê e em qual cartão. É a
+            meta que o dia a dia (Extrato) persegue.
+          </p>
+        </div>
+        <BotaoPrivacidade />
       </div>
 
       <RendaFamilia pessoas={pessoas} />
@@ -152,7 +156,7 @@ export default async function PaginaNorte() {
                     {NOME_GRUPO[chave]} <span className="text-text-faint">{pct}%</span>
                   </span>
                   <span className="text-text-secondary">
-                    {moedaBRL(planejado)} <span className="text-text-faint">/ {moedaBRL(meta)}</span>
+                    <ValorMoeda valor={planejado} /> <span className="text-text-faint">/ <ValorMoeda valor={meta} /></span>
                   </span>
                 </div>
                 <ProgressBar
@@ -166,7 +170,7 @@ export default async function PaginaNorte() {
             <div className="flex items-baseline justify-between border-t border-border pt-3 text-sm">
               <span className="text-text-primary">{config.extra_nome ?? "Extra"}</span>
               <span className="text-text-secondary">
-                {moedaBRL((rendaTotal * Number(config.pct_extra)) / 100)} (meta)
+                <ValorMoeda valor={(rendaTotal * Number(config.pct_extra)) / 100} /> (meta)
               </span>
             </div>
           )}
@@ -189,5 +193,6 @@ export default async function PaginaNorte() {
         categorias={categorias ?? []}
       />
     </div>
+    </ProvedorPrivacidade>
   );
 }

@@ -8,7 +8,7 @@ import { IconPlus } from "@/components/bank/ui/icones";
 
 const ITENS_MENU = [
   { rotulo: "Início", href: "/bank" },
-  { rotulo: "Norte", href: "/bank/norte" },
+  { rotulo: "Planejamento", href: "/bank/norte" },
   { rotulo: "Extrato", href: "/bank/lancamentos" },
   { rotulo: "Investimentos", href: "/bank/investimentos" },
   { rotulo: "Dívidas", href: "/bank/dividas" },
@@ -33,10 +33,10 @@ export function Nav() {
           <Image
             src="/logo-bank.svg"
             alt="Andrade Muller Bank"
-            width={140}
-            height={44}
+            width={200}
+            height={62}
             priority
-            className="w-32 sm:w-36"
+            className="w-44 sm:w-52"
           />
         </Link>
 
