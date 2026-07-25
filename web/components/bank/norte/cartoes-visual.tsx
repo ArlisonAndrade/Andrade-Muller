@@ -45,20 +45,20 @@ export function CartoesVisual({
           const expandido = aberto === c.id;
 
           return (
-            <div key={c.id} className="mx-auto flex w-full max-w-[170px] flex-col gap-2">
+            <div key={c.id} className="mx-auto flex w-full max-w-[210px] flex-col gap-2">
               <button
                 type="button"
                 onClick={() => setAberto(expandido ? null : c.id)}
-                className="flex aspect-[1.586/1] flex-col justify-between rounded-[10px] p-3 text-left shadow-md transition-transform hover:-translate-y-0.5"
+                className="flex aspect-[1.586/1] flex-col justify-between rounded-[12px] p-4 text-left shadow-md transition-transform hover:-translate-y-0.5"
                 style={{ background: estilo.fundo, color: estilo.texto }}
               >
-                <span className="text-sm font-semibold italic tracking-tight">{estilo.marca}</span>
+                <span className="text-lg font-semibold italic tracking-tight">{estilo.marca}</span>
                 <div>
-                  <p className="text-[9px] uppercase tracking-wide opacity-75">{c.titular ?? "—"}</p>
-                  <p className="mt-0.5 text-xs font-semibold">
+                  <p className="text-xs uppercase tracking-wide opacity-90">{c.titular ?? "—"}</p>
+                  <p className="mt-0.5 text-base font-semibold">
                     <ValorMoeda valor={total} />
                   </p>
-                  <p className="text-[8px] opacity-70">fatura planejada</p>
+                  <p className="text-[11px] opacity-80">fatura planejada</p>
                 </div>
               </button>
               {expandido && (
