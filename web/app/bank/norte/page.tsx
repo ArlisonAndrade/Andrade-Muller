@@ -8,7 +8,7 @@ import { CartoesVisual } from "@/components/bank/norte/cartoes-visual";
 import type { ItemView } from "@/components/bank/norte/tabela-divisao";
 import {
   ENTIDADE_FAMILIA,
-  ROTULO_GRUPO,
+  NOME_GRUPO,
   type GrupoOrcamento,
   type Pessoa,
   type DivisaoConfig,
@@ -148,7 +148,9 @@ export default async function PaginaNorte() {
             return (
               <div key={chave}>
                 <div className="mb-1 flex items-baseline justify-between text-sm">
-                  <span className="text-text-primary">{ROTULO_GRUPO[chave]}</span>
+                  <span className="text-text-primary">
+                    {NOME_GRUPO[chave]} <span className="text-text-faint">{pct}%</span>
+                  </span>
                   <span className="text-text-secondary">
                     {moedaBRL(planejado)} <span className="text-text-faint">/ {moedaBRL(meta)}</span>
                   </span>

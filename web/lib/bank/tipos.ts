@@ -113,10 +113,20 @@ export type OrcamentoItem = {
 
 // Rótulos do orçamento 50/30/20 no vocabulário do Notion do Arlison:
 // o bucket de 50% é a Despesa Variável, o de 30% é a Despesa Fixa.
+// Usado onde a % é fixa no texto (ex. seletor de grupo de um item).
 export const ROTULO_GRUPO: Record<GrupoOrcamento, string> = {
   essencial_50: "Despesa Variável 50%",
   liberdade_30: "Despesa Fixa 30%",
   investimento_20: "Investimento 20%",
+  nao_aplica: "Não se aplica",
+};
+
+// Nome sem a % embutida — usado onde a % é dinâmica (a divisão ativa muda
+// conforme o preset escolhido, "Sua divisão hoje" na aba Norte).
+export const NOME_GRUPO: Record<GrupoOrcamento, string> = {
+  essencial_50: "Despesa Variável",
+  liberdade_30: "Despesa Fixa",
+  investimento_20: "Investimento",
   nao_aplica: "Não se aplica",
 };
 
