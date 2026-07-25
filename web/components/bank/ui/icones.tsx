@@ -32,4 +32,5 @@ export {
   IconChevronDown,
   IconChevronRight,
   IconRefresh,
+  IconUser,
 } from "@tabler/icons-react";

@@ -3,23 +3,35 @@
 import { useState } from "react";
 import { moedaBRL } from "@/lib/bank/formato";
 import { atualizarRendaPessoa } from "@/lib/bank/acoes/norte";
+import { IconUser } from "@/components/bank/ui/icones";
 import type { Pessoa } from "@/lib/bank/tipos";
 
 function CardPessoa({ pessoa }: { pessoa: Pessoa }) {
   const [editando, setEditando] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+
+  // O action do form precisa aguardar o server action terminar antes de
+  // fechar a edição — senão o estado local `editando` fica preso e o
+  // <input> não-controlado não reflete o novo valor (parece que "não salvou").
+  async function salvar(formData: FormData) {
+    setSalvando(true);
+    try {
+      await atualizarRendaPessoa(formData);
+      setEditando(false);
+    } finally {
+      setSalvando(false);
+    }
+  }
 
   if (editando) {
     return (
       <form
-        action={atualizarRendaPessoa}
+        action={salvar}
         className="flex flex-1 flex-col gap-2 rounded-[10px] border border-bank-primaria bg-surface-2 p-4"
       >
         <input type="hidden" name="id" value={pessoa.id} />
         <div className="flex items-center gap-2">
-          <span
-            className="h-2.5 w-2.5 rounded-full"
-            style={{ background: pessoa.cor ?? "var(--color-bank-primaria)" }}
-          />
+          <IconUser size={16} stroke={1.8} style={{ color: pessoa.cor ?? "var(--color-bank-primaria)" }} />
           <span className="text-sm font-medium text-text-primary">{pessoa.nome}</span>
         </div>
         <input
@@ -34,9 +46,10 @@ function CardPessoa({ pessoa }: { pessoa: Pessoa }) {
         <div className="flex gap-2">
           <button
             type="submit"
-            className="rounded-[8px] bg-bank-primaria px-3 py-1.5 text-xs font-medium text-white"
+            disabled={salvando}
+            className="rounded-[8px] bg-bank-primaria px-3 py-1.5 text-xs font-medium text-white disabled:opacity-60"
           >
-            Salvar
+            {salvando ? "Salvando…" : "Salvar"}
           </button>
           <button
             type="button"
@@ -57,10 +70,7 @@ function CardPessoa({ pessoa }: { pessoa: Pessoa }) {
       className="flex flex-1 flex-col gap-1 rounded-[10px] border border-border bg-surface-2 p-4 text-left transition-shadow hover:shadow-md"
     >
       <span className="flex items-center gap-2 text-sm text-text-secondary">
-        <span
-          className="h-2.5 w-2.5 rounded-full"
-          style={{ background: pessoa.cor ?? "var(--color-bank-primaria)" }}
-        />
+        <IconUser size={16} stroke={1.8} style={{ color: pessoa.cor ?? "var(--color-bank-primaria)" }} />
         {pessoa.nome}
       </span>
       <span className="font-serif text-2xl font-medium text-text-primary">

@@ -32,11 +32,24 @@ export function LinhaTransacao({
   categorias,
 }: LinhaTransacaoProps) {
   const [editando, setEditando] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+
+  // Aguarda o server action terminar antes de fechar a edição — senão o
+  // estado local fica preso e o form não reflete o valor recém-salvo.
+  async function salvar(formData: FormData) {
+    setSalvando(true);
+    try {
+      await editarLancamento(formData);
+      setEditando(false);
+    } finally {
+      setSalvando(false);
+    }
+  }
 
   if (editando) {
     return (
       <form
-        action={editarLancamento}
+        action={salvar}
         className="grid grid-cols-2 gap-2 rounded-[10px] bg-surface-2 p-3 sm:grid-cols-12"
       >
         <input type="hidden" name="id" value={id} />
@@ -78,9 +91,10 @@ export function LinhaTransacao({
         <div className="col-span-2 flex gap-2 sm:col-span-12">
           <button
             type="submit"
-            className="rounded-[8px] bg-bank-primaria px-3 py-1.5 text-sm font-medium text-white"
+            disabled={salvando}
+            className="rounded-[8px] bg-bank-primaria px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
           >
-            Salvar
+            {salvando ? "Salvando…" : "Salvar"}
           </button>
           <button
             type="button"

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { moedaBRL } from "@/lib/bank/formato";
 import { LinhaItem, FormAdicionarItem, type ItemView } from "@/components/bank/norte/tabela-divisao";
+import { IconUser } from "@/components/bank/ui/icones";
 import type { Pessoa } from "@/lib/bank/tipos";
 
 type Opcao = { id: string; nome: string };
@@ -47,10 +48,7 @@ export function CardsResponsavel({
               >
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-2 text-sm font-medium text-text-primary">
-                    <span
-                      className="h-2.5 w-2.5 rounded-full"
-                      style={{ background: p.cor ?? "var(--color-bank-primaria)" }}
-                    />
+                    <IconUser size={16} stroke={1.8} style={{ color: p.cor ?? "var(--color-bank-primaria)" }} />
                     {p.nome}
                   </span>
                   <span

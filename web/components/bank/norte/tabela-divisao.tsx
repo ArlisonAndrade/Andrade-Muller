@@ -158,12 +158,25 @@ export function LinhaItem({
   cartoes: Opcao[];
 }) {
   const [editando, setEditando] = useState(false);
+  const [salvando, setSalvando] = useState(false);
   const metodoLabel = item.cartao_id ? item.cartaoNome : item.metodo;
+
+  // Precisa aguardar o server action antes de fechar a edição — senão o
+  // estado local fica preso e o form não reflete o novo valor salvo.
+  async function salvar(formData: FormData) {
+    setSalvando(true);
+    try {
+      await editarOrcamentoItem(formData);
+      setEditando(false);
+    } finally {
+      setSalvando(false);
+    }
+  }
 
   if (editando) {
     return (
       <form
-        action={editarOrcamentoItem}
+        action={salvar}
         className="grid grid-cols-2 gap-2 rounded-[10px] bg-surface-2 p-3 sm:grid-cols-12"
       >
         <input type="hidden" name="id" value={item.id} />
@@ -171,9 +184,10 @@ export function LinhaItem({
         <div className="col-span-2 flex gap-2 sm:col-span-12">
           <button
             type="submit"
-            className="rounded-[8px] bg-bank-primaria px-3 py-1.5 text-sm font-medium text-white"
+            disabled={salvando}
+            className="rounded-[8px] bg-bank-primaria px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
           >
-            Salvar
+            {salvando ? "Salvando…" : "Salvar"}
           </button>
           <button
             type="button"
@@ -230,6 +244,17 @@ export function FormAdicionarItem({
   defaultsIniciais?: Partial<ItemView>;
 }) {
   const [adicionando, setAdicionando] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+
+  async function salvar(formData: FormData) {
+    setSalvando(true);
+    try {
+      await criarOrcamentoItem(formData);
+      setAdicionando(false);
+    } finally {
+      setSalvando(false);
+    }
+  }
 
   if (!adicionando) {
     return (
@@ -245,7 +270,7 @@ export function FormAdicionarItem({
 
   return (
     <form
-      action={criarOrcamentoItem}
+      action={salvar}
       className="grid grid-cols-2 gap-2 rounded-[10px] bg-surface-2 p-3 sm:grid-cols-12"
     >
       <input type="hidden" name="entidade_id" value={entidadeId} />
@@ -253,9 +278,10 @@ export function FormAdicionarItem({
       <div className="col-span-2 flex gap-2 sm:col-span-12">
         <button
           type="submit"
-          className="rounded-[8px] bg-bank-primaria px-3 py-1.5 text-sm font-medium text-white"
+          disabled={salvando}
+          className="rounded-[8px] bg-bank-primaria px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
         >
-          Adicionar
+          {salvando ? "Salvando…" : "Adicionar"}
         </button>
         <button
           type="button"
