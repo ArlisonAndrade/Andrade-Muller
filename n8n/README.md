@@ -5,11 +5,18 @@ O grupo da família no Telegram vira um canal de lançamento do Bank. Quem manda
 frase do consultor — e o gasto aparece no extrato em `/bank/lancamentos`.
 
 ```
-Grupo Telegram ──► n8n (VPS Hostinger) ──► POST /api/bank/agente/mensagem
-                        ▲                            │
-                        └──── texto da resposta ──────┘ (Claude interpreta,
-                                                         app grava em transacoes)
+Grupo Telegram ──► n8n ──► POST /api/bank/agente/mensagem
+                    ▲                    │
+                    └── texto da resposta ┘ (Claude interpreta,
+                                             app grava em transacoes)
 ```
+
+> **Onde isso roda hoje**: no n8n que já hospeda a Nina e a integração da Agenda
+> (`teste01-n8n.snm8u2.easypanel.host`), não numa instância nova. O workflow
+> **já está criado** lá — [Andrade Muller — Consultor financeiro
+> (Telegram)](https://teste01-n8n.snm8u2.easypanel.host/workflow/bu5mqygcax1Y3NVV).
+> O Passo 2 (subir o n8n) só interessa se um dia for preciso recriar do zero; o
+> Passo 5 virou "conferir credenciais e ativar".
 
 O n8n é só o canal. Toda a regra — quem pode falar, como categorizar, o que
 responder, o que impede lançamento duplicado — vive no `web/`, versionada junto
@@ -35,7 +42,9 @@ Depois disso, adicione o bot ao grupo onde você, a Franciele e ele vão convers
 
 ---
 
-## Passo 2 — Subir o n8n na VPS da Hostinger
+## Passo 2 — Subir o n8n (só se for recriar do zero)
+
+> Já existe um n8n rodando com o workflow instalado. Pule para o Passo 3.
 
 O Telegram Trigger registra um webhook e o Telegram **só aceita HTTPS com
 domínio válido** — então o n8n precisa de um domínio apontando para a VPS. Aponte
@@ -111,7 +120,7 @@ Faça um redeploy depois de adicionar. Para testar local, as mesmas três vão n
 
 ---
 
-## Passo 4 — Rodar a migration
+## Passo 4 — Rodar a migration ✅ (já aplicada em 30/jul/2026)
 
 No SQL Editor do Supabase, cole e rode
 `bank/supabase/migrations/13_telegram_agente.sql`. Ela é idempotente — rodar
@@ -119,18 +128,32 @@ duas vezes não quebra nada.
 
 ---
 
-## Passo 5 — Importar o workflow
+## Passo 5 — Credenciais e ativação do workflow
 
-1. No n8n: **Workflows → ⋮ → Import from File** → `n8n/telegram-consultor.json`.
-2. Abra o nó **Telegram Trigger** → **Credential → Create new** → cole o token do
-   bot → salve.
+O workflow já existe no n8n. Falta ligá-lo às credenciais — o segredo do app
+mora numa credencial do n8n, não dentro do workflow, para não virar texto plano
+num JSON versionado.
+
+1. **Credentials → Add credential → Header Auth**, nome
+   `Bank Agente (Authorization Bearer)`:
+   - **Name**: `Authorization`
+   - **Value**: `Bearer <o mesmo BANK_AGENTE_SECRET do Passo 3>` (com o
+     `Bearer ` na frente, espaço incluso)
+2. Abra o workflow e confira as credenciais dos nós:
+   - **Chamar o app** → Credential for Header Auth → a que você acabou de criar
+   - **Telegram (grupo)**, **Confirmar o clique**, **Responder no grupo** → a
+     credencial do bot (`Telegram Arkad`)
 3. **Ative** o workflow (chave no canto superior direito). É a ativação que
    registra o webhook no Telegram — em modo de teste ele só escuta um evento.
 
-Se o n8n reclamar de versão de algum nó ao importar, o fluxo é simples de
-refazer à mão: `Telegram Trigger` → `Code (Normalizar)` → `HTTP Request (Chamar
-o app)` → `Code (Vale responder?)` → `HTTP Request (Responder no grupo)`. O JSON
-tem o código dos dois nós Code e os parâmetros dos dois HTTP.
+Fluxo dos nós: `Telegram (grupo)` → `Normalizar` → `Clicou em desfazer?` →
+(sim: `Confirmar o clique` →) `Chamar o app` → `Vale responder?` → `Responder
+no grupo`.
+
+O `telegram-consultor.json` deste diretório é a versão anterior, escrita para
+uma instância self-hosted com variáveis de ambiente (`$env`) e chamadas HTTP
+diretas à API do Telegram. Fica como referência para recriar em outra
+instância — não é o que está rodando.
 
 ---
 
@@ -192,7 +215,7 @@ Cada `message_id` só é processado uma vez — para repetir o teste, mude o nú
 | `501 SUPABASE_SERVICE_ROLE_KEY não configurada` | falta a variável na Vercel (e redeploy depois de adicionar) |
 | Responde "Ainda não te conheço" mesmo depois do cadastro | `chat_id` do grupo é negativo — confira o sinal na linha inserida |
 | Lançou com a data errada | o app usa America/Sao_Paulo, mas confira `TZ` no container do n8n |
-| O botão "desfazer" fica girando | esperado nesta fase — falta o `answerCallbackQuery`. O lançamento é apagado do mesmo jeito |
+| O botão "desfazer" fica girando | o nó **Confirmar o clique** está sem credencial do Telegram |
 
 Logs úteis: `docker compose logs -f n8n` na VPS, e **Vercel → Deployments →
 Runtime Logs** para o lado do app (os erros saem com o prefixo `[agente/...]`).
