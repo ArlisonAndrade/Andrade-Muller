@@ -1,0 +1,92 @@
+{
+  "name": "Andrade Muller — Consultor no Telegram",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": ["message", "callback_query"],
+        "additionalFields": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000001",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [-160, 0],
+      "webhookId": "andrade-muller-consultor"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normaliza os dois tipos de update do Telegram num formato só.\n// Retornar [] interrompe o fluxo — é assim que foto, sticker e entrada no\n// grupo são descartados sem chamar o app.\nconst u = $input.first().json;\n\nif (u.callback_query) {\n  const cb = u.callback_query;\n  return [{\n    json: {\n      rota: 'desfazer',\n      chat_id: cb.message.chat.id,\n      body: { token: String(cb.data || '').replace(/^desfazer:/, '') },\n    },\n  }];\n}\n\nconst m = u.message || u.edited_message;\nif (!m || !m.text) return [];\n\nreturn [{\n  json: {\n    rota: 'mensagem',\n    chat_id: m.chat.id,\n    body: {\n      chat_id: m.chat.id,\n      message_id: m.message_id,\n      user_id: m.from.id,\n      nome: [m.from.first_name, m.from.last_name].filter(Boolean).join(' '),\n      texto: m.text,\n    },\n  },\n}];"
+      },
+      "id": "a1000000-0000-4000-8000-000000000002",
+      "name": "Normalizar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [60, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.ANDRADE_MULLER_URL }}/api/bank/agente/{{ $json.rota }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $env.BANK_AGENTE_SECRET }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": { "timeout": 60000 }
+      },
+      "id": "a1000000-0000-4000-8000-000000000003",
+      "name": "Chamar o app",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [280, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// O app decide se vale responder. Silêncio é uma resposta válida:\n// conversa entre o casal que não envolve o consultor não gera mensagem.\nconst r = $input.first().json;\nif (r.responder === false) return [];\nif (!r.texto) return [];\nreturn [{ json: r }];"
+      },
+      "id": "a1000000-0000-4000-8000-000000000004",
+      "name": "Vale responder?",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [500, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify(Object.assign({ chat_id: $('Normalizar').first().json.chat_id, text: $json.texto }, $json.desfazer_token ? { reply_markup: { inline_keyboard: [[{ text: '↩ desfazer', callback_data: 'desfazer:' + $json.desfazer_token }]] } } : {})) }}",
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000005",
+      "name": "Responder no grupo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 0]
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [[{ "node": "Normalizar", "type": "main", "index": 0 }]]
+    },
+    "Normalizar": {
+      "main": [[{ "node": "Chamar o app", "type": "main", "index": 0 }]]
+    },
+    "Chamar o app": {
+      "main": [[{ "node": "Vale responder?", "type": "main", "index": 0 }]]
+    },
+    "Vale responder?": {
+      "main": [[{ "node": "Responder no grupo", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "pinData": {}
+}

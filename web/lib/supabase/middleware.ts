@@ -4,7 +4,19 @@ import { NextResponse, type NextRequest } from "next/server";
 // Atualiza a sessão do Supabase a cada request e fecha o acesso a quem não
 // fez login com Google — único ponto de entrada do ecossistema é /entrar
 // (unificação do painel, decisão 14/jul/2026).
+// Rotas de API que se autenticam por segredo próprio no header (Bearer), e
+// não por cookie de sessão: o n8n do consultor do Telegram e o cron de
+// cotações não têm browser. Sem esta saída antecipada elas eram redirecionadas
+// para /entrar e nunca chegavam a rodar.
+function autenticaPorSegredo(pathname: string) {
+  return pathname.startsWith("/api/bank/agente") || pathname === "/api/bank/cotacoes";
+}
+
 export async function updateSession(request: NextRequest) {
+  if (autenticaPorSegredo(request.nextUrl.pathname)) {
+    return NextResponse.next({ request });
+  }
+
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(
