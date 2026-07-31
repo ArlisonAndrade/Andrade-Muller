@@ -77,6 +77,52 @@ export async function registrarProvento(formData: FormData) {
   revalidatePath("/bank/investimentos");
 }
 
+// Tira o ativo da carteira DESTA entidade. `ativos` é global (o ticker é
+// compartilhado entre Família e Arthur), então o que some é a posição:
+// movimentações e proventos da entidade. O ativo e a cotação só são
+// apagados quando ninguém mais o tem — senão sumiria da carteira do outro.
+export async function excluirPosicao(formData: FormData) {
+  const supabase = await createClient();
+  const ativoId = String(formData.get("id"));
+  const entidadeId = String(formData.get("entidade_id"));
+
+  const { error: erroMov } = await supabase
+    .from("movimentacoes_ativos")
+    .delete()
+    .eq("ativo_id", ativoId)
+    .eq("entidade_id", entidadeId);
+  if (erroMov) return { erro: `Não deu pra excluir a posição: ${erroMov.message}` };
+
+  await supabase
+    .from("proventos")
+    .delete()
+    .eq("ativo_id", ativoId)
+    .eq("entidade_id", entidadeId);
+
+  // Nenhum FK de `ativos` é cascade — a ordem importa.
+  const { count } = await supabase
+    .from("movimentacoes_ativos")
+    .select("id", { count: "exact", head: true })
+    .eq("ativo_id", ativoId);
+  if (!count) {
+    await supabase.from("cotacoes_atuais").delete().eq("ativo_id", ativoId);
+    await supabase.from("ativos").delete().eq("id", ativoId);
+  }
+
+  revalidatePath("/bank/investimentos");
+  revalidatePath("/bank");
+}
+
+export async function excluirProvento(formData: FormData) {
+  const supabase = await createClient();
+  const id = String(formData.get("id"));
+
+  const { error } = await supabase.from("proventos").delete().eq("id", id);
+  if (error) return { erro: `Não deu pra excluir o provento: ${error.message}` };
+
+  revalidatePath("/bank/investimentos");
+}
+
 // Atualização manual de preço — renda fixa, tesouro, fundos, cripto e
 // internacional (o que a brapi B3 não cobre). Pra renda fixa o padrão é
 // quantidade 1 × preço = valor atual do contrato.

@@ -39,6 +39,20 @@ export async function alternarRecorrencia(formData: FormData) {
   revalidatePath("/bank/lancamentos");
 }
 
+// Apaga a assinatura. As transações já geradas ficam no extrato (o FK é
+// `on delete set null`) — elas são gasto que aconteceu; só param de nascer
+// daqui pra frente. Pra interromper sem apagar nada, use "Pausar".
+export async function excluirRecorrencia(formData: FormData) {
+  const supabase = await createClient();
+  const id = String(formData.get("id"));
+
+  const { error } = await supabase.from("recorrencias").delete().eq("id", id);
+  if (error) return { erro: `Não deu pra excluir a recorrência: ${error.message}` };
+
+  revalidatePath("/bank/lancamentos");
+  revalidatePath("/bank");
+}
+
 // Reconcile on-load: garante que toda recorrência ativa com dia_do_mes já
 // alcançado tenha a transação da competência corrente. Idempotente — o
 // unique index (recorrencia_id, competencia_recorrencia) é o backstop e a

@@ -128,6 +128,21 @@ export async function categorizarLancamento(formData: FormData) {
   revalidatePath(`/bank/importar-fatura/revisar/${importacaoId}`);
 }
 
+// Descarta a importação: a fatura sai e leva junto os lancamentos_cartao e
+// a própria importacoes_fatura (FK on delete cascade). As transações já
+// geradas por uma confirmação FICAM no extrato — apagar a importação é
+// desfazer a leitura do arquivo, não o gasto. Pra tirar o gasto, exclua o
+// lançamento no Extrato.
+export async function excluirImportacao(formData: FormData) {
+  const supabase = await createClient();
+  const faturaId = String(formData.get("id"));
+
+  const { error } = await supabase.from("faturas_cartao").delete().eq("id", faturaId);
+  if (error) return { erro: `Não deu pra excluir a importação: ${error.message}` };
+
+  revalidatePath("/bank/importar-fatura");
+}
+
 // 2º passo: confirma a importação — gera transacoes pros lançamentos
 // categorizados, PULANDO o que já foi lançado no rápido (mesma data +
 // valor + cartão) e vinculando via transacao_id. Regime "dia da compra".

@@ -38,4 +38,5 @@ export {
   IconSchool,
   IconHeartbeat,
   IconCar,
+  IconTrash,
 } from "@tabler/icons-react";

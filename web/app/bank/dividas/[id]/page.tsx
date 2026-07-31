@@ -7,9 +7,11 @@ import {
   pagarParcela,
   adiantarParcela,
   atualizarParcela,
+  excluirDivida,
 } from "@/lib/bank/acoes/dividas";
 import { CardMetrica } from "@/components/bank/ui/card-metrica";
 import { ProgressBar } from "@/components/bank/ui/progress-bar";
+import { BotaoExcluir } from "@/components/bank/ui/botao-excluir";
 import { IconCheck, IconCoins, IconTarget, IconCalendarEvent } from "@/components/bank/ui/icones";
 
 export const metadata = { title: "Dívida" };
@@ -353,6 +355,21 @@ export default async function DetalheDivida({
           , ou recriá-la com taxa + parcelas pra ganhar o plano completo.
         </div>
       )}
+
+      <div className="flex justify-end">
+        <BotaoExcluir
+          acao={excluirDivida}
+          id={divida.id}
+          oQue={`a dívida "${divida.descricao}"`}
+          aviso={
+            parcelas.length > 0
+              ? `As ${parcelas.length} parcelas somem junto; os pagamentos já lançados ficam no extrato.`
+              : "Os pagamentos já lançados ficam no extrato."
+          }
+          rotulo="Excluir dívida"
+          aoTerminarIrPara="/bank/dividas"
+        />
+      </div>
     </div>
   );
 }

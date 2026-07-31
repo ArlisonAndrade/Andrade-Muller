@@ -2,6 +2,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { moedaBRL, dataBR } from "@/lib/bank/formato";
 import { ProgressBar } from "@/components/bank/ui/progress-bar";
+import { BotaoExcluir } from "@/components/bank/ui/botao-excluir";
+import { excluirDivida } from "@/lib/bank/acoes/dividas";
 import { IconPlus } from "@/components/bank/ui/icones";
 
 export const metadata = { title: "Dívidas" };
@@ -67,29 +69,44 @@ export default async function PaginaDividas() {
           : 0;
         const economia = economiaPorDivida.get(d.id) ?? 0;
         return (
-          <Link key={d.id} href={`/bank/dividas/${d.id}`} className="card-bank block p-5 transition-shadow hover:shadow-md">
-            <div className="flex items-baseline justify-between gap-3">
-              <p className="text-sm font-semibold text-text-primary">{d.descricao}</p>
-              <p className="text-sm font-medium text-text-primary">
-                falta {moedaBRL(Number(d.valor_total) - Number(d.valor_pago))}
-              </p>
-            </div>
-            <div className="mt-3">
-              <ProgressBar percentual={progresso} cor="var(--color-bank-positivo)" />
-            </div>
-            <div className="mt-2 flex flex-wrap items-baseline justify-between gap-2 text-xs text-text-faint">
-              <span>
-                {moedaBRL(Number(d.valor_pago))} pagos ({progresso.toFixed(0)}%)
-                {d.parcelas_total ? ` · ${d.parcelas_pagas ?? 0}/${d.parcelas_total} parcelas` : ""}
-                {d.data_vencimento_proxima ? ` · próxima ${dataBR(String(d.data_vencimento_proxima))}` : ""}
-              </span>
-              {economia > 0 && (
-                <span className="font-medium text-bank-positivo">
-                  {moedaBRL(economia)} de juros economizados
+          <div key={d.id} className="card-bank p-5 transition-shadow hover:shadow-md">
+            <Link href={`/bank/dividas/${d.id}`} className="block">
+              <div className="flex items-baseline justify-between gap-3">
+                <p className="text-sm font-semibold text-text-primary">{d.descricao}</p>
+                <p className="text-sm font-medium text-text-primary">
+                  falta {moedaBRL(Number(d.valor_total) - Number(d.valor_pago))}
+                </p>
+              </div>
+              <div className="mt-3">
+                <ProgressBar percentual={progresso} cor="var(--color-bank-positivo)" />
+              </div>
+              <div className="mt-2 flex flex-wrap items-baseline justify-between gap-2 text-xs text-text-faint">
+                <span>
+                  {moedaBRL(Number(d.valor_pago))} pagos ({progresso.toFixed(0)}%)
+                  {d.parcelas_total ? ` · ${d.parcelas_pagas ?? 0}/${d.parcelas_total} parcelas` : ""}
+                  {d.data_vencimento_proxima ? ` · próxima ${dataBR(String(d.data_vencimento_proxima))}` : ""}
                 </span>
-              )}
+                {economia > 0 && (
+                  <span className="font-medium text-bank-positivo">
+                    {moedaBRL(economia)} de juros economizados
+                  </span>
+                )}
+              </div>
+            </Link>
+            <div className="mt-3 flex justify-end border-t border-border pt-3">
+              <BotaoExcluir
+                acao={excluirDivida}
+                id={d.id}
+                oQue={`a dívida "${d.descricao}"`}
+                aviso={
+                  d.parcelas_total
+                    ? `As ${d.parcelas_total} parcelas somem junto; os pagamentos já lançados ficam no extrato.`
+                    : "Os pagamentos já lançados ficam no extrato."
+                }
+                rotulo="Excluir"
+              />
             </div>
-          </Link>
+          </div>
         );
       })}
 
@@ -98,16 +115,25 @@ export default async function PaginaDividas() {
           <h2 className="mb-2 text-sm font-semibold text-text-faint">Quitadas 🏆</h2>
           <div className="flex flex-col gap-2">
             {quitadas.map((d) => (
-              <Link
+              <div
                 key={d.id}
-                href={`/bank/dividas/${d.id}`}
-                className="card-bank flex items-center justify-between p-4 opacity-70"
+                className="card-bank flex items-center justify-between gap-3 p-4 opacity-70"
               >
-                <p className="text-sm text-text-secondary line-through">{d.descricao}</p>
+                <Link href={`/bank/dividas/${d.id}`} className="min-w-0 flex-1">
+                  <p className="truncate text-sm text-text-secondary line-through">
+                    {d.descricao}
+                  </p>
+                </Link>
                 <p className="text-xs font-medium text-bank-positivo">
                   {moedaBRL(Number(d.valor_pago))} quitados
                 </p>
-              </Link>
+                <BotaoExcluir
+                  acao={excluirDivida}
+                  id={d.id}
+                  oQue={`a dívida "${d.descricao}"`}
+                  aviso="O histórico de pagamentos fica no extrato."
+                />
+              </div>
             ))}
           </div>
         </section>

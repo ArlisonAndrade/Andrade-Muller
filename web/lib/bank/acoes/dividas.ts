@@ -54,6 +54,22 @@ export async function criarDivida(formData: FormData) {
   redirect(`/bank/dividas/${divida.id}`);
 }
 
+// Apaga a dívida inteira. As parcelas somem junto (FK on delete cascade),
+// mas as transações lançadas ao pagar parcelas FICAM: é dinheiro que saiu da
+// conta de verdade, não faz parte do contrato. Existe para desfazer cadastro
+// errado ou duplicado — foi assim que três contratos Santander idênticos
+// entraram e não tinha como tirar.
+export async function excluirDivida(formData: FormData) {
+  const supabase = await createClient();
+  const id = String(formData.get("id"));
+
+  const { error } = await supabase.from("dividas").delete().eq("id", id);
+  if (error) return { erro: `Não deu pra excluir a dívida: ${error.message}` };
+
+  revalidatePath("/bank/dividas");
+  revalidatePath("/bank");
+}
+
 // Ajuste fino de uma parcela pra bater com a tabela do contrato
 // (as do Santander variam de R$ 2.000 a 2.300).
 export async function atualizarParcela(formData: FormData) {

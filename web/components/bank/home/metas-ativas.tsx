@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { Card } from "@/components/bank/ui/card";
+import { BotaoExcluir } from "@/components/bank/ui/botao-excluir";
+import { excluirMeta } from "@/lib/bank/acoes/metas";
 import { moedaBRL } from "@/lib/bank/formato";
 import type { Meta } from "@/lib/bank/tipos";
 
@@ -21,11 +23,18 @@ export function MetasAtivas({ metas }: { metas: Meta[] }) {
               ? Math.min(100, Math.round((Number(m.valor_atual) / Number(m.valor_alvo)) * 100))
               : 0;
             return (
-              <div key={m.id}>
+              <div key={m.id} className="group">
                 <div className="mb-1 flex items-baseline justify-between gap-3">
                   <p className="text-sm text-text-primary">{m.titulo}</p>
-                  <span className="text-sm font-medium text-text-accent">
-                    {progresso}%
+                  <span className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-text-accent">
+                      {progresso}%
+                    </span>
+                    <BotaoExcluir
+                      acao={excluirMeta}
+                      id={m.id}
+                      oQue={`a meta "${m.titulo}"`}
+                    />
                   </span>
                 </div>
                 <div className="h-1.5 overflow-hidden rounded-full bg-surface-3">
