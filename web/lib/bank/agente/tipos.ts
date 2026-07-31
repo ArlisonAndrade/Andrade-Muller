@@ -23,6 +23,8 @@ export type ContextoAgente = {
     nome: string;
     grupo_orcamento: GrupoOrcamento | null;
     tipo: "receita" | "despesa";
+    /** false = conta fixa, parcela ou aporte: fica fora do total da semana. */
+    conta_na_semana: boolean;
   }[];
   cartoes: { id: string; nome: string; titular: string | null }[];
   semana: {

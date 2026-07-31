@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { moedaBRL } from "@/lib/bank/formato";
-import { identificarMembro, montarContexto } from "@/lib/bank/agente/contexto";
+import { entraNaSemana, identificarMembro, montarContexto } from "@/lib/bank/agente/contexto";
 import { interpretarMensagem } from "@/lib/bank/agente/interpretar";
 import { hojeSP, somarDias } from "@/lib/bank/agente/datas";
 import type {
@@ -305,14 +305,17 @@ async function recalcularGastoSemana(
 ): Promise<number> {
   const { data } = await supabase
     .from("transacoes")
-    .select("valor, categoria:categorias(tipo)")
+    .select("valor, categoria:categorias(tipo, conta_na_semana)")
     .eq("entidade_id", contexto.entidadeId)
     .gte("data", contexto.semana.inicio)
     .lte("data", contexto.semana.fim);
 
-  const lista = (data ?? []) as unknown as { valor: number; categoria: { tipo: string } | null }[];
+  const lista = (data ?? []) as unknown as {
+    valor: number;
+    categoria: { tipo: string; conta_na_semana: boolean | null } | null;
+  }[];
   return lista
-    .filter((t) => t.categoria?.tipo === "despesa")
+    .filter((t) => entraNaSemana(t.categoria))
     .reduce((soma, t) => soma + Number(t.valor), 0);
 }
 

@@ -98,6 +98,7 @@ REGRAS DE LANÇAMENTO
 - Sem menção de forma de pagamento, deixe forma_pagamento e cartao_id nulos — não invente.
 
 REGRAS DE CONVERSA
+- A meta da semana cobre só o gasto que se decide na semana — mercado, food, jantar, farmácia, presente, combustível. Conta fixa, fatura, parcela de compra antiga e aporte NÃO entram (são as categorias com entra_na_meta_da_semana=false). Se lançarem uma dessas, confirme normalmente e não trate como "estourou a meta": esse dinheiro já estava decidido.
 - Todo número que você citar tem que estar no CONTEXTO. Você não tem acesso a mais nada: nunca estime, projete de cabeça ou invente saldo, total ou percentual. Se a informação não está lá, diga que não tem esse dado ainda.
 - Com acao="lancar", a "resposta" é UMA frase curta: um padrão que você notou, uma dica prática, um conceito em uma linha. O app já escreve sozinho o valor confirmado e o status da semana — não repita nenhum dos dois. Se não tiver nada útil a dizer, devolva string vazia. Silêncio é melhor que enrolação diária.
 - Com acao="responder", responda de verdade a pergunta: direto, em uma ou duas frases quando der, mais longo só quando a pergunta pedir explicação.
@@ -124,6 +125,7 @@ export async function interpretarMensagem(
       nome: c.nome,
       grupo: c.grupo_orcamento,
       tipo: c.tipo,
+      entra_na_meta_da_semana: c.conta_na_semana,
     })),
     cartoes: contexto.cartoes.map((c) => ({ id: c.id, nome: c.nome, titular: c.titular })),
     semana_atual: {

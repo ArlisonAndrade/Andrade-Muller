@@ -107,8 +107,14 @@ type TransacaoLeve = {
     nome: string;
     tipo: "receita" | "despesa";
     grupo_orcamento: GrupoOrcamento | null;
+    conta_na_semana: boolean | null;
   } | null;
 };
+
+/** Regra única do que entra na conta da semana — usada aqui e no executar. */
+export function entraNaSemana(categoria: { tipo?: string; conta_na_semana?: boolean | null } | null) {
+  return categoria?.tipo === "despesa" && categoria?.conta_na_semana !== false;
+}
 
 /**
  * Snapshot compacto do estado financeiro da família para o prompt.
@@ -135,7 +141,7 @@ export async function montarContexto(
     await Promise.all([
       supabase
         .from("categorias")
-        .select("id, nome, grupo_orcamento, tipo")
+        .select("id, nome, grupo_orcamento, tipo, conta_na_semana")
         .eq("entidade_id", entidadeId)
         .order("nome"),
       supabase
@@ -143,15 +149,22 @@ export async function montarContexto(
         .select("id, nome, titular")
         .eq("entidade_id", entidadeId)
         .order("nome"),
+      // A meta vale até ser mudada: sem linha para esta semana, herda a da
+      // semana mais recente já cadastrada. Sem isso a régua sumiria toda
+      // segunda-feira e alguém teria que lembrar de recadastrar.
       supabase
         .from("semanas_orcamento")
-        .select("meta")
+        .select("meta, semana_inicio")
         .eq("entidade_id", entidadeId)
-        .eq("semana_inicio", inicioSemana)
+        .lte("semana_inicio", inicioSemana)
+        .order("semana_inicio", { ascending: false })
+        .limit(1)
         .maybeSingle(),
       supabase
         .from("transacoes")
-        .select("valor, data, descricao, categoria:categorias(nome, tipo, grupo_orcamento)")
+        .select(
+          "valor, data, descricao, categoria:categorias(nome, tipo, grupo_orcamento, conta_na_semana)",
+        )
         .eq("entidade_id", entidadeId)
         .gte("data", desde)
         .order("data", { ascending: false }),
@@ -160,8 +173,10 @@ export async function montarContexto(
   const lista = (transacoes ?? []) as unknown as TransacaoLeve[];
   const despesas = lista.filter((t) => t.categoria?.tipo === "despesa");
 
-  const gastoSemana = despesas
-    .filter((t) => t.data >= inicioSemana && t.data <= fimSemana)
+  // A meta semanal é sobre o gasto que se decide na semana — conta fixa,
+  // parcela e aporte ficam de fora (categorias.conta_na_semana).
+  const gastoSemana = lista
+    .filter((t) => entraNaSemana(t.categoria) && t.data >= inicioSemana && t.data <= fimSemana)
     .reduce((soma, t) => soma + Number(t.valor), 0);
 
   const doMes = despesas.filter((t) => t.data >= inicioMes);
