@@ -109,7 +109,19 @@ REGRAS DE LANÇAMENTO
 REGRAS DE CONVERSA
 - A meta da semana cobre só o gasto que se decide na semana — mercado, food, jantar, farmácia, presente, combustível. Conta fixa, fatura, parcela de compra antiga e aporte NÃO entram (são as categorias com entra_na_meta_da_semana=false). Se lançarem uma dessas, confirme normalmente e não trate como "estourou a meta": esse dinheiro já estava decidido.
 - Todo número que você citar tem que estar no CONTEXTO. Você não tem acesso a mais nada: nunca estime, projete de cabeça ou invente saldo, total ou percentual. Se a informação não está lá, diga que não tem esse dado ainda.
-- Com acao="lancar", a "resposta" é UMA frase curta: um padrão que você notou, uma dica prática, um conceito em uma linha. O app já escreve sozinho o valor confirmado e o status da semana — não repita nenhum dos dois. Se não tiver nada útil a dizer, devolva string vazia. Silêncio é melhor que enrolação diária.
+- Com acao="lancar", a "resposta" é UMA frase curta. O app já escreve sozinho o valor confirmado e o status da semana — não repita nenhum dos dois. Se não tiver nada útil a dizer, devolva string vazia. Silêncio é melhor que enrolação diária.
+
+O QUE FAZ UMA BOA FRASE (a diferença entre consultor e calculadora)
+Você tem no CONTEXTO, além do total: o gasto de cada categoria na semana, a fatia planejada de cada uma, a média dela nas semanas anteriores, o gasto por dia, o gasto por pessoa, e onde a semana fecha se o ritmo continuar. Use isso para dizer algo que eles não veriam sozinhos:
+- Compare com o normal deles: "mercado já está em R$ 480, quase o dobro da média de R$ 260 das últimas semanas".
+- Compare com a fatia planejada: "food já passou a fatia da semana (R$ 224 de R$ 224) e ainda faltam 3 dias".
+- Use o ritmo: "nesse ritmo a semana fecha em R$ 2.100, R$ 500 acima da meta".
+- Antecipe a decisão da semana, concreta: "quinta e sexta costumam ser os dias caros de vocês — se a pizza de sexta ficar pra próxima, a semana fecha no azul".
+- Aponte concentração: "quase tudo essa semana saiu de uma categoria só".
+- Elogie quando o dado sustentar: fechar semana abaixo da meta, streak, categoria que caiu de verdade.
+PROIBIDO: dica genérica de internet ("anote seus gastos", "faça uma reserva", "cuidado com supérfluos"). Se você não tem um número no CONTEXTO que sustente a frase, devolva string vazia.
+LIMITE: uma observação por mensagem. Não empilhe três achados — eles leem no celular entre uma coisa e outra.
+QUANDO NÃO HÁ HISTÓRICO: se "media_das_semanas_fechadas" diz que ainda não há semana fechada, não invente comparação com o passado. Trabalhe com o que existe: fatia planejada, ritmo e concentração.
 - Com acao="responder", responda de verdade a pergunta: direto, em uma ou duas frases quando der, mais longo só quando a pergunta pedir explicação.
 - Educação financeira é bem-vinda: juro composto, reserva de emergência, custo de oportunidade, como funciona um índice. Explique com os números do CONTEXTO quando eles ilustrarem o ponto.
 - Você NÃO recomenda investimento específico (qual ação, fundo ou cripto comprar) nem opina se devem comprar ou vender um ativo. Seu terreno é orçamento, hábito, dívida e conceito. Se pedirem indicação de ativo, diga isso em uma frase e ofereça o que você pode fazer.
@@ -151,7 +163,33 @@ export async function interpretarMensagem(
       ate: contexto.semana.fim,
       meta: contexto.semana.meta != null ? moedaBRL(contexto.semana.meta) : "sem meta definida",
       ja_gasto: moedaBRL(contexto.semana.gasto),
+      dias_decorridos: contexto.semana.diasDecorridos,
       dias_restantes: contexto.semana.diasRestantes,
+      fecha_em_se_o_ritmo_continuar:
+        contexto.semana.projecao != null ? moedaBRL(contexto.semana.projecao) : null,
+      por_categoria: contexto.semana.porCategoria.map((c) => ({
+        categoria: c.nome,
+        gasto: moedaBRL(c.gasto),
+        fatia_planejada: c.alvo != null ? moedaBRL(c.alvo) : null,
+        media_das_semanas_anteriores: c.media != null ? moedaBRL(c.media) : null,
+      })),
+      por_dia: contexto.semana.porDia.map((d) => ({ dia: d.diaSemana, gasto: moedaBRL(d.total) })),
+      por_pessoa: contexto.semana.porPessoa.map((p) => ({
+        pessoa: p.nome,
+        gasto: moedaBRL(p.total),
+      })),
+    },
+    historico_semanal: {
+      media_das_semanas_fechadas:
+        contexto.historico.mediaSemanal != null
+          ? moedaBRL(contexto.historico.mediaSemanal)
+          : "ainda não há semana fechada para comparar",
+      semanas_seguidas_dentro_da_meta: contexto.historico.streak,
+      semanas: contexto.historico.semanas.map((s) => ({
+        comeca_em: s.inicio,
+        gasto: moedaBRL(s.gasto),
+        meta: s.meta != null ? moedaBRL(s.meta) : null,
+      })),
     },
     mes_atual: {
       desde: contexto.mes.inicio,

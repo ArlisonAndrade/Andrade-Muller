@@ -33,6 +33,26 @@ export type ContextoAgente = {
     meta: number | null;
     gasto: number;
     diasRestantes: number;
+    diasDecorridos: number;
+    /** Onde a semana fecha se o ritmo continuar — o gancho do "segura a pizza". */
+    projecao: number | null;
+    porCategoria: {
+      nome: string;
+      gasto: number;
+      /** Fatia planejada da meta, em reais. */
+      alvo: number | null;
+      /** Média dessa categoria nas semanas fechadas — o "normal" dela. */
+      media: number | null;
+    }[];
+    porDia: { diaSemana: string; total: number }[];
+    porPessoa: { nome: string; total: number }[];
+  };
+  /** A régua do "mais que o normal". Vazio enquanto não houver semana fechada. */
+  historico: {
+    mediaSemanal: number | null;
+    /** Semanas fechadas seguidas dentro da meta. */
+    streak: number;
+    semanas: { inicio: string; gasto: number; meta: number | null }[];
   };
   mes: {
     inicio: string;

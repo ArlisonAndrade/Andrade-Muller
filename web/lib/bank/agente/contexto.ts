@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ENTIDADE_FAMILIA, type GrupoOrcamento } from "@/lib/bank/tipos";
 import { calcularScoreSaude } from "@/lib/bank/score";
+import { montarPanoramaSemanal } from "@/lib/bank/semanas";
 import type { ContextoAgente, MembroTelegram } from "@/lib/bank/agente/tipos";
 import {
   diasRestantesNaSemana,
@@ -137,8 +138,12 @@ export async function montarContexto(
 
   const entidadeId = membro.entidade_id || ENTIDADE_FAMILIA;
 
-  const [{ data: categorias }, { data: cartoes }, { data: semana }, { data: transacoes }] =
+  const [panorama, { data: categorias }, { data: cartoes }, { data: transacoes }] =
     await Promise.all([
+      // A leitura semanal (por categoria, por dia, média das anteriores) é a
+      // mesma que a tela /bank/semanas mostra — o consultor e o site nunca
+      // divergem sobre a mesma semana.
+      montarPanoramaSemanal(supabase, entidadeId, { hoje }),
       supabase
         .from("categorias")
         .select("id, nome, grupo_orcamento, tipo, conta_na_semana")
@@ -149,17 +154,6 @@ export async function montarContexto(
         .select("id, nome, titular")
         .eq("entidade_id", entidadeId)
         .order("nome"),
-      // A meta vale até ser mudada: sem linha para esta semana, herda a da
-      // semana mais recente já cadastrada. Sem isso a régua sumiria toda
-      // segunda-feira e alguém teria que lembrar de recadastrar.
-      supabase
-        .from("semanas_orcamento")
-        .select("meta, semana_inicio")
-        .eq("entidade_id", entidadeId)
-        .lte("semana_inicio", inicioSemana)
-        .order("semana_inicio", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
       supabase
         .from("transacoes")
         .select(
@@ -172,13 +166,6 @@ export async function montarContexto(
 
   const lista = (transacoes ?? []) as unknown as TransacaoLeve[];
   const despesas = lista.filter((t) => t.categoria?.tipo === "despesa");
-
-  // A meta semanal é sobre o gasto que se decide na semana — conta fixa,
-  // parcela e aporte ficam de fora (categorias.conta_na_semana).
-  const gastoSemana = lista
-    .filter((t) => entraNaSemana(t.categoria) && t.data >= inicioSemana && t.data <= fimSemana)
-    .reduce((soma, t) => soma + Number(t.valor), 0);
-
   const doMes = despesas.filter((t) => t.data >= inicioMes);
   const porGrupo = {
     essencial_50: 0,
@@ -202,11 +189,29 @@ export async function montarContexto(
     categorias: (categorias ?? []) as ContextoAgente["categorias"],
     cartoes: (cartoes ?? []) as ContextoAgente["cartoes"],
     semana: {
-      inicio: inicioSemana,
-      fim: fimSemana,
-      meta: semana?.meta != null ? Number(semana.meta) : null,
-      gasto: gastoSemana,
+      inicio: panorama.atual.inicio,
+      fim: panorama.atual.fim,
+      meta: panorama.atual.meta,
+      gasto: panorama.atual.gasto,
       diasRestantes: diasRestantesNaSemana(hoje),
+      diasDecorridos: panorama.atual.diasDecorridos,
+      projecao: panorama.atual.projecao,
+      // Só as categorias que já têm gasto ou plano — mandar 28 linhas zeradas
+      // no prompt gasta token e não diz nada.
+      porCategoria: panorama.atual.porCategoria
+        .filter((c) => c.gasto > 0 || c.alvo != null)
+        .map((c) => ({ nome: c.nome, gasto: c.gasto, alvo: c.alvo, media: c.media })),
+      porDia: panorama.atual.porDia.map((d) => ({ diaSemana: d.diaSemana, total: d.total })),
+      porPessoa: panorama.atual.porPessoa,
+    },
+    historico: {
+      mediaSemanal: panorama.mediaHistorica,
+      streak: panorama.streak,
+      semanas: panorama.anteriores.map((s) => ({
+        inicio: s.inicio,
+        gasto: s.gasto,
+        meta: s.meta,
+      })),
     },
     mes: {
       inicio: inicioMes,
