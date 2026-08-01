@@ -1,83 +1,191 @@
 {
-  "name": "Andrade Muller — Consultor no Telegram",
+  "name": "Andrade Muller — Consultor financeiro (Telegram)",
   "nodes": [
     {
       "parameters": {
         "updates": ["message", "callback_query"],
-        "additionalFields": {}
+        "additionalFields": {
+          "download": true,
+          "imageSize": "large"
+        }
       },
-      "id": "a1000000-0000-4000-8000-000000000001",
-      "name": "Telegram Trigger",
+      "id": "754c6205-0037-46e2-a599-198df0acf4dd",
+      "name": "Telegram (grupo)",
       "type": "n8n-nodes-base.telegramTrigger",
-      "typeVersion": 1.1,
-      "position": [-160, 0],
-      "webhookId": "andrade-muller-consultor"
+      "typeVersion": 1.3,
+      "position": [0, 80],
+      "credentials": {
+        "telegramApi": { "id": "r1ymXVRaK83nZcT0", "name": "Telegram Arkad" }
+      }
     },
     {
       "parameters": {
-        "jsCode": "// Normaliza os dois tipos de update do Telegram num formato só.\n// Retornar [] interrompe o fluxo — é assim que foto, sticker e entrada no\n// grupo são descartados sem chamar o app.\nconst u = $input.first().json;\n\nif (u.callback_query) {\n  const cb = u.callback_query;\n  return [{\n    json: {\n      rota: 'desfazer',\n      chat_id: cb.message.chat.id,\n      body: { token: String(cb.data || '').replace(/^desfazer:/, '') },\n    },\n  }];\n}\n\nconst m = u.message || u.edited_message;\nif (!m || !m.text) return [];\n\nreturn [{\n  json: {\n    rota: 'mensagem',\n    chat_id: m.chat.id,\n    body: {\n      chat_id: m.chat.id,\n      message_id: m.message_id,\n      user_id: m.from.id,\n      nome: [m.from.first_name, m.from.last_name].filter(Boolean).join(' '),\n      texto: m.text,\n    },\n  },\n}];"
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Normaliza os tres tipos de update num formato so: texto, foto e clique\n// no botao desfazer. Retornar [] interrompe o fluxo — e assim que sticker e\n// entrada no grupo sao descartados sem chamar o app.\nconst entrada = $input.first();\nconst u = entrada.json;\n\nif (u.callback_query) {\n  const cb = u.callback_query;\n  return [{\n    json: {\n      rota: 'desfazer',\n      chat_id: cb.message.chat.id,\n      callback_query_id: cb.id,\n      tem_foto: false,\n      body: { token: String(cb.data || '').replace(/^desfazer:/, '') },\n    },\n  }];\n}\n\nconst m = u.message || u.edited_message;\nif (!m) return [];\n\n// Foto de cupom: o texto vem na legenda, e costuma ser ela que diz a\n// categoria (\"mercado\"). Foto sem legenda tambem vale — o modelo le o cupom.\nconst temFoto = Array.isArray(m.photo) && m.photo.length > 0;\nconst texto = m.text || m.caption || '';\nif (!texto && !temFoto) return [];\n\nconst item = {\n  json: {\n    rota: 'mensagem',\n    chat_id: m.chat.id,\n    callback_query_id: '',\n    tem_foto: temFoto,\n    body: {\n      chat_id: m.chat.id,\n      message_id: m.message_id,\n      user_id: m.from.id,\n      nome: [m.from.first_name, m.from.last_name].filter(Boolean).join(' '),\n      texto,\n    },\n  },\n};\n\n// O Code node descarta o binario se ele nao for devolvido de proposito.\nif (temFoto && entrada.binary) item.binary = entrada.binary;\n\nreturn [item];"
       },
-      "id": "a1000000-0000-4000-8000-000000000002",
+      "id": "1d9239ee-05fa-40d5-9c3e-0f466f672395",
       "name": "Normalizar",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [60, 0]
+      "position": [224, 80]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.rota }}",
+              "operator": { "type": "string", "operation": "equals" },
+              "rightValue": "desfazer"
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "ad36ba23-8dc4-4ae3-b5d8-09849d45e00c",
+      "name": "Clicou em desfazer?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [448, 80]
+    },
+    {
+      "parameters": {
+        "resource": "callback",
+        "operation": "answerQuery",
+        "queryId": "={{ $json.callback_query_id }}",
+        "additionalFields": {}
+      },
+      "id": "1e6067c7-46d1-4d76-b7c4-656332186cd0",
+      "name": "Confirmar o clique",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [672, -60],
+      "credentials": {
+        "telegramApi": { "id": "r1ymXVRaK83nZcT0", "name": "Telegram Arkad" }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.tem_foto }}",
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "6a1f0c22-9d3e-4b71-8f0a-2c5d7e91a004",
+      "name": "Tem foto?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [672, 180]
+    },
+    {
+      "parameters": {
+        "operation": "binaryToPropery",
+        "binaryPropertyName": "data",
+        "destinationKey": "imagem_base64",
+        "options": { "keepSource": "json" }
+      },
+      "id": "8c4b52d1-7e60-4a39-9b12-3f7ad0c6e115",
+      "name": "Foto em base64",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [896, 100]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "={{ $env.ANDRADE_MULLER_URL }}/api/bank/agente/{{ $json.rota }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $env.BANK_AGENTE_SECRET }}"
-            }
-          ]
-        },
+        "url": "={{ 'https://andrademuller.vercel.app/api/bank/agente/' + $('Normalizar').first().json.rota }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
+        "contentType": "json",
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify($json.body) }}",
-        "options": { "timeout": 60000 }
+        "jsonBody": "={{ JSON.stringify(Object.assign({}, $('Normalizar').first().json.body, $json.imagem_base64 ? { imagem_base64: $json.imagem_base64, imagem_mime: 'image/jpeg' } : {})) }}",
+        "options": { "timeout": 120000 }
       },
-      "id": "a1000000-0000-4000-8000-000000000003",
+      "id": "b4bc80e5-3303-4458-a5a7-2022da292185",
       "name": "Chamar o app",
       "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [280, 0]
+      "typeVersion": 4.4,
+      "position": [1120, 80]
     },
     {
       "parameters": {
-        "jsCode": "// O app decide se vale responder. Silêncio é uma resposta válida:\n// conversa entre o casal que não envolve o consultor não gera mensagem.\nconst r = $input.first().json;\nif (r.responder === false) return [];\nif (!r.texto) return [];\nreturn [{ json: r }];"
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// O app decide se vale responder. Silencio e uma resposta valida:\n// conversa entre o casal que nao envolve o consultor nao gera mensagem.\nconst r = $input.first().json;\nif (r.responder === false) return [];\nif (!r.texto) return [];\n\n// O no do Telegram envia com parse_mode HTML, entao \"<\", \">\" e \"&\" do texto\n// puro do app precisam virar entidade — senao o Telegram recusa a mensagem\n// inteira com \"can't parse entities\". Em HTML o \"_\" de chat_id e de\n// telegram_membros nao significa nada, que era o que quebrava no Markdown.\nconst texto = String(r.texto)\n  .replace(/&/g, '&amp;')\n  .replace(/</g, '&lt;')\n  .replace(/>/g, '&gt;');\n\nreturn [{ json: { ...r, texto } }];"
       },
-      "id": "a1000000-0000-4000-8000-000000000004",
+      "id": "9df22feb-dadf-4af9-873c-2f6ea29b0278",
       "name": "Vale responder?",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [500, 0]
+      "position": [1344, 80]
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify(Object.assign({ chat_id: $('Normalizar').first().json.chat_id, text: $json.texto }, $json.desfazer_token ? { reply_markup: { inline_keyboard: [[{ text: '↩ desfazer', callback_data: 'desfazer:' + $json.desfazer_token }]] } } : {})) }}",
-        "options": {}
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Normalizar').first().json.chat_id }}",
+        "text": "={{ $json.texto }}",
+        "replyMarkup": "={{ $json.desfazer_token ? 'inlineKeyboard' : 'none' }}",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "↩ desfazer",
+                    "additionalFields": {
+                      "callback_data": "={{ 'desfazer:' + ($json.desfazer_token || '') }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": { "appendAttribution": false, "parse_mode": "HTML" }
       },
-      "id": "a1000000-0000-4000-8000-000000000005",
+      "id": "bfb4dc00-85ac-45e8-8502-5f16020758ae",
       "name": "Responder no grupo",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [720, 0]
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1568, 80],
+      "credentials": {
+        "telegramApi": { "id": "r1ymXVRaK83nZcT0", "name": "Telegram Arkad" }
+      }
     }
   ],
   "connections": {
-    "Telegram Trigger": {
+    "Telegram (grupo)": {
       "main": [[{ "node": "Normalizar", "type": "main", "index": 0 }]]
     },
     "Normalizar": {
+      "main": [[{ "node": "Clicou em desfazer?", "type": "main", "index": 0 }]]
+    },
+    "Clicou em desfazer?": {
+      "main": [
+        [{ "node": "Confirmar o clique", "type": "main", "index": 0 }],
+        [{ "node": "Tem foto?", "type": "main", "index": 0 }]
+      ]
+    },
+    "Confirmar o clique": {
+      "main": [[{ "node": "Chamar o app", "type": "main", "index": 0 }]]
+    },
+    "Tem foto?": {
+      "main": [
+        [{ "node": "Foto em base64", "type": "main", "index": 0 }],
+        [{ "node": "Chamar o app", "type": "main", "index": 0 }]
+      ]
+    },
+    "Foto em base64": {
       "main": [[{ "node": "Chamar o app", "type": "main", "index": 0 }]]
     },
     "Chamar o app": {

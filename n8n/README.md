@@ -146,14 +146,35 @@ num JSON versionado.
 3. **Ative** o workflow (chave no canto superior direito). É a ativação que
    registra o webhook no Telegram — em modo de teste ele só escuta um evento.
 
-Fluxo dos nós: `Telegram (grupo)` → `Normalizar` → `Clicou em desfazer?` →
-(sim: `Confirmar o clique` →) `Chamar o app` → `Vale responder?` → `Responder
-no grupo`.
+Fluxo dos nós:
 
-O `telegram-consultor.json` deste diretório é a versão anterior, escrita para
-uma instância self-hosted com variáveis de ambiente (`$env`) e chamadas HTTP
-diretas à API do Telegram. Fica como referência para recriar em outra
-instância — não é o que está rodando.
+```
+Telegram (grupo) → Normalizar → Clicou em desfazer?
+                                  ├ sim → Confirmar o clique ─┐
+                                  └ não → Tem foto?           │
+                                            ├ sim → Foto em base64 ─┤
+                                            └ não ──────────────────┤
+                                                                    ▼
+                              Responder no grupo ← Vale responder? ← Chamar o app
+```
+
+`telegram-consultor.json` é o workflow que está rodando. Para reimportar
+depois de uma mudança: **Workflows → ⋮ → Import from File**, ou abra o
+workflow, selecione tudo (Ctrl+A), apague e cole o JSON (Ctrl+V). As
+credenciais precisam ser reconferidas depois de qualquer import.
+
+## Foto de cupom
+
+O `Telegram (grupo)` está com **Download Image/File** ligado e tamanho
+`large` — sem isso só chega o `file_id` e a foto nunca vira imagem para o
+modelo. O `Normalizar` devolve o binário de propósito (o Code node descarta
+binário que não é retornado), o `Foto em base64` converte para string e o
+`Chamar o app` manda `imagem_base64` junto do corpo normal.
+
+Um cupom vira **um** lançamento com o total pago — não item a item. A
+legenda da foto, quando existe, manda mais que a leitura do modelo: mandar a
+foto com "mercado" escrito embaixo resolve categoria ambígua. Total ilegível
+não é chutado: o bot pergunta.
 
 ---
 
