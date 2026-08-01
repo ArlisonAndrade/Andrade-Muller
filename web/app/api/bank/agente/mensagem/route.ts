@@ -55,6 +55,8 @@ export async function POST(request: Request) {
       responder: resultado.responder,
       texto: resultado.texto,
       desfazer_token: resultado.desfazerToken,
+      // Botões de categoria quando o modelo não soube classificar.
+      escolha_categoria: resultado.escolhaCategoria ?? null,
     });
   } catch (erro) {
     console.error("[agente/mensagem]", erro);

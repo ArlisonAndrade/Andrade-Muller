@@ -90,4 +90,14 @@ export type ResultadoAgente = {
   texto: string;
   /** id em agente_mensagens — vira o callback_data do botão "desfazer". */
   desfazerToken: string | null;
+  /**
+   * Quando a categoria foi chute, o lançamento sai com botões das 6 opções
+   * em vez de morrer em "Outro". Um toque corrige — sem abrir o site.
+   */
+  escolhaCategoria?: {
+    transacaoId: string;
+    /** `indice` e não o uuid da categoria: callback_data do Telegram tem 64
+     *  bytes e dois uuids não cabem. A ordem é resolvida no servidor. */
+    opcoes: { indice: number; nome: string }[];
+  } | null;
 };

@@ -7,6 +7,7 @@ import { CardMetrica } from "@/components/bank/ui/card-metrica";
 import { ProgressBar } from "@/components/bank/ui/progress-bar";
 import { MetaEditavel } from "@/components/bank/semanas/meta-editavel";
 import { PlanoCategorias } from "@/components/bank/semanas/plano-categorias";
+import { ListaSemanas } from "@/components/bank/semanas/lista-semanas";
 import { IconTarget, IconCalendarEvent, IconTrendingUp } from "@/components/bank/ui/icones";
 
 export const metadata = { title: "Semanas" };
@@ -43,7 +44,7 @@ export default async function PaginaSemanas({
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
           <h1 className="text-lg font-semibold">
-            Semana de {dataBR(atual.inicio)} a {dataBR(atual.fim)}
+            {atual.rotulo} · {dataBR(atual.inicio)} a {dataBR(atual.fim)}
           </h1>
           <div className="mt-1">
             <MetaEditavel
@@ -190,49 +191,8 @@ export default async function PaginaSemanas({
         </section>
       )}
 
-      {/* Histórico */}
-      <section className="card-bank p-4 sm:p-6">
-        <h2 className="text-sm font-semibold">Semanas anteriores</h2>
-        {anteriores.length === 0 ? (
-          <p className="mt-2 text-sm text-text-faint">
-            Esta é a semana 01 do modelo novo. A partir da próxima, dá pra
-            comparar — e o consultor no Telegram passa a dizer quando algo saiu
-            do normal de vocês.
-          </p>
-        ) : (
-          <div className="mt-3 flex flex-col gap-2.5">
-            {[...anteriores].reverse().map((s) => {
-              const dentro = s.meta != null && s.gasto <= s.meta;
-              return (
-                <div key={s.inicio} className="flex items-baseline justify-between gap-3">
-                  <a
-                    href={`/bank/semanas?semana=${s.inicio}`}
-                    className="text-sm text-text-secondary hover:text-text-primary hover:underline"
-                  >
-                    {dataBR(s.inicio)} a {dataBR(s.fim)}
-                  </a>
-                  <span
-                    className={`text-sm font-medium numeros-tabulares ${
-                      s.meta == null
-                        ? "text-text-primary"
-                        : dentro
-                          ? "text-bank-positivo"
-                          : "text-bank-negativo"
-                    }`}
-                  >
-                    {moedaBRL(s.gasto)}
-                    {s.meta != null && (
-                      <span className="ml-2 text-xs text-text-faint">
-                        de {moedaBRL(s.meta)}
-                      </span>
-                    )}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </section>
+      {/* Histórico: Smn 01 … Smn 15, cada uma abre o próprio resumo */}
+      <ListaSemanas semanas={anteriores} />
     </div>
   );
 }

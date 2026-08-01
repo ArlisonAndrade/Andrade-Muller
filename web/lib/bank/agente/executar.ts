@@ -21,7 +21,12 @@ export type MensagemTelegram = {
   imagem?: { base64: string; mime: string } | null;
 };
 
-const SILENCIO: ResultadoAgente = { responder: false, texto: "", desfazerToken: null };
+const SILENCIO: ResultadoAgente = {
+  responder: false,
+  texto: "",
+  desfazerToken: null,
+  escolhaCategoria: null,
+};
 
 /**
  * Caminho completo de uma mensagem do grupo: identifica quem falou, monta o
@@ -84,7 +89,7 @@ export async function processarMensagem(
   }
 
   // ---- acao === "lancar" ----
-  const { ids, confirmacoes, chutes, duplicados } = await gravarLancamentos(
+  const { ids, confirmacoes, chutes, duplicados, incertos } = await gravarLancamentos(
     supabase,
     membro,
     contexto,
@@ -110,6 +115,7 @@ export async function processarMensagem(
     contexto,
     gastoSemana,
     interpretacao.resposta.trim(),
+    incertos.length > 0,
   );
   const registro = await registrarMensagem(
     supabase,
@@ -121,7 +127,69 @@ export async function processarMensagem(
     texto,
   );
 
-  return { responder: true, texto, desfazerToken: registro };
+  // Só o primeiro incerto vira botões: dois teclados na mesma mensagem não
+  // cabem, e na prática a dúvida é de um item por vez.
+  const escolhaCategoria =
+    incertos.length > 0
+      ? {
+          transacaoId: incertos[0],
+          opcoes: ordenarCategoriasSemanais(contexto.categorias).map((c, indice) => ({
+            indice,
+            nome: c.nome,
+          })),
+        }
+      : null;
+
+  return { responder: true, texto, desfazerToken: registro, escolhaCategoria };
+}
+
+/**
+ * Ordem canônica das categorias da semana. É o contrato entre o botão
+ * mostrado no Telegram e o índice que volta no clique — precisa ser a mesma
+ * dos dois lados, então mora aqui e não em cada chamador.
+ */
+function ordenarCategoriasSemanais<T extends { nome: string; tipo: string; conta_na_semana: boolean }>(
+  categorias: T[],
+): T[] {
+  return categorias
+    .filter((c) => c.tipo === "despesa" && c.conta_na_semana)
+    .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+}
+
+/**
+ * Troca a categoria de um lançamento — o que os botões da confirmação fazem.
+ * Devolve a frase curta que o n8n manda de volta ao grupo.
+ */
+export async function recategorizarTransacao(
+  supabase: SupabaseClient,
+  transacaoId: string,
+  indice: number,
+): Promise<string> {
+  const { data: transacao } = await supabase
+    .from("transacoes")
+    .select("id, entidade_id, descricao")
+    .eq("id", transacaoId)
+    .maybeSingle();
+  if (!transacao) return "Esse lançamento não existe mais.";
+
+  const { data: categorias } = await supabase
+    .from("categorias")
+    .select("id, nome, tipo, conta_na_semana")
+    .eq("entidade_id", transacao.entidade_id);
+
+  const opcoes = ordenarCategoriasSemanais(
+    (categorias ?? []) as { id: string; nome: string; tipo: string; conta_na_semana: boolean }[],
+  );
+  const escolhida = opcoes[indice];
+  if (!escolhida) return "Não achei essa categoria.";
+
+  const { error } = await supabase
+    .from("transacoes")
+    .update({ categoria_id: escolhida.id })
+    .eq("id", transacaoId);
+  if (error) throw new Error(`Falha ao recategorizar: ${error.message}`);
+
+  return `Pronto — "${transacao.descricao}" agora está em ${escolhida.nome}.`;
 }
 
 // ---------- Gravação ----------
@@ -136,6 +204,8 @@ async function gravarLancamentos(
   const ids: string[] = [];
   const confirmacoes: string[] = [];
   const chutes: string[] = [];
+  // Lançamentos cuja categoria o modelo não soube — viram botões, não "Outro".
+  const incertos: string[] = [];
   let duplicados = 0;
 
   const categoriaOutros = contexto.categorias.find(
@@ -197,10 +267,11 @@ async function gravarLancamentos(
 
     if (proposto.confianca === "baixa" || !proposto.categoria_id) {
       chutes.push(descricao);
+      incertos.push(inserida.id);
     }
   }
 
-  return { ids, confirmacoes, chutes, duplicados };
+  return { ids, confirmacoes, chutes, duplicados, incertos };
 }
 
 async function registrarMensagem(
@@ -273,13 +344,16 @@ function montarResposta(
   contexto: ContextoAgente,
   gastoSemana: number,
   comentario: string,
+  temBotoes: boolean,
 ): string {
   const linhas = confirmacoes.map((c) => `✅ ${c}`);
   linhas.push(linhaSemana(contexto, gastoSemana));
 
   if (chutes.length > 0) {
     linhas.push(
-      `❓ Chutei a categoria de ${chutes.map((c) => `"${c}"`).join(", ")} — dá pra ajustar no extrato.`,
+      temBotoes
+        ? `❓ Não tenho certeza da categoria de ${chutes.map((c) => `"${c}"`).join(", ")} — escolhe abaixo.`
+        : `❓ Chutei a categoria de ${chutes.map((c) => `"${c}"`).join(", ")} — dá pra ajustar no extrato.`,
     );
   }
   if (comentario) linhas.push(`💡 ${comentario}`);

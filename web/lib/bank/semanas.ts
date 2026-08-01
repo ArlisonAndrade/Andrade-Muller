@@ -9,7 +9,28 @@ import { hojeSP, segundaDaSemana, somarDias } from "@/lib/bank/agente/datas";
 // fora — comparar semana com semana incluindo o aluguel não diz nada sobre
 // comportamento, que é o que o consultor precisa enxergar.
 
-export const SEMANAS_DE_HISTORICO = 8;
+// Cobre as 15 semanas fechadas que vieram da planilha do Arlison. É o que
+// dá ao consultor um "normal" medido em vez de amostra de duas semanas.
+export const SEMANAS_DE_HISTORICO = 20;
+
+// A contagem do Arlison, que existe desde antes do Bank: a semana de
+// 27/jul/2026 é a Smn 16. Manter o número é o que faz o histórico dele e o
+// sistema falarem a mesma língua — renumerar do zero jogaria fora 15 semanas
+// de referência que ele já usa.
+const SEMANA_ANCORA = { inicio: "2026-07-27", numero: 16 };
+
+export function numeroDaSemana(inicio: string): number {
+  const dias =
+    (new Date(`${inicio}T12:00:00Z`).getTime() -
+      new Date(`${SEMANA_ANCORA.inicio}T12:00:00Z`).getTime()) /
+    86_400_000;
+  return SEMANA_ANCORA.numero + Math.round(dias / 7);
+}
+
+/** "Smn 07" — o rótulo que ele já usa na planilha e no Notion. */
+export function rotuloSemana(inicio: string): string {
+  return `Smn ${String(numeroDaSemana(inicio)).padStart(2, "0")}`;
+}
 
 export type CategoriaSemana = {
   categoriaId: string;
@@ -25,6 +46,9 @@ export type CategoriaSemana = {
 export type DiaSemana = { data: string; diaSemana: string; total: number };
 
 export type SemanaResumo = {
+  /** Número na contagem do Arlison — a semana de 27/jul/2026 é a 16. */
+  numero: number;
+  rotulo: string;
   inicio: string;
   fim: string;
   meta: number | null;
@@ -229,6 +253,8 @@ function resumirSemana(
   }
 
   return {
+    numero: numeroDaSemana(inicio),
+    rotulo: rotuloSemana(inicio),
     inicio,
     fim,
     meta,
