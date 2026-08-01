@@ -158,6 +158,13 @@ Telegram (grupo) → Normalizar → Clicou em desfazer?
                               Responder no grupo ← Vale responder? ← Chamar o app
 ```
 
+> ⚠ **Rascunho ≠ versão publicada.** Esta instância guarda as duas coisas.
+> Salvar o workflow (ou atualizá-lo pela API) mexe só no rascunho: o que roda
+> em produção continua sendo a versão publicada. Depois de qualquer mudança,
+> **publique** — senão o comportamento novo simplesmente não acontece, sem
+> nenhum erro visível. Foi o que quase engoliu o caminho da foto em
+> 01/ago/2026.
+
 `telegram-consultor.json` é o workflow que está rodando. Para reimportar
 depois de uma mudança: **Workflows → ⋮ → Import from File**, ou abra o
 workflow, selecione tudo (Ctrl+A), apague e cole o JSON (Ctrl+V). As
