@@ -17,6 +17,8 @@ export type MensagemTelegram = {
   userId: number;
   nome: string;
   texto: string;
+  /** Foto de cupom/comprovante, quando a mensagem veio com imagem. */
+  imagem?: { base64: string; mime: string } | null;
 };
 
 const SILENCIO: ResultadoAgente = { responder: false, texto: "", desfazerToken: null };
@@ -60,7 +62,7 @@ export async function processarMensagem(
 
   let interpretacao: Interpretacao;
   try {
-    interpretacao = await interpretarMensagem(contexto, msg.texto, autor);
+    interpretacao = await interpretarMensagem(contexto, msg.texto, autor, msg.imagem ?? null);
   } catch (erro) {
     await registrarMensagem(supabase, membro, msg, "erro", null, [], null);
     return {
@@ -218,7 +220,9 @@ async function registrarMensagem(
       telegram_message_id: msg.messageId,
       telegram_user_id: msg.userId,
       pessoa_id: membro.pessoa_id,
-      texto_recebido: msg.texto,
+      // Foto sem legenda tem texto vazio — deixa o rastro no log mesmo assim,
+      // senão a linha fica sem nenhuma pista do que chegou.
+      texto_recebido: msg.texto || (msg.imagem ? "[foto]" : ""),
       acao,
       interpretacao,
       transacao_ids: transacaoIds,

@@ -90,6 +90,15 @@ COMO VOCÊ DECIDE O QUE FAZER
 - "responder": pergunta, pedido de status, dúvida conceitual, ou um gasto citado sem valor claro (aí você pergunta o valor).
 - "ignorar": conversa entre eles que não pede nada de você. Prefira ignorar a interromper.
 
+QUANDO VIER UMA FOTO
+- É cupom fiscal, comprovante de PIX, print de compra ou etiqueta de preço. Leia o TOTAL PAGO (não a soma dos itens, não o subtotal antes do desconto), o estabelecimento e a data impressa.
+- Lance UM único gasto com o total. Nunca quebre o cupom item a item: quem revisa é a família, e 40 linhas ninguém revisa.
+- descricao = nome do estabelecimento, curto e limpo ("Bistek", "Posto Shell"). Sem CNPJ, sem razão social inteira.
+- data = a data impressa no cupom. Se não der pra ler, use hoje.
+- A categoria sai do estabelecimento (supermercado → Mercado, restaurante → Jantar/Food, farmácia → Farmácia). A legenda da foto, quando houver, manda mais que a sua leitura.
+- Se o total estiver ilegível ou a foto não for de compra, use acao="responder" e diga em uma frase o que você não conseguiu ler. Não chute valor de foto — chute de número aqui vira dinheiro errado no extrato.
+- Cupom com forma de pagamento visível ("CARTAO CREDITO", "PIX", "DINHEIRO") preenche forma_pagamento. Bandeira/final do cartão só vira cartao_id se casar com a lista de cartões.
+
 REGRAS DE LANÇAMENTO
 - categoria_id tem que ser um id da lista de categorias do CONTEXTO. Se nada encaixar, use a categoria "Outros" e marque confianca "baixa".
 - Marque confianca "baixa" também quando o valor ou a data ficaram ambíguos. O lançamento é feito mesmo assim — quem revisa é a família.
@@ -106,13 +115,22 @@ REGRAS DE CONVERSA
 - Você NÃO recomenda investimento específico (qual ação, fundo ou cripto comprar) nem opina se devem comprar ou vender um ativo. Seu terreno é orçamento, hábito, dívida e conceito. Se pedirem indicação de ativo, diga isso em uma frase e ofereça o que você pode fazer.
 - Português do Brasil, tom de gente. Trate os dois pelo nome. Sem emoji decorativo, sem elogio automático, sem "ótima pergunta". Não moralize sobre gasto — mostre o número e a consequência.`;
 
+// A API recusa imagem grande demais; o Telegram entrega bem menos que isto
+// numa foto normal, então o teto só existe pra falhar com frase legível em
+// vez de erro cru da API.
+const LIMITE_IMAGEM_BASE64 = 4_500_000;
+
 export async function interpretarMensagem(
   contexto: ContextoAgente,
   texto: string,
   autor: string,
+  imagem: { base64: string; mime: string } | null = null,
 ): Promise<Interpretacao> {
   if (!process.env.ANTHROPIC_API_KEY) {
     throw new Error("ANTHROPIC_API_KEY não configurada — o agente do Telegram precisa dela.");
+  }
+  if (imagem && imagem.base64.length > LIMITE_IMAGEM_BASE64) {
+    throw new Error("essa foto ficou grande demais pra mim");
   }
 
   const anthropic = new Anthropic();
@@ -167,7 +185,30 @@ export async function interpretarMensagem(
     messages: [
       {
         role: "user",
-        content: `CONTEXTO (única fonte de números):\n${JSON.stringify(resumoContexto, null, 2)}\n\nMENSAGEM DE ${autor.toUpperCase()}:\n${texto}`,
+        // Imagem antes do texto: é a ordem que a Anthropic recomenda quando a
+        // pergunta é sobre a imagem.
+        content: [
+          ...(imagem
+            ? ([
+                {
+                  type: "image" as const,
+                  source: {
+                    type: "base64" as const,
+                    media_type: imagem.mime as "image/jpeg" | "image/png" | "image/webp" | "image/gif",
+                    data: imagem.base64,
+                  },
+                },
+              ])
+            : []),
+          {
+            type: "text" as const,
+            text:
+              `CONTEXTO (única fonte de números):\n${JSON.stringify(resumoContexto, null, 2)}\n\n` +
+              (imagem
+                ? `${autor.toUpperCase()} MANDOU A FOTO ACIMA${texto ? ` com a legenda:\n${texto}` : " sem legenda."}`
+                : `MENSAGEM DE ${autor.toUpperCase()}:\n${texto}`),
+          },
+        ],
       },
     ],
   });

@@ -8,7 +8,8 @@ import { processarMensagem, type MensagemTelegram } from "@/lib/bank/agente/exec
 //
 // POST /api/bank/agente/mensagem
 // Header: Authorization: Bearer <BANK_AGENTE_SECRET>
-// Body:   { chat_id, message_id, user_id, nome, texto }
+// Body:   { chat_id, message_id, user_id, nome, texto,
+//           imagem_base64?, imagem_mime? }   ← foto de cupom
 export async function POST(request: Request) {
   const acesso = autorizarAgente(request);
   if (!acesso.ok) return acesso.resposta;
@@ -21,20 +22,32 @@ export async function POST(request: Request) {
   }
 
   const texto = String(corpo.texto ?? "").trim();
+  const imagemBase64 = String(corpo.imagem_base64 ?? "").trim();
+  const mimeRecebido = String(corpo.imagem_mime ?? "").trim();
+  // O Telegram entrega foto sempre como JPEG; os outros formatos só chegam
+  // aqui se a mensagem vier como documento.
+  const MIMES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
   const msg: MensagemTelegram = {
     chatId: Number(corpo.chat_id),
     messageId: Number(corpo.message_id),
     userId: Number(corpo.user_id),
     nome: String(corpo.nome ?? "").trim(),
     texto,
+    imagem: imagemBase64
+      ? {
+          base64: imagemBase64,
+          mime: MIMES.includes(mimeRecebido) ? mimeRecebido : "image/jpeg",
+        }
+      : null,
   };
 
   if (!Number.isFinite(msg.chatId) || !Number.isFinite(msg.userId)) {
     return Response.json({ erro: "chat_id e user_id são obrigatórios" }, { status: 400 });
   }
-  // Mensagem sem texto (foto, sticker, entrada no grupo) não é assunto do
-  // agente ainda — foto de cupom fica para a fase de OCR.
-  if (!texto) return Response.json({ responder: false, texto: "", desfazer_token: null });
+  // Sem texto e sem imagem (sticker, entrada no grupo) não é assunto do agente.
+  if (!texto && !msg.imagem) {
+    return Response.json({ responder: false, texto: "", desfazer_token: null });
+  }
 
   try {
     const resultado = await processarMensagem(acesso.supabase, msg);
