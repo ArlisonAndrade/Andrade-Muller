@@ -13,7 +13,7 @@
       "name": "Telegram (grupo)",
       "type": "n8n-nodes-base.telegramTrigger",
       "typeVersion": 1.3,
-      "position": [0, 80],
+      "position": [0, 176],
       "credentials": {
         "telegramApi": { "id": "r1ymXVRaK83nZcT0", "name": "Telegram Arkad" }
       }
@@ -22,33 +22,33 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "// Normaliza os tres tipos de update num formato so: texto, foto e clique\n// no botao desfazer. Retornar [] interrompe o fluxo — e assim que sticker e\n// entrada no grupo sao descartados sem chamar o app.\nconst entrada = $input.first();\nconst u = entrada.json;\n\nif (u.callback_query) {\n  const cb = u.callback_query;\n  return [{\n    json: {\n      rota: 'desfazer',\n      chat_id: cb.message.chat.id,\n      callback_query_id: cb.id,\n      tem_foto: false,\n      body: { token: String(cb.data || '').replace(/^desfazer:/, '') },\n    },\n  }];\n}\n\nconst m = u.message || u.edited_message;\nif (!m) return [];\n\n// Foto de cupom: o texto vem na legenda, e costuma ser ela que diz a\n// categoria (\"mercado\"). Foto sem legenda tambem vale — o modelo le o cupom.\nconst temFoto = Array.isArray(m.photo) && m.photo.length > 0;\nconst texto = m.text || m.caption || '';\nif (!texto && !temFoto) return [];\n\nconst item = {\n  json: {\n    rota: 'mensagem',\n    chat_id: m.chat.id,\n    callback_query_id: '',\n    tem_foto: temFoto,\n    body: {\n      chat_id: m.chat.id,\n      message_id: m.message_id,\n      user_id: m.from.id,\n      nome: [m.from.first_name, m.from.last_name].filter(Boolean).join(' '),\n      texto,\n    },\n  },\n};\n\n// O Code node descarta o binario se ele nao for devolvido de proposito.\nif (temFoto && entrada.binary) item.binary = entrada.binary;\n\nreturn [item];"
+        "jsCode": "// Normaliza os quatro tipos de update num formato so: texto, foto, clique\n// em \"desfazer\" e clique num botao de categoria.\nconst entrada = $input.first();\nconst u = entrada.json;\n\nif (u.callback_query) {\n  const cb = u.callback_query;\n  const dados = String(cb.data || '');\n  const comum = { chat_id: cb.message.chat.id, callback_query_id: cb.id, tem_foto: false };\n\n  // \"cat:<transacao_id>:<indice>\" — indice, e nao uuid da categoria, porque\n  // callback_data do Telegram tem teto de 64 bytes.\n  if (dados.startsWith('cat:')) {\n    const [, transacao, indice] = dados.split(':');\n    return [{ json: { ...comum, rota: 'categoria', body: { transacao_id: transacao, indice: Number(indice) } } }];\n  }\n\n  return [{ json: { ...comum, rota: 'desfazer', body: { token: dados.replace(/^desfazer:/, '') } } }];\n}\n\nconst m = u.message || u.edited_message;\nif (!m) return [];\n\n// Foto de cupom: o texto vem na legenda, e costuma ser ela que diz a\n// categoria (\"mercado\"). Foto sem legenda tambem vale — o modelo le o cupom.\nconst temFoto = Array.isArray(m.photo) && m.photo.length > 0;\nconst texto = m.text || m.caption || '';\nif (!texto && !temFoto) return [];\n\nconst item = {\n  json: {\n    rota: 'mensagem',\n    chat_id: m.chat.id,\n    callback_query_id: '',\n    tem_foto: temFoto,\n    body: {\n      chat_id: m.chat.id,\n      message_id: m.message_id,\n      user_id: m.from.id,\n      nome: [m.from.first_name, m.from.last_name].filter(Boolean).join(' '),\n      texto,\n    },\n  },\n};\n\n// O Code node descarta o binario se ele nao for devolvido de proposito.\nif (temFoto && entrada.binary) item.binary = entrada.binary;\n\nreturn [item];"
       },
       "id": "1d9239ee-05fa-40d5-9c3e-0f466f672395",
       "name": "Normalizar",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [224, 80]
+      "position": [224, 176]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose", "version": 1 },
           "conditions": [
             {
-              "leftValue": "={{ $json.rota }}",
-              "operator": { "type": "string", "operation": "equals" },
-              "rightValue": "desfazer"
+              "leftValue": "={{ $json.callback_query_id }}",
+              "operator": { "type": "string", "operation": "notEmpty", "singleValue": true }
             }
           ],
           "combinator": "and"
-        }
+        },
+        "options": {}
       },
       "id": "ad36ba23-8dc4-4ae3-b5d8-09849d45e00c",
-      "name": "Clicou em desfazer?",
+      "name": "Veio de um botão?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [448, 80]
+      "position": [448, 176]
     },
     {
       "parameters": {
@@ -61,7 +61,7 @@
       "name": "Confirmar o clique",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [672, -60],
+      "position": [896, 0],
       "credentials": {
         "telegramApi": { "id": "r1ymXVRaK83nZcT0", "name": "Telegram Arkad" }
       }
@@ -69,7 +69,7 @@
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose", "version": 1 },
           "conditions": [
             {
               "leftValue": "={{ $json.tem_foto }}",
@@ -77,13 +77,14 @@
             }
           ],
           "combinator": "and"
-        }
+        },
+        "options": {}
       },
-      "id": "6a1f0c22-9d3e-4b71-8f0a-2c5d7e91a004",
+      "id": "6e3b6b1e-23a2-4dac-a7b7-096923420982",
       "name": "Tem foto?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [672, 180]
+      "position": [672, 272]
     },
     {
       "parameters": {
@@ -92,11 +93,11 @@
         "destinationKey": "imagem_base64",
         "options": { "keepSource": "json" }
       },
-      "id": "8c4b52d1-7e60-4a39-9b12-3f7ad0c6e115",
+      "id": "15922981-38e2-4e3c-8dc7-050b7fe73f13",
       "name": "Foto em base64",
       "type": "n8n-nodes-base.extractFromFile",
       "typeVersion": 1.1,
-      "position": [896, 100]
+      "position": [896, 192]
     },
     {
       "parameters": {
@@ -114,19 +115,79 @@
       "name": "Chamar o app",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [1120, 80]
+      "position": [1120, 192]
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "// O app decide se vale responder. Silencio e uma resposta valida:\n// conversa entre o casal que nao envolve o consultor nao gera mensagem.\nconst r = $input.first().json;\nif (r.responder === false) return [];\nif (!r.texto) return [];\n\n// O no do Telegram envia com parse_mode HTML, entao \"<\", \">\" e \"&\" do texto\n// puro do app precisam virar entidade — senao o Telegram recusa a mensagem\n// inteira com \"can't parse entities\". Em HTML o \"_\" de chat_id e de\n// telegram_membros nao significa nada, que era o que quebrava no Markdown.\nconst texto = String(r.texto)\n  .replace(/&/g, '&amp;')\n  .replace(/</g, '&lt;')\n  .replace(/>/g, '&gt;');\n\nreturn [{ json: { ...r, texto } }];"
+        "jsCode": "// O app decide se vale responder. Silencio e uma resposta valida.\nconst r = $input.first().json;\nif (r.responder === false) return [];\nif (!r.texto) return [];\n\n// parse_mode HTML: \"<\", \">\" e \"&\" do texto puro viram entidade, senao o\n// Telegram recusa a mensagem inteira com \"can't parse entities\".\nconst texto = String(r.texto)\n  .replace(/&/g, '&amp;')\n  .replace(/</g, '&lt;')\n  .replace(/>/g, '&gt;');\n\nconst escolha = r.escolha_categoria || null;\n\nreturn [{\n  json: {\n    texto,\n    desfazer_token: r.desfazer_token || '',\n    // Achatado porque os botoes do no do Telegram sao estrutura fixa: cada\n    // um le seu proprio campo.\n    precisa_categoria: !!escolha,\n    transacao: escolha ? escolha.transacaoId : '',\n    opcoes: escolha ? escolha.opcoes : [],\n  },\n}];"
       },
       "id": "9df22feb-dadf-4af9-873c-2f6ea29b0278",
       "name": "Vale responder?",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1344, 80]
+      "position": [1344, 192]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose", "version": 1 },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.precisa_categoria }}",
+              "operator": { "type": "boolean", "operation": "true", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c1f2a3b4-5d6e-4f70-8a91-b2c3d4e5f601",
+      "name": "Precisa escolher categoria?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1568, 192]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "sendMessage",
+        "chatId": "={{ $('Normalizar').first().json.chat_id }}",
+        "text": "={{ $json.texto }}",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  { "text": "={{ $json.opcoes[0].nome }}", "additionalFields": { "callback_data": "={{ 'cat:' + $json.transacao + ':' + $json.opcoes[0].indice }}" } },
+                  { "text": "={{ $json.opcoes[1].nome }}", "additionalFields": { "callback_data": "={{ 'cat:' + $json.transacao + ':' + $json.opcoes[1].indice }}" } },
+                  { "text": "={{ $json.opcoes[2].nome }}", "additionalFields": { "callback_data": "={{ 'cat:' + $json.transacao + ':' + $json.opcoes[2].indice }}" } }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  { "text": "={{ $json.opcoes[3].nome }}", "additionalFields": { "callback_data": "={{ 'cat:' + $json.transacao + ':' + $json.opcoes[3].indice }}" } },
+                  { "text": "={{ $json.opcoes[4].nome }}", "additionalFields": { "callback_data": "={{ 'cat:' + $json.transacao + ':' + $json.opcoes[4].indice }}" } },
+                  { "text": "={{ $json.opcoes[5].nome }}", "additionalFields": { "callback_data": "={{ 'cat:' + $json.transacao + ':' + $json.opcoes[5].indice }}" } }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": { "appendAttribution": false, "parse_mode": "HTML" }
+      },
+      "id": "d2e3f4a5-6b7c-4d80-9e12-f3a4b5c6d702",
+      "name": "Perguntar a categoria",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1792, 96],
+      "credentials": {
+        "telegramApi": { "id": "r1ymXVRaK83nZcT0", "name": "Telegram Arkad" }
+      }
     },
     {
       "parameters": {
@@ -157,7 +218,7 @@
       "name": "Responder no grupo",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [1568, 80],
+      "position": [1792, 288],
       "credentials": {
         "telegramApi": { "id": "r1ymXVRaK83nZcT0", "name": "Telegram Arkad" }
       }
@@ -168,9 +229,9 @@
       "main": [[{ "node": "Normalizar", "type": "main", "index": 0 }]]
     },
     "Normalizar": {
-      "main": [[{ "node": "Clicou em desfazer?", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Veio de um botão?", "type": "main", "index": 0 }]]
     },
-    "Clicou em desfazer?": {
+    "Veio de um botão?": {
       "main": [
         [{ "node": "Confirmar o clique", "type": "main", "index": 0 }],
         [{ "node": "Tem foto?", "type": "main", "index": 0 }]
@@ -192,7 +253,13 @@
       "main": [[{ "node": "Vale responder?", "type": "main", "index": 0 }]]
     },
     "Vale responder?": {
-      "main": [[{ "node": "Responder no grupo", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Precisa escolher categoria?", "type": "main", "index": 0 }]]
+    },
+    "Precisa escolher categoria?": {
+      "main": [
+        [{ "node": "Perguntar a categoria", "type": "main", "index": 0 }],
+        [{ "node": "Responder no grupo", "type": "main", "index": 0 }]
+      ]
     }
   },
   "settings": { "executionOrder": "v1" },
