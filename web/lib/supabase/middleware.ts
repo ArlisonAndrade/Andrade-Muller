@@ -51,11 +51,23 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Login cai direto no FM Gestão (decisão do Arlison) — /hub continua
-  // acessível pela sidebar ("Trocar ambiente") pra quem quiser ir ao Bank.
   if (user && pathname === "/entrar") {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = "/hub";
+    return NextResponse.redirect(url);
+  }
+
+  // "/" é o FM Gestão, mas com sessão já ativa (o caso comum no dia a dia —
+  // ninguém passa pelo /entrar toda vez) o middleware nunca tocava nessa
+  // rota, então abrir o site direto sempre caía no FM sem nunca mostrar o
+  // /hub (decisão do Arlison, 12/ago/2026 — fecha a "opção aberta" do
+  // CLAUDE.md). Mostra o /hub na primeira vez da sessão do navegador; o
+  // cookie `ambiente_escolhido` (setado por /hub/ir ao clicar no card do FM)
+  // libera a partir daí, senão clicar "FM Gestão" no hub voltaria pro hub
+  // de novo (loop).
+  if (user && pathname === "/" && !request.cookies.get("ambiente_escolhido")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/hub";
     return NextResponse.redirect(url);
   }
 

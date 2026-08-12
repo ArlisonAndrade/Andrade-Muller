@@ -6,7 +6,7 @@ import styles from "@/app/(entrada)/entrada.module.css";
 
 // Botão "Entrar com Google". O login acontece na tela do próprio Google via
 // Supabase Auth — a senha nunca passa pelo app.
-export function BotaoGoogle({ next = "/" }: { next?: string }) {
+export function BotaoGoogle({ next = "/hub" }: { next?: string }) {
   const [carregando, setCarregando] = useState(false);
 
   async function entrar() {

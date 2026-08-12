@@ -29,8 +29,9 @@ export default function PaginaHub() {
       <p className={styles.hubSub}>Ecossistema Andrade Muller</p>
 
       <div className={styles.hubCards}>
-        {/* FM Gestão e Estratégica — ativo */}
-        <Link href="/" className={styles.envCard}>
+        {/* FM Gestão e Estratégica — ativo. Passa por /hub/ir pra marcar o
+            cookie que libera a raiz "/" sem cair de novo no hub. */}
+        <Link href="/hub/ir?destino=/" className={styles.envCard}>
           <Image src="/logo-fm.png" alt="FM Gestão" width={72} height={72} className={styles.fmLogo} />
           <span className={styles.envLabel}>FM Gestão</span>
           <span className={styles.envNote}>CRM, reuniões, financeiro e metas</span>
