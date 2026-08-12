@@ -32,7 +32,7 @@ export default async function PaginaEntrar({
 
       <p className={styles.eyebrow}>Acesso restrito · área da família</p>
 
-      <BotaoGoogle next="/hub" />
+      <BotaoGoogle next="/" />
 
       {erro ? (
         <p className={styles.erro}>{ERROS[erro] ?? "Ocorreu um erro no login."}</p>

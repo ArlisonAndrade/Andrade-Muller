@@ -51,9 +51,11 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  // Login cai direto no FM Gestão (decisão do Arlison) — /hub continua
+  // acessível pela sidebar ("Trocar ambiente") pra quem quiser ir ao Bank.
   if (user && pathname === "/entrar") {
     const url = request.nextUrl.clone();
-    url.pathname = "/hub";
+    url.pathname = "/";
     return NextResponse.redirect(url);
   }
 
