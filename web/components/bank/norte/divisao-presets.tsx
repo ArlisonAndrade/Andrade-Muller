@@ -4,7 +4,8 @@ import { useState } from "react";
 import { selecionarDivisaoPreset, salvarDivisaoPersonalizada } from "@/lib/bank/acoes/norte";
 import { PRESETS_DIVISAO, type DivisaoConfig } from "@/lib/bank/tipos";
 import { ValorMoeda } from "@/components/bank/norte/privacidade";
-import { IconPencil, IconX } from "@/components/bank/ui/icones";
+import { IconPencil } from "@/components/bank/ui/icones";
+import { Modal } from "@/components/bank/ui/modal";
 
 export function DivisaoPresets({
   entidadeId,
@@ -62,31 +63,11 @@ export function DivisaoPresets({
 
       {/* Janela de edição */}
       {aberto && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center sm:p-4"
-          onClick={() => setAberto(false)}
+        <Modal
+          titulo="Escolher divisão"
+          subtitulo={<>Como dividir os <ValorMoeda valor={rendaTotal} /> da família.</>}
+          onFechar={() => setAberto(false)}
         >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="max-h-[85vh] w-full max-w-md overflow-y-auto rounded-t-[16px] bg-surface-1 p-4 sm:rounded-[16px] sm:p-5"
-          >
-            <div className="mb-3 flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-semibold">Escolher divisão</h3>
-                <p className="mt-0.5 text-xs text-text-faint">
-                  Como dividir os <ValorMoeda valor={rendaTotal} /> da família.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setAberto(false)}
-                aria-label="Fechar"
-                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-text-secondary hover:bg-surface-2"
-              >
-                <IconX size={18} stroke={1.8} />
-              </button>
-            </div>
-
             <div className="flex flex-col gap-2">
               {PRESETS_DIVISAO.map((p) => {
                 const ativo = config.preset === p.valor;
@@ -218,8 +199,7 @@ export function DivisaoPresets({
                 )}
               </div>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </section>
   );

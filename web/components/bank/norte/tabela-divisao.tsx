@@ -9,6 +9,7 @@ import {
 } from "@/lib/bank/acoes/norte";
 import { IconeCategoria } from "@/lib/bank/icone-categoria";
 import { ValorMoeda } from "@/components/bank/norte/privacidade";
+import { Modal } from "@/components/bank/ui/modal";
 
 const METODOS_SIMPLES = ["Débito Automático", "Débito", "PIX", "Boleto", "Dinheiro"];
 const GRUPOS: GrupoOrcamento[] = [
@@ -41,7 +42,12 @@ function valorMetodo(item: { cartao_id: string | null; metodo: string | null }) 
   return item.metodo ?? "";
 }
 
-// Campos compartilhados entre "adicionar" e "editar".
+const campo = "rounded-[8px] border border-border bg-surface-2 px-3 py-2 text-sm outline-none placeholder:text-text-faint";
+const rotulo = "flex flex-col gap-1 text-xs text-text-secondary";
+
+// Campos compartilhados entre "adicionar" e "editar". Layout vertical,
+// pensado pra caber com folga dentro do Modal (não da coluna estreita do
+// card que abriu o formulário).
 function CamposItem({
   defaults,
   pessoas,
@@ -54,96 +60,114 @@ function CamposItem({
   cartoes: Opcao[];
 }) {
   return (
-    <>
-      <input
-        name="item"
-        defaultValue={defaults.item ?? ""}
-        required
-        placeholder="Item (ex. Aluguel)"
-        className="col-span-2 rounded-[8px] border border-border bg-surface-1 px-3 py-2 text-sm outline-none sm:col-span-3"
-      />
-      <input
-        name="valor"
-        type="number"
-        step="0.01"
-        min="0"
-        defaultValue={defaults.valor ?? ""}
-        required
-        placeholder="Valor"
-        className="rounded-[8px] border border-border bg-surface-1 px-3 py-2 text-sm outline-none sm:col-span-2"
-      />
-      <select
-        name="categoria_id"
-        defaultValue={defaults.categoria_id ?? ""}
-        className="rounded-[8px] border border-border bg-surface-1 px-2 py-2 text-sm outline-none sm:col-span-2"
-      >
-        <option value="">Categoria</option>
-        {categorias.map((c) => (
-          <option key={c.id} value={c.id}>
-            {c.nome}
-          </option>
-        ))}
-      </select>
-      <select
-        name="grupo_orcamento"
-        defaultValue={defaults.grupo_orcamento ?? ""}
-        className="rounded-[8px] border border-border bg-surface-1 px-2 py-2 text-sm outline-none sm:col-span-2"
-      >
-        <option value="">Grupo</option>
-        {GRUPOS.map((g) => (
-          <option key={g} value={g}>
-            {ROTULO_GRUPO[g]}
-          </option>
-        ))}
-      </select>
-      <select
-        name="metodo"
-        defaultValue={valorMetodo({
-          cartao_id: defaults.cartao_id ?? null,
-          metodo: defaults.metodo ?? null,
-        })}
-        className="rounded-[8px] border border-border bg-surface-1 px-2 py-2 text-sm outline-none sm:col-span-2"
-      >
-        <option value="">Método</option>
-        {METODOS_SIMPLES.map((m) => (
-          <option key={m} value={m}>
-            {m}
-          </option>
-        ))}
-        {cartoes.map((c) => (
-          <option key={c.id} value={`cartao:${c.id}`}>
-            {c.nome}
-          </option>
-        ))}
-      </select>
-      <select
-        name="responsavel_id"
-        defaultValue={defaults.responsavel_id ?? ""}
-        className="rounded-[8px] border border-border bg-surface-1 px-2 py-2 text-sm outline-none sm:col-span-2"
-      >
-        <option value="">Responsável</option>
-        {pessoas.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.nome}
-          </option>
-        ))}
-      </select>
-      <label className="col-span-2 flex items-center gap-1.5 text-xs text-text-secondary sm:col-span-2">
+    <div className="flex flex-col gap-3">
+      <label className={rotulo}>
+        Item
+        <input
+          name="item"
+          defaultValue={defaults.item ?? ""}
+          required
+          placeholder="ex. Aluguel"
+          className={campo}
+        />
+      </label>
+
+      <div className="grid grid-cols-2 gap-3">
+        <label className={rotulo}>
+          Valor
+          <input
+            name="valor"
+            type="number"
+            step="0.01"
+            min="0"
+            defaultValue={defaults.valor ?? ""}
+            required
+            placeholder="0,00"
+            className={campo}
+          />
+        </label>
+        <label className={rotulo}>
+          Categoria
+          <select name="categoria_id" defaultValue={defaults.categoria_id ?? ""} className={campo}>
+            <option value="">—</option>
+            {categorias.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.nome}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <label className={rotulo}>
+          Grupo
+          <select name="grupo_orcamento" defaultValue={defaults.grupo_orcamento ?? ""} className={campo}>
+            <option value="">—</option>
+            {GRUPOS.map((g) => (
+              <option key={g} value={g}>
+                {ROTULO_GRUPO[g]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className={rotulo}>
+          Método
+          <select
+            name="metodo"
+            defaultValue={valorMetodo({
+              cartao_id: defaults.cartao_id ?? null,
+              metodo: defaults.metodo ?? null,
+            })}
+            className={campo}
+          >
+            <option value="">—</option>
+            {METODOS_SIMPLES.map((m) => (
+              <option key={m} value={m}>
+                {m}
+              </option>
+            ))}
+            {cartoes.map((c) => (
+              <option key={c.id} value={`cartao:${c.id}`}>
+                {c.nome}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <label className={rotulo}>
+        Responsável
+        <select name="responsavel_id" defaultValue={defaults.responsavel_id ?? ""} className={campo}>
+          <option value="">—</option>
+          {pessoas.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.nome}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="flex items-center gap-2 text-sm text-text-secondary">
         <input
           type="checkbox"
           name="transferencia"
           defaultChecked={defaults.transferencia ?? false}
-          className="rounded border-border"
+          className="h-4 w-4 rounded border-border"
         />
         precisa transferir
       </label>
-      <input
-        name="obs"
-        defaultValue={defaults.obs ?? ""}
-        placeholder="Obs (opcional)"
-        className="col-span-2 rounded-[8px] border border-border bg-surface-1 px-3 py-2 text-sm outline-none sm:col-span-3"
-      />
-    </>
+
+      <label className={rotulo}>
+        Obs (opcional)
+        <input
+          name="obs"
+          defaultValue={defaults.obs ?? ""}
+          placeholder="opcional"
+          className={campo}
+        />
+      </label>
+    </div>
   );
 }
 
@@ -174,63 +198,62 @@ export function LinhaItem({
     }
   }
 
-  if (editando) {
-    return (
-      <form
-        action={salvar}
-        className="grid grid-cols-2 gap-2 rounded-[10px] bg-surface-2 p-3 sm:grid-cols-12"
-      >
-        <input type="hidden" name="id" value={item.id} />
-        <CamposItem defaults={item} pessoas={pessoas} categorias={categorias} cartoes={cartoes} />
-        <div className="col-span-2 flex gap-2 sm:col-span-12">
-          <button
-            type="submit"
-            disabled={salvando}
-            className="rounded-[8px] bg-bank-primaria px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
-          >
-            {salvando ? "Salvando…" : "Salvar"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setEditando(false)}
-            className="rounded-[8px] border border-border px-3 py-1.5 text-sm text-text-secondary"
-          >
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            formAction={excluirOrcamentoItem}
-            className="ml-auto rounded-[8px] border border-bank-negativo px-3 py-1.5 text-sm text-bank-negativo"
-          >
-            Excluir
-          </button>
-        </div>
-      </form>
-    );
-  }
-
   return (
-    <button
-      type="button"
-      onClick={() => setEditando(true)}
-      className="flex w-full items-center gap-3 rounded-[10px] px-2 py-2.5 text-left hover:bg-surface-2"
-      title="Editar"
-    >
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-3 text-text-secondary">
-        <IconeCategoria categoria={item.categoriaNome} />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm text-text-primary">{item.item}</span>
-        <span className="block truncate text-xs text-text-faint">
-          {[item.categoriaNome, metodoLabel, item.transferencia ? "a transferir" : null, item.obs]
-            .filter(Boolean)
-            .join(" · ") || "—"}
+    <>
+      <button
+        type="button"
+        onClick={() => setEditando(true)}
+        className="flex w-full items-center gap-3 rounded-[10px] px-2 py-2.5 text-left hover:bg-surface-2"
+        title="Editar"
+      >
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-3 text-text-secondary">
+          <IconeCategoria categoria={item.categoriaNome} />
         </span>
-      </span>
-      <span className="shrink-0 text-sm font-medium text-text-primary">
-        <ValorMoeda valor={Number(item.valor)} />
-      </span>
-    </button>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm text-text-primary">{item.item}</span>
+          <span className="block truncate text-xs text-text-faint">
+            {[item.categoriaNome, metodoLabel, item.transferencia ? "a transferir" : null, item.obs]
+              .filter(Boolean)
+              .join(" · ") || "—"}
+          </span>
+        </span>
+        <span className="shrink-0 text-sm font-medium text-text-primary">
+          <ValorMoeda valor={Number(item.valor)} />
+        </span>
+      </button>
+
+      {editando && (
+        <Modal titulo="Editar item" subtitulo={item.item} onFechar={() => setEditando(false)}>
+          <form action={salvar} className="flex flex-col gap-4">
+            <input type="hidden" name="id" value={item.id} />
+            <CamposItem defaults={item} pessoas={pessoas} categorias={categorias} cartoes={cartoes} />
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={salvando}
+                className="rounded-[8px] bg-bank-primaria px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+              >
+                {salvando ? "Salvando…" : "Salvar"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditando(false)}
+                className="rounded-[8px] border border-border px-4 py-2 text-sm text-text-secondary"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                formAction={excluirOrcamentoItem}
+                className="ml-auto rounded-[8px] border border-bank-negativo px-4 py-2 text-sm text-bank-negativo"
+              >
+                Excluir
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+    </>
   );
 }
 
@@ -260,41 +283,40 @@ export function FormAdicionarItem({
     }
   }
 
-  if (!adicionando) {
-    return (
+  return (
+    <>
       <button
         type="button"
         onClick={() => setAdicionando(true)}
-        className="mt-1 rounded-[8px] border border-dashed border-border px-3 py-2 text-left text-sm text-text-secondary hover:text-text-primary"
+        className="mt-1 w-full rounded-[8px] border border-dashed border-border px-3 py-2 text-left text-sm text-text-secondary hover:text-text-primary"
       >
         + Adicionar item
       </button>
-    );
-  }
 
-  return (
-    <form
-      action={salvar}
-      className="grid grid-cols-2 gap-2 rounded-[10px] bg-surface-2 p-3 sm:grid-cols-12"
-    >
-      <input type="hidden" name="entidade_id" value={entidadeId} />
-      <CamposItem defaults={defaultsIniciais ?? {}} pessoas={pessoas} categorias={categorias} cartoes={cartoes} />
-      <div className="col-span-2 flex gap-2 sm:col-span-12">
-        <button
-          type="submit"
-          disabled={salvando}
-          className="rounded-[8px] bg-bank-primaria px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
-        >
-          {salvando ? "Salvando…" : "Adicionar"}
-        </button>
-        <button
-          type="button"
-          onClick={() => setAdicionando(false)}
-          className="rounded-[8px] border border-border px-3 py-1.5 text-sm text-text-secondary"
-        >
-          Cancelar
-        </button>
-      </div>
-    </form>
+      {adicionando && (
+        <Modal titulo="Adicionar item" onFechar={() => setAdicionando(false)}>
+          <form action={salvar} className="flex flex-col gap-4">
+            <input type="hidden" name="entidade_id" value={entidadeId} />
+            <CamposItem defaults={defaultsIniciais ?? {}} pessoas={pessoas} categorias={categorias} cartoes={cartoes} />
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                disabled={salvando}
+                className="rounded-[8px] bg-bank-primaria px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+              >
+                {salvando ? "Salvando…" : "Adicionar"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setAdicionando(false)}
+                className="rounded-[8px] border border-border px-4 py-2 text-sm text-text-secondary"
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
+    </>
   );
 }
