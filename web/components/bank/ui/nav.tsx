@@ -12,7 +12,7 @@ const ITENS_MENU = [
   { rotulo: "Semanas", href: "/bank/semanas" },
   { rotulo: "Investimentos", href: "/bank/investimentos" },
   { rotulo: "Dívidas", href: "/bank/dividas" },
-  { rotulo: "Plano", href: "/bank/plano" },
+  { rotulo: "Plano (US$ 1 milhão)", href: "/bank/plano" },
   { rotulo: "Arthur", href: "/bank/arthur" },
   { rotulo: "Trocar ambiente", href: "/hub" },
 ];
