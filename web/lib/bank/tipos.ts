@@ -112,12 +112,13 @@ export type OrcamentoItem = {
 };
 
 // Rótulos do orçamento 50/30/20 no vocabulário do Notion do Arlison:
-// o bucket de 50% é a Despesa Variável, o de 30% é a Despesa Fixa.
-// Usado onde a % é fixa no texto (ex. seletor de grupo de um item).
+// o bucket de 50% é a Despesa Variável, o de 30% é a Despesa Fixa. Sem a %
+// no texto — ela é configurável (presets 45/35/20, 40/30/30...) e o rótulo
+// fixo mentia sempre que a família não estivesse no preset clássico.
 export const ROTULO_GRUPO: Record<GrupoOrcamento, string> = {
-  essencial_50: "Despesa Variável 50%",
-  liberdade_30: "Despesa Fixa 30%",
-  investimento_20: "Investimento 20%",
+  essencial_50: "Despesa Variável",
+  liberdade_30: "Despesa Fixa",
+  investimento_20: "Investimento",
   nao_aplica: "Não se aplica",
 };
 
