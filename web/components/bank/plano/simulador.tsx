@@ -28,22 +28,26 @@ export function SimuladorPlano({
   curvaPlano,
   aporteInicial,
   rentabilidadeInicial,
+  crescimentoAporteInicial = 0,
 }: {
   entidadeId: string;
   patrimonioAtual: number;
   curvaPlano: Array<{ ano: number; valor_alvo: number }>;
   aporteInicial: number;
   rentabilidadeInicial: number;
+  crescimentoAporteInicial?: number;
 }) {
   const [aporteMensal, setAporteMensal] = useState(aporteInicial);
   const [rentabilidade, setRentabilidade] = useState(rentabilidadeInicial);
+  const [crescimentoAporte, setCrescimentoAporte] = useState(crescimentoAporteInicial);
 
   const anoAtual = new Date().getFullYear();
   const anoFinal = Math.max(2049, anoAtual + 5);
 
   const simulacao = useMemo(
-    () => projetarPatrimonio(patrimonioAtual, aporteMensal, rentabilidade, anoAtual, anoFinal),
-    [patrimonioAtual, aporteMensal, rentabilidade, anoAtual, anoFinal],
+    () =>
+      projetarPatrimonio(patrimonioAtual, aporteMensal, rentabilidade, anoAtual, anoFinal, crescimentoAporte),
+    [patrimonioAtual, aporteMensal, rentabilidade, anoAtual, anoFinal, crescimentoAporte],
   );
 
   const anos = curvaPlano.map((p) => p.ano);
@@ -87,6 +91,26 @@ export function SimuladorPlano({
             onChange={(e) => setRentabilidade(Number(e.target.value))}
             className="accent-[#2563eb]"
           />
+        </label>
+        <label className="flex flex-col gap-1.5 text-sm text-text-secondary sm:col-span-2">
+          <span className="flex justify-between">
+            Crescimento do aporte ao ano
+            <span className="font-semibold text-text-primary">
+              {crescimentoAporte.toLocaleString("pt-BR")}% a.a.
+            </span>
+          </span>
+          <input
+            type="range"
+            min={0}
+            max={15}
+            step={1}
+            value={crescimentoAporte}
+            onChange={(e) => setCrescimentoAporte(Number(e.target.value))}
+            className="accent-[#2563eb]"
+          />
+          <span className="text-xs text-text-faint">
+            ex.: 5% reajusta o aporte mensal todo ano, junto de um aumento salarial
+          </span>
         </label>
       </div>
 
@@ -174,6 +198,7 @@ export function SimuladorPlano({
         <input type="hidden" name="caminho" value="/bank/plano" />
         <input type="hidden" name="param_plano6m_aporte_mensal" value={aporteMensal} />
         <input type="hidden" name="param_plano6m_rentabilidade_aa" value={rentabilidade} />
+        <input type="hidden" name="param_plano6m_crescimento_aporte_aa" value={crescimentoAporte} />
         <button
           type="submit"
           className="rounded-[8px] bg-bank-primaria px-4 py-2 text-sm font-medium text-white"

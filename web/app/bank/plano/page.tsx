@@ -3,7 +3,6 @@ import { ENTIDADE_FAMILIA } from "@/lib/bank/tipos";
 import { moedaBRL } from "@/lib/bank/formato";
 import { CardMetrica } from "@/components/bank/ui/card-metrica";
 import { SimuladorPlano } from "@/components/bank/plano/simulador";
-import { atualizarAnoPlano } from "@/lib/bank/acoes/planos";
 import { IconTarget, IconTrendingUp } from "@/components/bank/ui/icones";
 
 export const metadata = { title: "Plano" };
@@ -51,6 +50,7 @@ export default async function PaginaPlano() {
   const params = new Map((parametros ?? []).map((p) => [p.chave, Number(p.valor)]));
   const aporteMensal = params.get("plano6m_aporte_mensal") ?? 1000;
   const rentabilidade = params.get("plano6m_rentabilidade_aa") ?? 12;
+  const crescimentoAporte = params.get("plano6m_crescimento_aporte_aa") ?? 0;
 
   const alvoAno = (curva ?? []).find((c) => c.ano === anoAtual);
   const posicaoVsPlano =
@@ -115,58 +115,8 @@ export default async function PaginaPlano() {
           curvaPlano={(curva ?? []).map((c) => ({ ano: c.ano, valor_alvo: Number(c.valor_alvo) }))}
           aporteInicial={aporteMensal}
           rentabilidadeInicial={rentabilidade}
+          crescimentoAporteInicial={crescimentoAporte}
         />
-      </section>
-
-      {/* Curva editável */}
-      <section className="card-bank overflow-x-auto p-4 sm:p-5">
-        <h2 className="mb-1 text-sm font-semibold">Curva do plano (2025→2049)</h2>
-        <p className="mb-4 text-xs text-text-faint">
-          Ajuste o aporte planejado e o alvo de cada ano — é a régua que o card
-          "você está X%" e o pilar de aporte do score usam.
-        </p>
-        <table className="w-full min-w-[420px] text-sm">
-          <thead>
-            <tr className="text-left text-xs text-text-faint">
-              <th className="py-2 font-medium">Ano</th>
-              <th className="py-2 text-right font-medium">Aporte anual (R$)</th>
-              <th className="py-2 text-right font-medium">Patrimônio alvo (R$)</th>
-              <th className="py-2"></th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {(curva ?? []).map((c) => (
-              <tr key={c.id} className={c.ano === anoAtual ? "bg-bank-primaria-bg/40" : ""}>
-                <td className="py-1.5 font-medium">{c.ano}</td>
-                <td colSpan={3} className="py-1.5">
-                  <form action={atualizarAnoPlano} className="flex items-center justify-end gap-1.5">
-                    <input type="hidden" name="id" value={c.id} />
-                    <input
-                      name="aporte_planejado"
-                      type="number"
-                      step="100"
-                      defaultValue={Number(c.aporte_planejado).toFixed(0)}
-                      className="w-28 rounded-[6px] border border-border bg-surface-2 px-2 py-1 text-right text-xs outline-none"
-                    />
-                    <input
-                      name="valor_alvo"
-                      type="number"
-                      step="100"
-                      defaultValue={Number(c.valor_alvo).toFixed(0)}
-                      className="w-32 rounded-[6px] border border-border bg-surface-2 px-2 py-1 text-right text-xs outline-none"
-                    />
-                    <button
-                      type="submit"
-                      className="rounded-[6px] border border-border px-1.5 py-1 text-[10px] text-text-secondary hover:text-text-primary"
-                    >
-                      ok
-                    </button>
-                  </form>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
       </section>
     </div>
   );

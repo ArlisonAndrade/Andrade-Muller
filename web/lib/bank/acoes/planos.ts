@@ -26,18 +26,3 @@ export async function salvarParametrosPlano(formData: FormData) {
   }
   revalidatePath(caminho);
 }
-
-// Edita um ano da curva-alvo do plano.
-export async function atualizarAnoPlano(formData: FormData) {
-  const supabase = await createClient();
-  const id = String(formData.get("id"));
-  const { error } = await supabase
-    .from("plano_patrimonio")
-    .update({
-      aporte_planejado: Number(formData.get("aporte_planejado")),
-      valor_alvo: Number(formData.get("valor_alvo")),
-    })
-    .eq("id", id);
-  if (error) throw new Error(`Falha ao atualizar o plano: ${error.message}`);
-  revalidatePath("/bank/plano");
-}

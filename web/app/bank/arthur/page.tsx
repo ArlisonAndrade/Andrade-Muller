@@ -2,11 +2,10 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ENTIDADE_ARTHUR } from "@/lib/bank/tipos";
 import { moedaBRL } from "@/lib/bank/formato";
-import { patrimonio } from "@/lib/bank/calculos";
+import { obterPatrimonioArthur } from "@/lib/bank/arthur";
 import { CardMetrica } from "@/components/bank/ui/card-metrica";
 import { SimuladorArthur } from "@/components/bank/plano/simulador-arthur";
 import { IconPigMoney, IconCalendarEvent, IconTarget, IconPlus } from "@/components/bank/ui/icones";
-import type { Transacao } from "@/lib/bank/tipos";
 
 export const metadata = { title: "Carteira Arthur" };
 
@@ -29,20 +28,7 @@ function idadeDetalhada() {
 export default async function PaginaArthur() {
   const supabase = await createClient();
 
-  const [
-    { data: contas },
-    { data: transacoes },
-    { data: posicoes },
-    { data: cotacoes },
-    { data: parametros },
-    { data: aportes },
-  ] = await Promise.all([
-    supabase.from("contas").select("id, saldo_inicial").eq("entidade_id", ENTIDADE_ARTHUR),
-    supabase
-      .from("transacoes")
-      .select("valor, categoria:categorias(tipo)")
-      .eq("entidade_id", ENTIDADE_ARTHUR),
-    supabase.from("posicao_ativos").select("*").eq("entidade_id", ENTIDADE_ARTHUR),
+  const [{ data: cotacoes }, { data: parametros }, { data: aportes }] = await Promise.all([
     supabase.from("cotacoes_atuais").select("ativo_id, preco_atual"),
     supabase.from("parametros_plano").select("chave, valor").eq("entidade_id", ENTIDADE_ARTHUR),
     supabase
@@ -54,18 +40,14 @@ export default async function PaginaArthur() {
   ]);
 
   const cotacoesMap = new Map((cotacoes ?? []).map((c) => [c.ativo_id, Number(c.preco_atual)]));
-  const patrimonioAtual = patrimonio(
-    contas ?? [],
-    (transacoes ?? []) as unknown as Transacao[],
-    posicoes ?? [],
-    cotacoesMap,
-  );
+  const { atual: patrimonioAtual } = await obterPatrimonioArthur(supabase, cotacoesMap);
 
   const params = new Map((parametros ?? []).map((p) => [p.chave, Number(p.valor)]));
   const aporteMensal = params.get("arthur_aporte_mensal") ?? 100;
   const aporteAniversario = params.get("arthur_aporte_aniversario") ?? 500;
   const rentabilidade = params.get("arthur_rentabilidade_aa") ?? 10;
   const idadeAlvo = params.get("arthur_idade_alvo") ?? 18;
+  const crescimentoAporte = params.get("arthur_crescimento_aporte_aa") ?? 0;
 
   const { anos, meses } = idadeDetalhada();
 
@@ -121,6 +103,7 @@ export default async function PaginaArthur() {
           aporteAniversarioInicial={aporteAniversario}
           rentabilidadeInicial={rentabilidade}
           idadeAlvoInicial={idadeAlvo}
+          crescimentoAporteInicial={crescimentoAporte}
         />
       </section>
 

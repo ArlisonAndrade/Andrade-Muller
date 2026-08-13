@@ -4,11 +4,13 @@ import { ENTIDADE_FAMILIA } from "@/lib/bank/tipos";
 import { moedaBRL } from "@/lib/bank/formato";
 import {
   agregarPorClasse,
+  agruparPorFinalidade,
   rentabilidade12M,
   type Cotacao,
   type PosicaoDetalhada,
 } from "@/lib/bank/calculos-investimentos";
-import { CLASSES_ATIVOS, classeDe } from "@/lib/bank/classes-ativos";
+import { CLASSES_ATIVOS, classeDe, ROTULO_FINALIDADE, COR_FINALIDADE } from "@/lib/bank/classes-ativos";
+import { obterPatrimonioArthur, obterMetaArthur } from "@/lib/bank/arthur";
 import {
   acaoAtualizarCotacoes,
   garantirSnapshotDoMes,
@@ -16,9 +18,11 @@ import {
 } from "@/lib/bank/acoes/investimentos";
 import { CardMetrica } from "@/components/bank/ui/card-metrica";
 import { BadgeVariacao } from "@/components/bank/ui/badge-variacao";
+import { ProgressBar } from "@/components/bank/ui/progress-bar";
 import { LinhaClasse } from "@/components/bank/investimentos/linha-classe";
 import { DonutAlocacao } from "@/components/bank/investimentos/donut-alocacao";
 import { EvolucaoPatrimonio } from "@/components/bank/investimentos/evolucao-patrimonio";
+import { MetaFinalidadeEditavel } from "@/components/bank/investimentos/meta-finalidade";
 import {
   IconRefresh,
   IconPlus,
@@ -47,6 +51,7 @@ export default async function PaginaInvestimentos() {
     { data: metas },
     { data: snapshots },
     { data: proventos },
+    { data: parametrosFamilia },
   ] = await Promise.all([
     supabase
       .from("posicao_ativos")
@@ -67,6 +72,12 @@ export default async function PaginaInvestimentos() {
       .from("proventos")
       .select("valor, data")
       .eq("entidade_id", ENTIDADE_FAMILIA),
+    supabase
+      .from("parametros_plano")
+      .select("chave, valor")
+      .eq("entidade_id", ENTIDADE_FAMILIA)
+      .eq("chave", "meta_reserva_emergencia")
+      .maybeSingle(),
   ]);
 
   const mapaCotacoes = new Map<string, Cotacao>(
@@ -77,6 +88,9 @@ export default async function PaginaInvestimentos() {
   );
   const mapaMetas = new Map<string, number>(
     (metas ?? []).map((m) => [m.classe, Number(m.percentual_alvo)]),
+  );
+  const cotacoesSimples = new Map<string, number>(
+    (cotacoes ?? []).map((c) => [c.ativo_id, Number(c.preco_atual)]),
   );
 
   const classes = agregarPorClasse(
@@ -118,6 +132,23 @@ export default async function PaginaInvestimentos() {
       : undefined;
 
   const totalAtivos = classes.reduce((s, c) => s + c.quantidadeAtivos, 0);
+  const gruposFinalidade = agruparPorFinalidade(classes);
+
+  // Metas por finalidade: Reserva é um valor fixo editável; Arthur vem do
+  // simulador salvo em /bank/arthur (não duplica número, já fica vivo).
+  const metaReserva = Number(parametrosFamilia?.valor ?? 30000);
+  const { atual: patrimonioArthur } = await obterPatrimonioArthur(supabase, cotacoesSimples);
+  const metaArthur = await obterMetaArthur(supabase, patrimonioArthur);
+  const atualPorFinalidade: Record<string, number> = {
+    reserva_emergencia: gruposFinalidade.find((g) => g.finalidade === "reserva_emergencia")?.valorMercado ?? 0,
+    arthur: patrimonioArthur,
+  };
+  const metaPorFinalidade: Record<string, number> = {
+    reserva_emergencia: metaReserva,
+    arthur: metaArthur,
+  };
+  const atualJuntas = atualPorFinalidade.reserva_emergencia + atualPorFinalidade.arthur;
+  const metaJuntas = metaPorFinalidade.reserva_emergencia + metaPorFinalidade.arthur;
 
   // Ativos pra o select de proventos.
   const listaAtivos = (posicoes ?? [])
@@ -226,6 +257,67 @@ export default async function PaginaInvestimentos() {
         </section>
       </div>
 
+      {/* Metas: Reserva e Arthur separadas, e as duas juntas */}
+      <section className="card-bank p-4 sm:p-5">
+        <h2 className="mb-4 text-sm font-semibold">Metas</h2>
+        <div className="flex flex-col gap-4">
+          {(["reserva_emergencia", "arthur"] as const).map((finalidade) => {
+            const atual = atualPorFinalidade[finalidade];
+            const meta = metaPorFinalidade[finalidade];
+            const pct = meta > 0 ? (atual / meta) * 100 : 0;
+            return (
+              <div key={finalidade}>
+                <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                  <span className="text-sm font-medium" style={{ color: COR_FINALIDADE[finalidade] }}>
+                    {ROTULO_FINALIDADE[finalidade]}
+                  </span>
+                  <span className="text-xs text-text-secondary">
+                    {moedaBRL(atual)} de {moedaBRL(meta)} ({Math.round(pct)}%)
+                  </span>
+                </div>
+                <div className="mt-1.5">
+                  <ProgressBar percentual={pct} cor={COR_FINALIDADE[finalidade]} />
+                </div>
+                <div className="mt-1">
+                  {finalidade === "reserva_emergencia" ? (
+                    <MetaFinalidadeEditavel
+                      entidadeId={ENTIDADE_FAMILIA}
+                      chave="meta_reserva_emergencia"
+                      meta={meta}
+                      caminho="/bank/investimentos"
+                    />
+                  ) : (
+                    <Link
+                      href="/bank/arthur"
+                      className="text-xs text-text-faint underline decoration-dotted underline-offset-2 hover:text-text-primary"
+                    >
+                      meta projetada pelo simulador · ajustar
+                    </Link>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Juntas */}
+          <div className="border-t border-border pt-4">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+              <span className="text-sm font-medium text-text-primary">Reserva + Arthur juntas</span>
+              <span className="text-xs text-text-secondary">
+                {moedaBRL(atualJuntas)} de {moedaBRL(metaJuntas)} (
+                {metaJuntas > 0 ? Math.round((atualJuntas / metaJuntas) * 100) : 0}%)
+              </span>
+            </div>
+            <div className="mt-1.5">
+              <ProgressBar
+                percentual={metaJuntas > 0 ? (atualJuntas / metaJuntas) * 100 : 0}
+                cor="var(--color-bank-primaria)"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Meus Ativos por classe */}
       <section className="flex flex-col gap-2">
         <h2 className="text-sm font-semibold">
@@ -241,15 +333,38 @@ export default async function PaginaInvestimentos() {
             quantidade e o preço médio atuais.
           </div>
         )}
-        {classes.map((c) => (
-          <LinhaClasse
-            key={c.classe}
-            resumo={c}
-            classe={c.classe}
-            rotulo={CLASSES_ATIVOS[c.classe].rotulo}
-            cor={CLASSES_ATIVOS[c.classe].cor}
-          />
-        ))}
+        <div className="flex flex-col gap-5">
+          {gruposFinalidade.map((grupo) => (
+            <div
+              key={grupo.finalidade}
+              className="rounded-[14px] border-l-4 py-1 pl-3 sm:pl-4"
+              style={{ borderColor: COR_FINALIDADE[grupo.finalidade] }}
+            >
+              <div className="mb-2 flex items-baseline justify-between gap-2">
+                <h3
+                  className="text-sm font-semibold"
+                  style={{ color: COR_FINALIDADE[grupo.finalidade] }}
+                >
+                  {ROTULO_FINALIDADE[grupo.finalidade]}
+                </h3>
+                <span className="text-sm font-medium text-text-secondary">
+                  {moedaBRL(grupo.valorMercado)}
+                </span>
+              </div>
+              <div className="flex flex-col gap-2">
+                {grupo.classes.map((c) => (
+                  <LinhaClasse
+                    key={c.classe}
+                    resumo={c}
+                    classe={c.classe}
+                    rotulo={CLASSES_ATIVOS[c.classe].rotulo}
+                    cor={CLASSES_ATIVOS[c.classe].cor}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
       {/* Registrar provento */}

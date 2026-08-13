@@ -1,4 +1,4 @@
-import { classeDe, type ClasseAtivo } from "@/lib/bank/classes-ativos";
+import { classeDe, finalidadeDaClasse, type ClasseAtivo, type FinalidadeCarteira } from "@/lib/bank/classes-ativos";
 
 export type PosicaoDetalhada = {
   ativo_id: string;
@@ -98,6 +98,36 @@ export function agregarPorClasse(
     });
   }
   return resumos.sort((a, b) => b.valorMercado - a.valorMercado);
+}
+
+export type FinalidadeResumo = {
+  finalidade: FinalidadeCarteira;
+  valorAplicado: number;
+  valorMercado: number;
+  classes: ClasseResumo[];
+};
+
+const ORDEM_FINALIDADE: FinalidadeCarteira[] = ["reserva_emergencia", "arthur", "investimentos"];
+
+// Reagrupa as classes já resumidas por finalidade (reserva/Arthur/livre) —
+// mesma fonte de dados do "Meus Ativos" por classe, só reparticionada.
+export function agruparPorFinalidade(classes: ClasseResumo[]): FinalidadeResumo[] {
+  const porFinalidade = new Map<FinalidadeCarteira, ClasseResumo[]>();
+  for (const c of classes) {
+    const finalidade = finalidadeDaClasse(c.classe);
+    const grupo = porFinalidade.get(finalidade) ?? [];
+    grupo.push(c);
+    porFinalidade.set(finalidade, grupo);
+  }
+  return ORDEM_FINALIDADE.filter((f) => porFinalidade.has(f)).map((finalidade) => {
+    const grupo = porFinalidade.get(finalidade)!;
+    return {
+      finalidade,
+      valorAplicado: grupo.reduce((s, c) => s + c.valorAplicado, 0),
+      valorMercado: grupo.reduce((s, c) => s + c.valorMercado, 0),
+      classes: grupo,
+    };
+  });
 }
 
 export type SnapshotMensal = {

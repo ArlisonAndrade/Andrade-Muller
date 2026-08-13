@@ -15,7 +15,7 @@ import { EvolucaoPatrimonio } from "@/components/bank/investimentos/evolucao-pat
 import { DonutAlocacao } from "@/components/bank/investimentos/donut-alocacao";
 import { patrimonio, valorInvestido } from "@/lib/bank/calculos";
 import { agregarPorClasse, type Cotacao, type PosicaoDetalhada } from "@/lib/bank/calculos-investimentos";
-import { CLASSES_ATIVOS } from "@/lib/bank/classes-ativos";
+import { CLASSES_ATIVOS, classeDe, finalidadeDaClasse } from "@/lib/bank/classes-ativos";
 import { gerarRecorrenciasPendentes } from "@/lib/bank/acoes/recorrencias";
 import { garantirSnapshotDoMes } from "@/lib/bank/acoes/investimentos";
 import {
@@ -114,10 +114,16 @@ export default async function Home() {
   const transacoesTyped = (transacoes ?? []) as unknown as Transacao[];
 
   const valorPatrimonio = patrimonio(contas ?? [], transacoesTyped, posicoes ?? [], cotacoesMap);
+  // Fundos + Cripto são a carteira do Arthur por decisão do Arlison (ver
+  // finalidadeDaClasse) — ainda guardados na entidade Família, sem carteira
+  // própria migrada, então entram aqui além do que já está em ENTIDADE_ARTHUR.
+  const posicoesArthurNaFamilia = (posicoes ?? []).filter(
+    (p) => finalidadeDaClasse(classeDe(p.tipo)) === "arthur",
+  );
   const patrimonioArthur = patrimonio(
     contasArthur ?? [],
     (transacoesArthur ?? []) as unknown as Transacao[],
-    posicoesArthur ?? [],
+    [...(posicoesArthur ?? []), ...posicoesArthurNaFamilia],
     cotacoesMap,
   );
   const investidoFamilia = valorInvestido(posicoes ?? [], cotacoesMap);
@@ -325,7 +331,10 @@ export default async function Home() {
         <ScoreSaude score={score} />
         <Orcamento503020 totalReceita={receitasMes} gastoPorGrupo={gastoPorGrupo} />
         <ProximasContas contas={proximas} />
-        <CarteiraArthur patrimonio={patrimonioArthur} posicoes={posicoesArthur ?? []} />
+        <CarteiraArthur
+          patrimonio={patrimonioArthur}
+          posicoes={[...(posicoesArthur ?? []), ...posicoesArthurNaFamilia]}
+        />
         <DividasAtivas dividas={dividas ?? []} />
         <MetasAtivas metas={metas ?? []} />
         <PonteProLabore pontes={pontesData ?? []} />

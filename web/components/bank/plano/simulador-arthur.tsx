@@ -3,8 +3,7 @@
 import { useMemo, useState } from "react";
 import { Line } from "@/components/bank/ui/grafico";
 import { salvarParametrosPlano } from "@/lib/bank/acoes/planos";
-
-const NASCIMENTO = "2022-10-30"; // Arthur
+import { projetarArthur } from "@/lib/bank/projecao-arthur";
 
 function brlCompacto(v: number) {
   if (v >= 1_000_000) return `R$ ${(v / 1_000_000).toLocaleString("pt-BR", { maximumFractionDigits: 2 })}M`;
@@ -16,43 +15,6 @@ function brl(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 }
 
-// Projeção do nascimento (30/10/2022) até a idade-alvo: aporte mensal +
-// aporte extra no mês do aniversário. Cada ponto é uma idade do Arthur.
-type PontoArthur = { idade: number; valor: number };
-
-function projetarArthur(
-  patrimonioAtual: number,
-  aporteMensal: number,
-  aporteAniversario: number,
-  rentabilidadeAnual: number,
-  idadeAlvo: number,
-): PontoArthur[] {
-  const nasc = new Date(NASCIMENTO);
-  const hoje = new Date();
-  const idadeAtual = (hoje.getTime() - nasc.getTime()) / (365.25 * 24 * 3600 * 1000);
-  const taxaMensal = Math.pow(1 + rentabilidadeAnual / 100, 1 / 12) - 1;
-
-  const pontos: PontoArthur[] = [];
-  let valor = patrimonioAtual;
-  // Começa da idade atual (arredondada pra baixo) e avança mês a mês.
-  const mesesRestantes = Math.max(0, Math.round((idadeAlvo - idadeAtual) * 12));
-  let mesGlobal = Math.floor(idadeAtual * 12);
-  for (let k = 0; k < mesesRestantes; k++) {
-    valor = valor * (1 + taxaMensal) + aporteMensal;
-    mesGlobal++;
-    // Mês do aniversário (mês 0 do ciclo de 12 a partir do nascimento em out).
-    if (mesGlobal % 12 === 0) valor += aporteAniversario;
-    if (mesGlobal % 12 === 0) {
-      pontos.push({ idade: Math.round(mesGlobal / 12), valor: Math.round(valor * 100) / 100 });
-    }
-  }
-  // Garante o ponto final na idade-alvo.
-  if (pontos.length === 0 || pontos[pontos.length - 1].idade < idadeAlvo) {
-    pontos.push({ idade: idadeAlvo, valor: Math.round(valor * 100) / 100 });
-  }
-  return pontos;
-}
-
 export function SimuladorArthur({
   entidadeId,
   patrimonioAtual,
@@ -60,6 +22,7 @@ export function SimuladorArthur({
   aporteAniversarioInicial,
   rentabilidadeInicial,
   idadeAlvoInicial,
+  crescimentoAporteInicial = 0,
 }: {
   entidadeId: string;
   patrimonioAtual: number;
@@ -67,15 +30,25 @@ export function SimuladorArthur({
   aporteAniversarioInicial: number;
   rentabilidadeInicial: number;
   idadeAlvoInicial: number;
+  crescimentoAporteInicial?: number;
 }) {
   const [aporteMensal, setAporteMensal] = useState(aporteMensalInicial);
   const [aporteAniversario, setAporteAniversario] = useState(aporteAniversarioInicial);
   const [rentabilidade, setRentabilidade] = useState(rentabilidadeInicial);
   const [idadeAlvo, setIdadeAlvo] = useState(idadeAlvoInicial);
+  const [crescimentoAporte, setCrescimentoAporte] = useState(crescimentoAporteInicial);
 
   const projecao = useMemo(
-    () => projetarArthur(patrimonioAtual, aporteMensal, aporteAniversario, rentabilidade, idadeAlvo),
-    [patrimonioAtual, aporteMensal, aporteAniversario, rentabilidade, idadeAlvo],
+    () =>
+      projetarArthur(
+        patrimonioAtual,
+        aporteMensal,
+        aporteAniversario,
+        rentabilidade,
+        idadeAlvo,
+        crescimentoAporte,
+      ),
+    [patrimonioAtual, aporteMensal, aporteAniversario, rentabilidade, idadeAlvo, crescimentoAporte],
   );
   const valorFinal = projecao[projecao.length - 1]?.valor ?? patrimonioAtual;
 
@@ -113,6 +86,19 @@ export function SimuladorArthur({
           </span>
           <input type="range" min={16} max={25} step={1} value={idadeAlvo}
             onChange={(e) => setIdadeAlvo(Number(e.target.value))} className="accent-[#3b5b74]" />
+        </label>
+        <label className="flex flex-col gap-1.5 text-sm text-text-secondary sm:col-span-2">
+          <span className="flex justify-between">
+            Crescimento do aporte ao ano
+            <span className="font-semibold text-text-primary">
+              {crescimentoAporte.toLocaleString("pt-BR")}% a.a.
+            </span>
+          </span>
+          <input type="range" min={0} max={15} step={1} value={crescimentoAporte}
+            onChange={(e) => setCrescimentoAporte(Number(e.target.value))} className="accent-[#3b5b74]" />
+          <span className="text-xs text-text-faint">
+            ex.: 5% reajusta o aporte mensal e o de aniversário todo ano, junto de um aumento salarial
+          </span>
         </label>
       </div>
 
@@ -165,6 +151,7 @@ export function SimuladorArthur({
         <input type="hidden" name="param_arthur_aporte_aniversario" value={aporteAniversario} />
         <input type="hidden" name="param_arthur_rentabilidade_aa" value={rentabilidade} />
         <input type="hidden" name="param_arthur_idade_alvo" value={idadeAlvo} />
+        <input type="hidden" name="param_arthur_crescimento_aporte_aa" value={crescimentoAporte} />
         <button type="submit" className="rounded-[8px] bg-arthur px-4 py-2 text-sm font-medium text-white">
           Salvar o plano do Arthur
         </button>

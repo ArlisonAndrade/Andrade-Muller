@@ -1,10 +1,14 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ENTIDADE_FAMILIA } from "@/lib/bank/tipos";
+import { classeDe, finalidadeDaClasse } from "@/lib/bank/classes-ativos";
+import { valorInvestido } from "@/lib/bank/calculos";
 
 // Score de saúde financeira 0–100: 4 pilares × 25 pts.
 // orçamento (aderência 50/30/20 do mês) + dívida (em dia, progresso,
 // adiantamentos) + aporte (investido no mês vs plano do ano) + reserva
-// (meses de gasto essencial cobertos pelo saldo em conta).
+// (meses de gasto essencial cobertos pelo saldo em conta + o que está
+// investido em Renda Fixa, que é a reserva de emergência da família —
+// ver finalidadeDaClasse).
 
 export type PilarScore = {
   chave: "orcamento" | "divida" | "aporte" | "reserva";
@@ -42,6 +46,8 @@ export async function calcularScoreSaude(
     { data: comprasMes },
     { data: plano },
     { data: contas },
+    { data: posicoes },
+    { data: cotacoesRaw },
   ] = await Promise.all([
     supabase
       .from("transacoes")
@@ -65,6 +71,11 @@ export async function calcularScoreSaude(
       .eq("ano", hoje.getFullYear())
       .maybeSingle(),
     supabase.from("contas").select("saldo_inicial").eq("entidade_id", ENTIDADE_FAMILIA),
+    supabase
+      .from("posicao_ativos")
+      .select("ativo_id, tipo, quantidade_atual, preco_medio")
+      .eq("entidade_id", ENTIDADE_FAMILIA),
+    supabase.from("cotacoes_atuais").select("ativo_id, preco_atual"),
   ]);
 
   type T = { valor: number; data: string; categoria: { tipo: string; grupo_orcamento: string | null } | null };
@@ -155,7 +166,12 @@ export async function calcularScoreSaude(
   }
 
   // ---------- Pilar 4: reserva ----------
-  const saldo = (contas ?? []).reduce((s, c) => s + Number(c.saldo_inicial), 0);
+  const cotacoesMap = new Map((cotacoesRaw ?? []).map((c) => [c.ativo_id, Number(c.preco_atual)]));
+  const posicoesReserva = (posicoes ?? []).filter(
+    (p) => finalidadeDaClasse(classeDe(p.tipo)) === "reserva_emergencia",
+  );
+  const reservaInvestida = valorInvestido(posicoesReserva, cotacoesMap);
+  const saldo = (contas ?? []).reduce((s, c) => s + Number(c.saldo_inicial), 0) + reservaInvestida;
   const essencial3M = lista
     .filter((t) => t.categoria?.tipo === "despesa" && t.categoria?.grupo_orcamento === "essencial_50")
     .reduce((s, t) => s + Number(t.valor), 0);
