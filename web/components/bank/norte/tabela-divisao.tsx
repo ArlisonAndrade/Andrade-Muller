@@ -213,10 +213,10 @@ export function LinhaItem({
     <button
       type="button"
       onClick={() => setEditando(true)}
-      className="flex w-full items-center gap-3 rounded-[8px] px-2 py-2 text-left hover:bg-surface-2"
+      className="flex w-full items-center gap-3 rounded-[10px] px-2 py-2.5 text-left hover:bg-surface-2"
       title="Editar"
     >
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface-3 text-text-secondary">
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-3 text-text-secondary">
         <IconeCategoria categoria={item.categoriaNome} />
       </span>
       <span className="min-w-0 flex-1">
