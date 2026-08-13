@@ -205,30 +205,6 @@ export default async function PaginaSemanas({
         metaTotal={atual.meta}
       />
 
-      {/* Por pessoa */}
-      {atual.porPessoa.length > 0 && (
-        <section className="card-bank p-4 sm:p-6">
-          <h2 className="text-sm font-semibold">Quem gastou</h2>
-          <div className="mt-3 flex flex-col gap-2.5">
-            {atual.porPessoa.map((p) => (
-              <div key={p.nome} className="flex items-baseline justify-between gap-3">
-                <span className="text-sm text-text-primary">{p.nome}</span>
-                <span className="text-sm font-medium numeros-tabulares">
-                  {moedaBRL(p.total)}
-                  <span className="ml-2 text-xs text-text-faint">
-                    {atual.gasto > 0 ? `${Math.round((p.total / atual.gasto) * 100)}%` : ""}
-                  </span>
-                </span>
-              </div>
-            ))}
-          </div>
-          <p className="mt-3 text-xs text-text-faint">
-            Lançamento pelo Telegram já nasce com o nome de quem mandou. Os do
-            site ficam sem responsável.
-          </p>
-        </section>
-      )}
-
       {/* Lançamentos da semana — dia a dia, com edição/exclusão inline */}
       <section className="card-bank divide-y divide-border">
         <div className="p-4 sm:p-6 sm:pb-0">
