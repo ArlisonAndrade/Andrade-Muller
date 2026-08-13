@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { ENTIDADE_FAMILIA } from "@/lib/bank/tipos";
-import { moedaBRL, dataBR } from "@/lib/bank/formato";
+import { ENTIDADE_FAMILIA, type FormaPagamento } from "@/lib/bank/tipos";
+import { moedaBRL, dataBR, ROTULO_FORMA } from "@/lib/bank/formato";
 import { montarPanoramaSemanal } from "@/lib/bank/semanas";
 import { segundaDaSemana } from "@/lib/bank/agente/datas";
 import { CardMetrica } from "@/components/bank/ui/card-metrica";
@@ -9,6 +9,7 @@ import { MetaEditavel } from "@/components/bank/semanas/meta-editavel";
 import { PlanoCategorias } from "@/components/bank/semanas/plano-categorias";
 import { ListaSemanas } from "@/components/bank/semanas/lista-semanas";
 import { IconTarget, IconCalendarEvent, IconTrendingUp } from "@/components/bank/ui/icones";
+import { LinhaTransacao } from "@/components/bank/lancamentos/linha-transacao";
 
 export const metadata = { title: "Semanas" };
 
@@ -30,6 +31,43 @@ export default async function PaginaSemanas({
 
   const panorama = await montarPanoramaSemanal(supabase, ENTIDADE_FAMILIA, { hoje });
   const { atual, anteriores, mediaHistorica, streak } = panorama;
+
+  const [{ data: transacoesSemana }, { data: categorias }, { data: cartoes }] = await Promise.all([
+    supabase
+      .from("transacoes")
+      .select(
+        "id, descricao, valor, data, categoria_id, forma_pagamento, cartao_id, recorrencia_id, categoria:categorias(nome, tipo)",
+      )
+      .eq("entidade_id", ENTIDADE_FAMILIA)
+      .gte("data", atual.inicio)
+      .lte("data", atual.fim)
+      .order("data", { ascending: false })
+      .order("id", { ascending: false }),
+    supabase.from("categorias").select("id, nome, tipo").eq("entidade_id", ENTIDADE_FAMILIA).order("nome"),
+    supabase.from("cartoes").select("id, nome").eq("entidade_id", ENTIDADE_FAMILIA).order("nome"),
+  ]);
+
+  type TransacaoSemana = {
+    id: string;
+    descricao: string;
+    valor: number;
+    data: string;
+    categoria_id: string | null;
+    forma_pagamento: FormaPagamento | null;
+    cartao_id: string | null;
+    recorrencia_id: string | null;
+    categoria: { nome: string; tipo: string } | null;
+  };
+  // O client sem types gerados infere o join como array — na prática o FK
+  // singular devolve objeto único.
+  const listaSemana = (transacoesSemana ?? []) as unknown as TransacaoSemana[];
+  const nomeCartao = new Map((cartoes ?? []).map((c) => [c.id, c.nome]));
+  const porDiaSemana = new Map<string, TransacaoSemana[]>();
+  for (const t of listaSemana) {
+    const grupo = porDiaSemana.get(t.data) ?? [];
+    grupo.push(t);
+    porDiaSemana.set(t.data, grupo);
+  }
 
   const percentualMeta =
     atual.meta && atual.meta > 0 ? (atual.gasto / atual.meta) * 100 : null;
@@ -190,6 +228,54 @@ export default async function PaginaSemanas({
           </p>
         </section>
       )}
+
+      {/* Lançamentos da semana — dia a dia, com edição/exclusão inline */}
+      <section className="card-bank divide-y divide-border">
+        <div className="p-4 sm:p-6 sm:pb-0">
+          <h2 className="text-sm font-semibold">Lançamentos da semana</h2>
+        </div>
+        {listaSemana.length === 0 && (
+          <p className="p-4 text-sm text-text-faint sm:p-6">
+            Nenhum lançamento nesta semana ainda.
+          </p>
+        )}
+        {[...porDiaSemana.entries()].map(([data, itens]) => (
+          <div key={data} className="p-4 sm:p-6">
+            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-text-faint">
+              {new Date(`${data}T12:00:00`).toLocaleDateString("pt-BR", {
+                weekday: "long",
+                day: "2-digit",
+                month: "2-digit",
+              })}
+            </p>
+            <div className="flex flex-col gap-2.5">
+              {itens.map((t) => {
+                const receita = t.categoria?.tipo === "receita";
+                const formaLabel = t.forma_pagamento ? ROTULO_FORMA[t.forma_pagamento] : null;
+                const cartao =
+                  t.cartao_id && nomeCartao.has(t.cartao_id) ? nomeCartao.get(t.cartao_id)! : null;
+                const detalhe =
+                  [formaLabel, cartao ? `(${cartao})` : null].filter(Boolean).join(" ") || null;
+                return (
+                  <LinhaTransacao
+                    key={t.id}
+                    id={t.id}
+                    descricao={t.descricao}
+                    valor={Number(t.valor)}
+                    data={t.data}
+                    categoria_id={t.categoria_id}
+                    categoriaNome={t.categoria?.nome ?? null}
+                    receita={receita}
+                    recorrente={!!t.recorrencia_id}
+                    detalhe={detalhe}
+                    categorias={categorias ?? []}
+                  />
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </section>
 
       {/* Histórico: Smn 01 … Smn 15, cada uma abre o próprio resumo */}
       <ListaSemanas semanas={anteriores} />

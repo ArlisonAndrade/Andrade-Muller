@@ -217,5 +217,5 @@ export async function confirmarImportacao(formData: FormData) {
     })
     .eq("id", importacaoId);
 
-  redirect(`/bank/lancamentos?importados=${gerados}&vinculados=${vinculados}`);
+  redirect("/bank/semanas");
 }

@@ -40,10 +40,10 @@ export async function criarLancamento(formData: FormData) {
   if (String(formData.get("acao")) === "salvar_outro") {
     redirect("/bank/lancar?salvo=1");
   }
-  redirect("/bank/lancamentos");
+  redirect("/bank/semanas");
 }
 
-// Edição inline no Extrato — sem redirect, só revalida a lista.
+// Edição inline no extrato semanal — sem redirect, só revalida a lista.
 export async function editarLancamento(formData: FormData) {
   const supabase = await createClient();
 
@@ -59,7 +59,7 @@ export async function editarLancamento(formData: FormData) {
     .eq("id", id);
   if (error) throw new Error(`Falha ao editar: ${error.message}`);
 
-  revalidatePath("/bank/lancamentos");
+  revalidatePath("/bank/semanas");
   revalidatePath("/bank");
 }
 
@@ -70,6 +70,6 @@ export async function excluirLancamento(formData: FormData) {
   const { error } = await supabase.from("transacoes").delete().eq("id", id);
   if (error) throw new Error(`Falha ao excluir: ${error.message}`);
 
-  revalidatePath("/bank/lancamentos");
+  revalidatePath("/bank/semanas");
   revalidatePath("/bank");
 }

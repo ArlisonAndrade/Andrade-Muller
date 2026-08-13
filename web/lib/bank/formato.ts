@@ -1,6 +1,16 @@
+import type { FormaPagamento } from "@/lib/bank/tipos";
+
 export function moedaBRL(valor: number) {
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
+
+export const ROTULO_FORMA: Record<FormaPagamento, string> = {
+  debito: "Débito",
+  credito: "Crédito",
+  pix: "Pix",
+  dinheiro: "Dinheiro",
+  outro: "Outro",
+};
 
 export function dataBR(iso: string | null) {
   if (!iso) return null;

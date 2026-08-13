@@ -22,7 +22,7 @@ export async function criarRecorrencia(formData: FormData) {
   });
   if (error) throw new Error(`Falha ao criar recorrência: ${error.message}`);
 
-  revalidatePath("/bank/lancamentos");
+  revalidatePath("/bank/lancar");
 }
 
 export async function alternarRecorrencia(formData: FormData) {
@@ -36,11 +36,11 @@ export async function alternarRecorrencia(formData: FormData) {
     .eq("id", id);
   if (error) throw new Error(`Falha ao atualizar recorrência: ${error.message}`);
 
-  revalidatePath("/bank/lancamentos");
+  revalidatePath("/bank/lancar");
 }
 
-// Apaga a assinatura. As transações já geradas ficam no extrato (o FK é
-// `on delete set null`) — elas são gasto que aconteceu; só param de nascer
+// Apaga a assinatura. As transações já geradas ficam no extrato semanal (o FK
+// é `on delete set null`) — elas são gasto que aconteceu; só param de nascer
 // daqui pra frente. Pra interromper sem apagar nada, use "Pausar".
 export async function excluirRecorrencia(formData: FormData) {
   const supabase = await createClient();
@@ -49,16 +49,16 @@ export async function excluirRecorrencia(formData: FormData) {
   const { error } = await supabase.from("recorrencias").delete().eq("id", id);
   if (error) return { erro: `Não deu pra excluir a recorrência: ${error.message}` };
 
-  revalidatePath("/bank/lancamentos");
+  revalidatePath("/bank/lancar");
   revalidatePath("/bank");
 }
 
 // Reconcile on-load: garante que toda recorrência ativa com dia_do_mes já
 // alcançado tenha a transação da competência corrente. Idempotente — o
 // unique index (recorrencia_id, competencia_recorrencia) é o backstop e a
-// checagem prévia evita o erro no caminho comum. Chamada no load da home e
-// do extrato; roda sob a sessão do usuário (RLS), então só enxerga/gera o
-// que ele pode ver. Sem cron: app pessoal de uso frequente.
+// checagem prévia evita o erro no caminho comum. Chamada no load da home;
+// roda sob a sessão do usuário (RLS), então só enxerga/gera o que ele pode
+// ver. Sem cron: app pessoal de uso frequente.
 export async function gerarRecorrenciasPendentes() {
   const supabase = await createClient();
 

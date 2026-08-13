@@ -2,21 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  IconHome,
-  IconReceipt,
-  IconPlus,
-  IconTarget,
-  IconCoins,
-} from "@/components/bank/ui/icones";
+import { IconHome, IconPlus, IconTarget, IconCoins } from "@/components/bank/ui/icones";
 
 // Atalhos do uso diário. Investimentos saiu daqui pra Semanas entrar: a
-// carteira se olha uma vez por mês, a semana se olha todo dia. O menu
-// completo continua no hambúrguer do topo.
+// carteira se olha uma vez por mês, a semana se olha todo dia. Extrato saiu
+// (virou parte de Semanas — uma fonte só pro dia a dia). O menu completo
+// continua no hambúrguer do topo.
 const ITENS = [
   { rotulo: "Início", href: "/bank", Icone: IconHome },
   { rotulo: "Semanas", href: "/bank/semanas", Icone: IconTarget },
-  { rotulo: "Extrato", href: "/bank/lancamentos", Icone: IconReceipt },
   { rotulo: "Dívidas", href: "/bank/dividas", Icone: IconCoins },
 ];
 
