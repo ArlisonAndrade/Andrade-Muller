@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Line } from "@/components/bank/ui/grafico";
 import { projetarPatrimonio, anoDoMarco, MARCOS_PLANO } from "@/lib/bank/projecao";
 import { salvarParametrosPlano } from "@/lib/bank/acoes/planos";
+import { PlanoRevelado } from "@/components/bank/plano/plano-revelado";
 
 function brlCompacto(v: number) {
   if (v >= 1_000_000) return `R$ ${(v / 1_000_000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}M`;
@@ -28,7 +29,7 @@ export function SimuladorPlano({
   curvaPlano,
   aporteInicial,
   rentabilidadeInicial,
-  crescimentoAporteInicial = 0,
+  crescimentoAporteInicial = 10,
 }: {
   entidadeId: string;
   patrimonioAtual: number;
@@ -40,6 +41,7 @@ export function SimuladorPlano({
   const [aporteMensal, setAporteMensal] = useState(aporteInicial);
   const [rentabilidade, setRentabilidade] = useState(rentabilidadeInicial);
   const [crescimentoAporte, setCrescimentoAporte] = useState(crescimentoAporteInicial);
+  const [revelado, setRevelado] = useState(false);
 
   const anoAtual = new Date().getFullYear();
   const anoFinal = Math.max(2049, anoAtual + 5);
@@ -101,9 +103,9 @@ export function SimuladorPlano({
           </span>
           <input
             type="range"
-            min={0}
-            max={15}
-            step={1}
+            min={10}
+            max={100}
+            step={5}
             value={crescimentoAporte}
             onChange={(e) => setCrescimentoAporte(Number(e.target.value))}
             className="accent-[#2563eb]"
@@ -201,12 +203,22 @@ export function SimuladorPlano({
         <input type="hidden" name="param_plano6m_crescimento_aporte_aa" value={crescimentoAporte} />
         <button
           type="submit"
+          onClick={() => setRevelado(true)}
           className="rounded-[8px] bg-bank-primaria px-4 py-2 text-sm font-medium text-white"
         >
           Salvar esses parâmetros
         </button>
         <span className="text-xs text-text-faint">ficam como padrão do simulador e do score</span>
       </form>
+
+      {revelado && (
+        <PlanoRevelado
+          aporteMensal={aporteMensal}
+          rentabilidade={rentabilidade}
+          crescimentoAporte={crescimentoAporte}
+          simulacao={simulacao}
+        />
+      )}
     </div>
   );
 }

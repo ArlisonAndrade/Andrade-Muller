@@ -147,8 +147,6 @@ export default async function PaginaInvestimentos() {
     reserva_emergencia: metaReserva,
     arthur: metaArthur,
   };
-  const atualJuntas = atualPorFinalidade.reserva_emergencia + atualPorFinalidade.arthur;
-  const metaJuntas = metaPorFinalidade.reserva_emergencia + metaPorFinalidade.arthur;
 
   // Ativos pra o select de proventos.
   const listaAtivos = (posicoes ?? [])
@@ -257,7 +255,7 @@ export default async function PaginaInvestimentos() {
         </section>
       </div>
 
-      {/* Metas: Reserva e Arthur separadas, e as duas juntas */}
+      {/* Metas: Reserva e Arthur, separadas */}
       <section className="card-bank p-4 sm:p-5">
         <h2 className="mb-4 text-sm font-semibold">Metas</h2>
         <div className="flex flex-col gap-4">
@@ -298,23 +296,6 @@ export default async function PaginaInvestimentos() {
               </div>
             );
           })}
-
-          {/* Juntas */}
-          <div className="border-t border-border pt-4">
-            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-              <span className="text-sm font-medium text-text-primary">Reserva + Arthur juntas</span>
-              <span className="text-xs text-text-secondary">
-                {moedaBRL(atualJuntas)} de {moedaBRL(metaJuntas)} (
-                {metaJuntas > 0 ? Math.round((atualJuntas / metaJuntas) * 100) : 0}%)
-              </span>
-            </div>
-            <div className="mt-1.5">
-              <ProgressBar
-                percentual={metaJuntas > 0 ? (atualJuntas / metaJuntas) * 100 : 0}
-                cor="var(--color-bank-primaria)"
-              />
-            </div>
-          </div>
         </div>
       </section>
 

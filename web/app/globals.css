@@ -81,3 +81,16 @@ body {
 .numeros-tabulares {
   font-variant-numeric: tabular-nums;
 }
+
+/* Entrada em cascata da revelação do plano (marcos, linhas do ano-a-ano) —
+   usa animation-delay por item pra cada card/linha entrar em sequência. */
+@keyframes fade-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

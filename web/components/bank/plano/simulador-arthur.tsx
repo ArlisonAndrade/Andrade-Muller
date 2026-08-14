@@ -22,7 +22,7 @@ export function SimuladorArthur({
   aporteAniversarioInicial,
   rentabilidadeInicial,
   idadeAlvoInicial,
-  crescimentoAporteInicial = 0,
+  crescimentoAporteInicial = 10,
 }: {
   entidadeId: string;
   patrimonioAtual: number;
@@ -94,7 +94,7 @@ export function SimuladorArthur({
               {crescimentoAporte.toLocaleString("pt-BR")}% a.a.
             </span>
           </span>
-          <input type="range" min={0} max={15} step={1} value={crescimentoAporte}
+          <input type="range" min={10} max={100} step={5} value={crescimentoAporte}
             onChange={(e) => setCrescimentoAporte(Number(e.target.value))} className="accent-[#3b5b74]" />
           <span className="text-xs text-text-faint">
             ex.: 5% reajusta o aporte mensal e o de aniversário todo ano, junto de um aumento salarial

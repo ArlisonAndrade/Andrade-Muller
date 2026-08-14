@@ -47,7 +47,7 @@ export default async function PaginaArthur() {
   const aporteAniversario = params.get("arthur_aporte_aniversario") ?? 500;
   const rentabilidade = params.get("arthur_rentabilidade_aa") ?? 10;
   const idadeAlvo = params.get("arthur_idade_alvo") ?? 18;
-  const crescimentoAporte = params.get("arthur_crescimento_aporte_aa") ?? 0;
+  const crescimentoAporte = params.get("arthur_crescimento_aporte_aa") ?? 10;
 
   const { anos, meses } = idadeDetalhada();
 

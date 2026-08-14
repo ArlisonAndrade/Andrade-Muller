@@ -50,7 +50,7 @@ export default async function PaginaPlano() {
   const params = new Map((parametros ?? []).map((p) => [p.chave, Number(p.valor)]));
   const aporteMensal = params.get("plano6m_aporte_mensal") ?? 1000;
   const rentabilidade = params.get("plano6m_rentabilidade_aa") ?? 12;
-  const crescimentoAporte = params.get("plano6m_crescimento_aporte_aa") ?? 0;
+  const crescimentoAporte = params.get("plano6m_crescimento_aporte_aa") ?? 10;
 
   const alvoAno = (curva ?? []).find((c) => c.ano === anoAtual);
   const posicaoVsPlano =
