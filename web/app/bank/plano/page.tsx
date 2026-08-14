@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
-import { ENTIDADE_FAMILIA } from "@/lib/bank/tipos";
+import { ENTIDADE_FAMILIA, type Transacao } from "@/lib/bank/tipos";
 import { moedaBRL } from "@/lib/bank/formato";
+import { patrimonio } from "@/lib/bank/calculos";
 import { CardMetrica } from "@/components/bank/ui/card-metrica";
 import { SimuladorPlano } from "@/components/bank/plano/simulador";
 import { IconTarget, IconTrendingUp } from "@/components/bank/ui/icones";
@@ -19,6 +20,7 @@ export default async function PaginaPlano() {
     { data: posicoes },
     { data: cotacoes },
     { data: contas },
+    { data: transacoes },
   ] = await Promise.all([
     supabase
       .from("plano_patrimonio")
@@ -35,17 +37,22 @@ export default async function PaginaPlano() {
       .eq("entidade_id", ENTIDADE_FAMILIA),
     supabase.from("cotacoes_atuais").select("ativo_id, preco_atual"),
     supabase.from("contas").select("saldo_inicial").eq("entidade_id", ENTIDADE_FAMILIA),
+    // Histórico completo — sem isso o patrimônio ficava só
+    // "investimentos + saldo inicial da conta", sem contar o fluxo de
+    // receitas/despesas já lançado (mesmo bug corrigido no Modo TV).
+    supabase
+      .from("transacoes")
+      .select("valor, categoria:categorias(tipo)")
+      .eq("entidade_id", ENTIDADE_FAMILIA),
   ]);
 
-  const precoAtual = new Map((cotacoes ?? []).map((c) => [c.ativo_id, Number(c.preco_atual ?? 0)]));
-  const investido = (posicoes ?? [])
-    .filter((p) => Number(p.quantidade_atual) > 0)
-    .reduce((s, p) => {
-      const preco = precoAtual.get(p.ativo_id) || Number(p.preco_medio ?? 0);
-      return s + Number(p.quantidade_atual) * preco;
-    }, 0);
-  const saldoContas = (contas ?? []).reduce((s, c) => s + Number(c.saldo_inicial), 0);
-  const patrimonioAtual = investido + saldoContas;
+  const cotacoesMap = new Map((cotacoes ?? []).map((c) => [c.ativo_id, Number(c.preco_atual ?? 0)]));
+  const patrimonioAtual = patrimonio(
+    contas ?? [],
+    (transacoes ?? []) as unknown as Transacao[],
+    posicoes ?? [],
+    cotacoesMap,
+  );
 
   const params = new Map((parametros ?? []).map((p) => [p.chave, Number(p.valor)]));
   const aporteMensal = params.get("plano6m_aporte_mensal") ?? 1000;
@@ -73,7 +80,7 @@ export default async function PaginaPlano() {
         <CardMetrica
           label="Patrimônio hoje"
           valor={moedaBRL(patrimonioAtual)}
-          apoio={<>investimentos + saldo em conta</>}
+          apoio={<>investimentos + saldo em conta + fluxo de caixa</>}
           icone={<IconTrendingUp size={18} stroke={1.7} />}
         />
         <CardMetrica
