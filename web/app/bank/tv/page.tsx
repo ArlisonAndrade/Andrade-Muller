@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import {
   ENTIDADE_FAMILIA,
-  ENTIDADE_ARTHUR,
   PRESETS_DIVISAO,
   type DivisaoConfig,
   type Pessoa,
@@ -20,6 +19,7 @@ import {
 import { ROTULO_FINALIDADE, COR_FINALIDADE } from "@/lib/bank/classes-ativos";
 import { obterPatrimonioArthur, obterMetaArthur } from "@/lib/bank/arthur";
 import { projetarPatrimonio, anoDoMarco } from "@/lib/bank/projecao";
+import { faseAtual, statusDaFase, ROTULO_STATUS_FASE, EMOJI_STATUS_FASE } from "@/lib/bank/plano-arthur";
 import { BigStat } from "@/components/bank/tv/big-stat";
 import { TvSlideshow, type SlideTv } from "@/components/bank/tv/tv-slideshow";
 
@@ -149,15 +149,12 @@ export default async function PaginaTv() {
 
   // ---------- Arthur ----------
   const { atual: patrimonioArthur } = await obterPatrimonioArthur(supabase, cotacoesMap);
-  const metaArthur = await obterMetaArthur(supabase, patrimonioArthur);
-  const { data: parametrosArthur } = await supabase
-    .from("parametros_plano")
-    .select("chave, valor")
-    .eq("entidade_id", ENTIDADE_ARTHUR);
-  const paramsArthur = new Map((parametrosArthur ?? []).map((p) => [p.chave, Number(p.valor)]));
-  const idadeAlvoArthur = paramsArthur.get("arthur_idade_alvo") ?? 18;
+  const metaArthur = obterMetaArthur();
   const nascimentoArthur = new Date("2022-10-30");
-  const idadeArthurAnos = Math.floor((hoje.getTime() - nascimentoArthur.getTime()) / (365.25 * 24 * 3600 * 1000));
+  const idadeArthurExata = (hoje.getTime() - nascimentoArthur.getTime()) / (365.25 * 24 * 3600 * 1000);
+  const idadeArthurAnos = Math.floor(idadeArthurExata);
+  const faseArthurAtual = faseAtual(idadeArthurExata);
+  const statusFaseArthur = statusDaFase(faseArthurAtual, idadeArthurExata, patrimonioArthur);
 
   const slides: SlideTv[] = [
     {
@@ -278,7 +275,11 @@ export default async function PaginaTv() {
       conteudo: (
         <div className="grid grid-cols-2 gap-6">
           <BigStat rotulo="Patrimônio hoje" valor={moedaBRL(patrimonioArthur)} apoio={`${idadeArthurAnos} anos`} />
-          <BigStat rotulo={`Meta aos ${idadeAlvoArthur} anos`} valor={moedaBRL(metaArthur)} />
+          <BigStat rotulo="Meta aos 20 anos" valor={moedaBRL(metaArthur)} />
+          <BigStat
+            rotulo={`Fase ${faseArthurAtual.numero} · ${faseArthurAtual.nome}`}
+            valor={`${EMOJI_STATUS_FASE[statusFaseArthur]} ${ROTULO_STATUS_FASE[statusFaseArthur]}`}
+          />
         </div>
       ),
     },

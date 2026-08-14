@@ -135,10 +135,10 @@ export default async function PaginaInvestimentos() {
   const gruposFinalidade = agruparPorFinalidade(classes);
 
   // Metas por finalidade: Reserva é um valor fixo editável; Arthur vem do
-  // simulador salvo em /bank/arthur (não duplica número, já fica vivo).
+  // plano fixo em fases de /bank/arthur (não duplica número).
   const metaReserva = Number(parametrosFamilia?.valor ?? 30000);
   const { atual: patrimonioArthur } = await obterPatrimonioArthur(supabase, cotacoesSimples);
-  const metaArthur = await obterMetaArthur(supabase, patrimonioArthur);
+  const metaArthur = obterMetaArthur();
   const atualPorFinalidade: Record<string, number> = {
     reserva_emergencia: gruposFinalidade.find((g) => g.finalidade === "reserva_emergencia")?.valorMercado ?? 0,
     arthur: patrimonioArthur,
@@ -289,7 +289,7 @@ export default async function PaginaInvestimentos() {
                       href="/bank/arthur"
                       className="text-xs text-text-faint underline decoration-dotted underline-offset-2 hover:text-text-primary"
                     >
-                      meta projetada pelo simulador · ajustar
+                      meta do plano em fases · ver detalhes
                     </Link>
                   )}
                 </div>

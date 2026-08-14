@@ -3,9 +3,18 @@ import { createClient } from "@/lib/supabase/server";
 import { ENTIDADE_ARTHUR } from "@/lib/bank/tipos";
 import { moedaBRL } from "@/lib/bank/formato";
 import { obterPatrimonioArthur } from "@/lib/bank/arthur";
+import {
+  FASES_ARTHUR,
+  META_FINAL_ARTHUR,
+  faseAtual,
+  statusDaFase,
+  curvaPlanejadaArthur,
+} from "@/lib/bank/plano-arthur";
 import { CardMetrica } from "@/components/bank/ui/card-metrica";
-import { SimuladorArthur } from "@/components/bank/plano/simulador-arthur";
-import { IconPigMoney, IconCalendarEvent, IconTarget, IconPlus } from "@/components/bank/ui/icones";
+import { ProgressBar } from "@/components/bank/ui/progress-bar";
+import { FaseCard } from "@/components/bank/arthur/fase-card";
+import { Line } from "@/components/bank/ui/grafico";
+import { IconPigMoney, IconTarget, IconTrendingUp, IconPlus } from "@/components/bank/ui/icones";
 
 export const metadata = { title: "Carteira Arthur" };
 
@@ -23,14 +32,20 @@ function idadeDetalhada() {
   return { anos, meses };
 }
 
-// Carteira do Arthur — patrimônio atual + plano do nascimento (30/10/2022)
-// até a idade-alvo, com aportes de aniversário e projeção interativa.
+function brlCompacto(v: number) {
+  if (v >= 1_000_000) return `R$ ${(v / 1_000_000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}M`;
+  if (v >= 1_000) return `R$ ${(v / 1_000).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}K`;
+  return `R$ ${v.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}`;
+}
+
+// Carteira do Arthur — plano fixo em 7 fases (0 a 6), do nascimento até os
+// 20 anos, com selo de status por fase. Substitui o simulador de sliders:
+// decisão do Arlison em 13/ago/2026, a régua é fixa, não "e se eu mudasse".
 export default async function PaginaArthur() {
   const supabase = await createClient();
 
-  const [{ data: cotacoes }, { data: parametros }, { data: aportes }] = await Promise.all([
+  const [{ data: cotacoes }, { data: aportes }] = await Promise.all([
     supabase.from("cotacoes_atuais").select("ativo_id, preco_atual"),
-    supabase.from("parametros_plano").select("chave, valor").eq("entidade_id", ENTIDADE_ARTHUR),
     supabase
       .from("transacoes")
       .select("descricao, valor, data")
@@ -42,23 +57,22 @@ export default async function PaginaArthur() {
   const cotacoesMap = new Map((cotacoes ?? []).map((c) => [c.ativo_id, Number(c.preco_atual)]));
   const { atual: patrimonioAtual } = await obterPatrimonioArthur(supabase, cotacoesMap);
 
-  const params = new Map((parametros ?? []).map((p) => [p.chave, Number(p.valor)]));
-  const aporteMensal = params.get("arthur_aporte_mensal") ?? 100;
-  const aporteAniversario = params.get("arthur_aporte_aniversario") ?? 500;
-  const rentabilidade = params.get("arthur_rentabilidade_aa") ?? 10;
-  const idadeAlvo = params.get("arthur_idade_alvo") ?? 18;
-  const crescimentoAporte = params.get("arthur_crescimento_aporte_aa") ?? 10;
-
   const { anos, meses } = idadeDetalhada();
+  const idadeExata = anos + meses / 12;
+  const fase = faseAtual(idadeExata);
+  const progressoGeral = Math.min(100, (patrimonioAtual / META_FINAL_ARTHUR) * 100);
+  const curva = curvaPlanejadaArthur();
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-lg font-semibold">Carteira do Arthur</h1>
+          <h1 className="flex items-center gap-2 text-lg font-semibold">
+            <span aria-hidden>🧒</span> Carteira do Arthur
+          </h1>
           <p className="mt-1 text-sm text-text-secondary">
-            Nasceu em 30/10/2022 · hoje com {anos} anos e {meses} {meses === 1 ? "mês" : "meses"}.
-            Cada aporte de hoje tem ~{idadeAlvo - anos} anos pra render.
+            Nasceu em 30/10/2022 · hoje com {anos} anos e {meses} {meses === 1 ? "mês" : "meses"} ·
+            fase atual: <span className="font-medium text-arthur">{fase.emoji} {fase.nome}</span>
           </p>
         </div>
         <Link
@@ -77,34 +91,92 @@ export default async function PaginaArthur() {
           icone={<IconPigMoney size={18} stroke={1.7} />}
         />
         <CardMetrica
-          label="Aporte planejado"
-          valor={moedaBRL(aporteMensal)}
-          apoio={<>por mês + {moedaBRL(aporteAniversario)} no aniversário</>}
-          icone={<IconCalendarEvent size={18} stroke={1.7} />}
+          label="Meta aos 20 anos"
+          valor={moedaBRL(META_FINAL_ARTHUR)}
+          apoio={<>{progressoGeral.toFixed(1)}% do caminho já feito</>}
+          icone={<IconTarget size={18} stroke={1.7} />}
         />
         <CardMetrica
-          label="Meta"
-          valor={`${idadeAlvo} anos`}
-          apoio={<>faltam {idadeAlvo - anos} anos</>}
-          icone={<IconTarget size={18} stroke={1.7} />}
+          label="Fase atual"
+          valor={`${fase.emoji} ${fase.nome}`}
+          apoio={<>{fase.idadeInicio} a {fase.idadeFim} anos</>}
+          icone={<IconTrendingUp size={18} stroke={1.7} />}
         />
       </div>
 
+      {/* Barra geral do plano */}
       <section className="card-bank p-4 sm:p-5">
-        <h2 className="mb-1 text-sm font-semibold">Plano até a maioridade</h2>
-        <p className="mb-4 text-xs text-text-faint">
-          Ajuste os aportes e veja quanto o Arthur terá — cada aniversário
-          recebe o aporte extra e todo o montante segue rendendo.
+        <div className="flex items-baseline justify-between gap-2">
+          <h2 className="text-sm font-semibold">🎯 Rumo a {moedaBRL(META_FINAL_ARTHUR)} aos 20 anos</h2>
+          <span className="text-sm font-medium text-arthur">{progressoGeral.toFixed(1)}%</span>
+        </div>
+        <div className="mt-3">
+          <ProgressBar percentual={progressoGeral} cor="var(--color-arthur)" altura="h-3" />
+        </div>
+        <p className="mt-2 text-xs text-text-faint">
+          {moedaBRL(patrimonioAtual)} construídos até aqui. Cada real que entra agora ainda tem
+          anos pela frente pra render — é o tempo trabalhando a favor dele.
         </p>
-        <SimuladorArthur
-          entidadeId={ENTIDADE_ARTHUR}
-          patrimonioAtual={patrimonioAtual}
-          aporteMensalInicial={aporteMensal}
-          aporteAniversarioInicial={aporteAniversario}
-          rentabilidadeInicial={rentabilidade}
-          idadeAlvoInicial={idadeAlvo}
-          crescimentoAporteInicial={crescimentoAporte}
-        />
+      </section>
+
+      {/* Curva planejada */}
+      <section className="card-bank p-4 sm:p-5">
+        <h2 className="mb-3 text-sm font-semibold">📈 A curva do plano</h2>
+        <div className="h-56">
+          <Line
+            data={{
+              labels: curva.map((p) => `${p.idade}a`),
+              datasets: [
+                {
+                  label: "Patrimônio planejado",
+                  data: curva.map((p) => p.valor),
+                  borderColor: "#3b5b74",
+                  backgroundColor: "rgba(59, 91, 116, 0.12)",
+                  fill: true,
+                  pointRadius: 3,
+                  tension: 0.3,
+                },
+              ],
+            }}
+            options={{
+              maintainAspectRatio: false,
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    title: (items) => `Aos ${items[0].label}`,
+                    label: (ctx) => ` ${brlCompacto(Number(ctx.raw ?? 0))}`,
+                  },
+                },
+              },
+              scales: {
+                y: { ticks: { callback: (v) => brlCompacto(Number(v)) } },
+                x: { grid: { display: false } },
+              },
+            }}
+          />
+        </div>
+      </section>
+
+      {/* Fases */}
+      <section className="flex flex-col gap-3">
+        <h2 className="text-sm font-semibold">🗺️ As 7 fases do plano</h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {FASES_ARTHUR.map((f, i) => {
+            const metaAnterior = i > 0 ? FASES_ARTHUR[i - 1].metaFinal : 0;
+            const status = statusDaFase(f, idadeExata, patrimonioAtual);
+            return (
+              <FaseCard
+                key={f.numero}
+                fase={f}
+                status={status}
+                patrimonioAtual={patrimonioAtual}
+                metaAnterior={metaAnterior}
+                ativa={f.numero === fase.numero}
+              />
+            );
+          })}
+        </div>
       </section>
 
       {(aportes ?? []).length > 0 && (
