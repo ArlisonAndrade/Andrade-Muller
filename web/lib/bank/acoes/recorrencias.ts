@@ -25,6 +25,30 @@ export async function criarRecorrencia(formData: FormData) {
   revalidatePath("/bank/lancar");
 }
 
+export async function editarRecorrencia(formData: FormData) {
+  const supabase = await createClient();
+  const id = String(formData.get("id"));
+  const forma_pagamento = String(formData.get("forma_pagamento") || "") || null;
+
+  const { error } = await supabase
+    .from("recorrencias")
+    .update({
+      descricao: String(formData.get("descricao")),
+      valor: Number(formData.get("valor")),
+      categoria_id: String(formData.get("categoria_id") || "") || null,
+      dia_do_mes: Number(formData.get("dia_do_mes")),
+      forma_pagamento,
+      cartao_id:
+        forma_pagamento === "credito"
+          ? String(formData.get("cartao_id") || "") || null
+          : null,
+    })
+    .eq("id", id);
+  if (error) throw new Error(`Falha ao editar recorrência: ${error.message}`);
+
+  revalidatePath("/bank/lancar");
+}
+
 export async function alternarRecorrencia(formData: FormData) {
   const supabase = await createClient();
   const id = String(formData.get("id"));

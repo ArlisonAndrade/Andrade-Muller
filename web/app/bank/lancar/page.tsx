@@ -1,8 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { ENTIDADE_FAMILIA } from "@/lib/bank/tipos";
-import { moedaBRL } from "@/lib/bank/formato";
 import { FormRapido } from "@/components/bank/lancar/form-rapido";
-import { criarRecorrencia, alternarRecorrencia } from "@/lib/bank/acoes/recorrencias";
+import { ItemRecorrencia } from "@/components/bank/lancar/item-recorrencia";
+import { criarRecorrencia } from "@/lib/bank/acoes/recorrencias";
 
 export const metadata = { title: "Lançar" };
 
@@ -43,7 +43,7 @@ export default async function PaginaLancar({
         .limit(10),
       supabase
         .from("recorrencias")
-        .select("id, descricao, valor, dia_do_mes, ativa, categoria:categorias(nome)")
+        .select("id, descricao, valor, dia_do_mes, ativa, categoria_id, categoria:categorias(nome)")
         .eq("entidade_id", ENTIDADE_FAMILIA)
         .order("dia_do_mes"),
     ]);
@@ -54,6 +54,7 @@ export default async function PaginaLancar({
     valor: number;
     dia_do_mes: number;
     ativa: boolean;
+    categoria_id: string | null;
     categoria: { nome: string } | null;
   };
   // O client sem types gerados infere o join como array — na prática o FK
@@ -81,31 +82,7 @@ export default async function PaginaLancar({
         {listaRecorrencias.length > 0 && (
           <div className="mt-4 flex flex-col gap-2.5">
             {listaRecorrencias.map((r) => (
-              <div key={r.id} className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <p className={`truncate text-sm ${r.ativa ? "text-text-primary" : "text-text-faint line-through"}`}>
-                    {r.descricao}
-                  </p>
-                  <p className="text-xs text-text-faint">
-                    dia {r.dia_do_mes} · {r.categoria?.nome ?? "sem categoria"} ·{" "}
-                    {moedaBRL(Number(r.valor))}
-                  </p>
-                </div>
-                <form action={alternarRecorrencia}>
-                  <input type="hidden" name="id" value={r.id} />
-                  <input type="hidden" name="ativa" value={String(r.ativa)} />
-                  <button
-                    type="submit"
-                    className={`rounded-full border px-3 py-1 text-xs ${
-                      r.ativa
-                        ? "border-border text-text-secondary"
-                        : "border-bank-primaria text-bank-primaria"
-                    }`}
-                  >
-                    {r.ativa ? "Pausar" : "Reativar"}
-                  </button>
-                </form>
-              </div>
+              <ItemRecorrencia key={r.id} recorrencia={r} categorias={categorias ?? []} />
             ))}
           </div>
         )}
