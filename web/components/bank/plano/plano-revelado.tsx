@@ -20,9 +20,18 @@ function brl(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
 }
 
+// TSR (planilha original do Arlison) não é uma taxa — é a renda passiva
+// mensal estimada se 6% a.a. do patrimônio daquele ano fosse sacado em
+// 12 parcelas. Fixo em 6%, independente do slider de rentabilidade da
+// simulação (que só projeta o crescimento do patrimônio em si).
+const TSR_ANUAL_PCT = 6;
+function tsrMensal(patrimonioDoAno: number) {
+  return (patrimonioDoAno * (TSR_ANUAL_PCT / 100)) / 12;
+}
+
 // Revelação animada do plano salvo: nome, marcos com emoji, aporte × patrimônio
-// ano a ano até bater R$ 6 milhões, e a taxa simulada. Cada card/linha entra
-// em cascata (animation-delay crescente) — é o "prazer de navegar" pedido.
+// × TSR ano a ano até bater R$ 6 milhões. Cada card/linha entra em cascata
+// (animation-delay crescente) — é o "prazer de navegar" pedido.
 export function PlanoRevelado({
   aporteMensal,
   rentabilidade,
@@ -84,6 +93,7 @@ export function PlanoRevelado({
               <th className="px-3 py-2 font-medium">Ano</th>
               <th className="px-3 py-2 text-right font-medium">💵 Aporte/mês</th>
               <th className="px-3 py-2 text-right font-medium">Patrimônio</th>
+              <th className="px-3 py-2 text-right font-medium">💰 TSR/mês</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -97,6 +107,9 @@ export function PlanoRevelado({
                   {brl(aporteMensal * Math.pow(1 + crescimentoAporte / 100, i))}
                 </td>
                 <td className="px-3 py-2 text-right font-semibold numeros-tabulares">{brl(p.valor)}</td>
+                <td className="px-3 py-2 text-right text-bank-positivo numeros-tabulares">
+                  {brl(tsrMensal(p.valor))}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -107,8 +120,11 @@ export function PlanoRevelado({
         style={{ animation: "fade-slide-in 0.35s ease-out both", animationDelay: "200ms" }}
         className="mt-4 flex items-center gap-2 rounded-[10px] bg-bank-positivo-bg px-3 py-2.5 text-sm"
       >
-        <span className="text-lg" aria-hidden>📈</span>
-        <span className="font-medium text-bank-positivo">TSR simulada: {rentabilidade}% a.a.</span>
+        <span className="text-lg" aria-hidden>💰</span>
+        <span className="font-medium text-bank-positivo">
+          Ao bater a meta, R$ {tsrMensal(linhas[linhas.length - 1]?.valor ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}
+          /mês de renda estimada ({TSR_ANUAL_PCT}% a.a. sobre o patrimônio)
+        </span>
       </div>
     </div>
   );

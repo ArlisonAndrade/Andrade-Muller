@@ -31,6 +31,7 @@ export {
   IconCheck,
   IconChevronDown,
   IconChevronRight,
+  IconChevronLeft,
   IconRefresh,
   IconUser,
   IconEye,
