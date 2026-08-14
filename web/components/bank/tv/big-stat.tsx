@@ -13,10 +13,10 @@ export function BigStat({
   cor?: string;
 }) {
   return (
-    <div>
+    <div className="min-w-0">
       <p className="text-sm font-medium uppercase tracking-wide text-white/70 sm:text-base">{rotulo}</p>
       <p
-        className="mt-1 text-4xl font-bold numeros-tabulares sm:text-6xl"
+        className="mt-1 break-words text-2xl font-bold numeros-tabulares sm:text-3xl lg:text-4xl"
         style={{ color: cor ?? "#ffffff" }}
       >
         {valor}

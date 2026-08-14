@@ -162,7 +162,7 @@ export default async function PaginaTv() {
       emoji: "🏠",
       fundo: FUNDO.inicio,
       conteudo: (
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <BigStat rotulo="Patrimônio da família" valor={moedaBRL(patrimonioFamilia)} />
           <BigStat rotulo="Investimentos" valor={moedaBRL(investidoFamilia)} />
           <BigStat rotulo="Receitas do mês" valor={moedaBRL(receitasMes)} cor="#86efac" />
@@ -182,7 +182,7 @@ export default async function PaginaTv() {
       conteudo: (
         <div className="flex flex-col gap-6">
           <BigStat rotulo="Renda total da família" valor={moedaBRL(rendaTotal)} apoio={`divisão: ${nomeDivisao}`} />
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             {listaPessoas.map((p) => (
               <BigStat key={p.id} rotulo={p.nome} valor={moedaBRL(itensPorPessoa.get(p.id) ?? 0)} apoio="paga por mês" />
             ))}
@@ -195,7 +195,7 @@ export default async function PaginaTv() {
       emoji: "🗓️",
       fundo: FUNDO.semanas,
       conteudo: (
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <BigStat
             rotulo={panorama.atual.rotulo}
             valor={moedaBRL(panorama.atual.gasto)}
@@ -219,11 +219,11 @@ export default async function PaginaTv() {
       fundo: FUNDO.investimentos,
       conteudo: (
         <div className="flex flex-col gap-6">
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <BigStat rotulo="Patrimônio investido" valor={moedaBRL(valorMercado)} />
             <BigStat rotulo="Lucro (ganho de capital)" valor={moedaBRL(valorMercado - valorAplicado)} cor="#86efac" />
           </div>
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             {gruposFinalidade.map((g) => (
               <BigStat
                 key={g.finalidade}
@@ -244,7 +244,7 @@ export default async function PaginaTv() {
         dividasAbertas.length === 0 ? (
           <BigStat rotulo="Dívidas em aberto" valor="Nenhuma 🎉" />
         ) : (
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <BigStat rotulo="Falta pagar" valor={moedaBRL(totalEmAberto)} />
             <BigStat rotulo="Já pago" valor={moedaBRL(totalJaPago)} cor="#86efac" />
             <BigStat rotulo="Dívidas em aberto" valor={String(dividasAbertas.length)} />
@@ -256,7 +256,7 @@ export default async function PaginaTv() {
       emoji: "🚀",
       fundo: FUNDO.planoUsd,
       conteudo: (
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <BigStat rotulo="Patrimônio hoje" valor={moedaBRL(patrimonioFamilia)} />
           <BigStat rotulo={`Alvo do plano (${anoAtual})`} valor={alvoAno ? moedaBRL(Number(alvoAno.valor_alvo)) : "—"} />
           <BigStat
@@ -273,7 +273,7 @@ export default async function PaginaTv() {
       emoji: "🧒",
       fundo: FUNDO.arthur,
       conteudo: (
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           <BigStat rotulo="Patrimônio hoje" valor={moedaBRL(patrimonioArthur)} apoio={`${idadeArthurAnos} anos`} />
           <BigStat rotulo="Meta aos 20 anos" valor={moedaBRL(metaArthur)} />
           <BigStat

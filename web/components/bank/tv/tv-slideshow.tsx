@@ -80,7 +80,7 @@ export function TvSlideshow({ slides }: { slides: SlideTv[] }) {
           <IconChevronRight size={22} stroke={2} />
         </button>
 
-        <div key={indice} style={{ animation: "fade-slide-in 0.35s ease-out both" }} className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-8 sm:px-10">
+        <div key={indice} style={{ animation: "fade-slide-in 0.35s ease-out both" }} className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-8 sm:px-12">
           <div className="flex items-center gap-3">
             <span className="text-4xl" aria-hidden>
               {slide.emoji}

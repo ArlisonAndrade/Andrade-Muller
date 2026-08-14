@@ -41,13 +41,14 @@ export function Nav() {
           />
         </Link>
 
-        {/* Links inline no desktop */}
-        <nav className="hidden items-center gap-5 md:flex">
+        {/* Links inline no desktop — nunca quebra linha; se não couber,
+            rola na horizontal em vez de sobrepor o conteúdo abaixo. */}
+        <nav className="hidden min-w-0 items-center gap-4 overflow-x-auto md:flex">
           {ITENS_MENU.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className={`text-sm transition-colors ${
+              className={`shrink-0 whitespace-nowrap text-sm transition-colors ${
                 itemAtivo(pathname, item.href)
                   ? "font-medium text-text-primary"
                   : "text-text-secondary hover:text-text-primary"
@@ -58,7 +59,7 @@ export function Nav() {
           ))}
           <Link
             href="/bank/lancar"
-            className="flex items-center gap-1 rounded-full bg-bank-primaria px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
+            className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-bank-primaria px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
           >
             <IconPlus size={16} stroke={2} />
             Lançar
