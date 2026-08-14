@@ -51,7 +51,8 @@ export default async function PaginaTv() {
 
   const [
     { data: contas },
-    { data: transacoes },
+    { data: transacoesTodas },
+    { data: transacoesMes },
     { data: posicoes },
     { data: cotacoesRaw },
     { data: pessoas },
@@ -62,6 +63,14 @@ export default async function PaginaTv() {
     { data: parametrosPlano },
   ] = await Promise.all([
     supabase.from("contas").select("id, saldo_inicial").eq("entidade_id", ENTIDADE_FAMILIA),
+    // Histórico completo — o cálculo de patrimônio (saldo + fluxo de caixa)
+    // precisa de todas as transações, não só do mês, senão o patrimônio
+    // sai errado (bug encontrado em 14/ago/2026: mostrava só o fluxo do
+    // mês como se fosse o patrimônio inteiro).
+    supabase
+      .from("transacoes")
+      .select("valor, data, categoria:categorias(tipo)")
+      .eq("entidade_id", ENTIDADE_FAMILIA),
     supabase
       .from("transacoes")
       .select("valor, data, categoria:categorias(tipo)")
@@ -99,9 +108,9 @@ export default async function PaginaTv() {
   );
 
   // ---------- Início ----------
-  const patrimonioFamilia = patrimonio(contas ?? [], (transacoes ?? []) as unknown as Transacao[], posicoes ?? [], cotacoesMap);
+  const patrimonioFamilia = patrimonio(contas ?? [], (transacoesTodas ?? []) as unknown as Transacao[], posicoes ?? [], cotacoesMap);
   const investidoFamilia = valorInvestido(posicoes ?? [], cotacoesMap);
-  const transacoesTipadas = (transacoes ?? []) as unknown as { valor: number; categoria: { tipo: string } | null }[];
+  const transacoesTipadas = (transacoesMes ?? []) as unknown as { valor: number; categoria: { tipo: string } | null }[];
   const receitasMes = transacoesTipadas.filter((t) => t.categoria?.tipo === "receita").reduce((s, t) => s + Number(t.valor), 0);
   const despesasMes = transacoesTipadas.filter((t) => t.categoria?.tipo === "despesa").reduce((s, t) => s + Number(t.valor), 0);
 

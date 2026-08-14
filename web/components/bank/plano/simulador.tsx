@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Line } from "@/components/bank/ui/grafico";
 import { projetarPatrimonio, anoDoMarco, MARCOS_PLANO } from "@/lib/bank/projecao";
-import { salvarParametrosPlano } from "@/lib/bank/acoes/planos";
+import { salvarPlanoCompleto } from "@/lib/bank/acoes/planos";
 import { PlanoRevelado } from "@/components/bank/plano/plano-revelado";
 
 function brlCompacto(v: number) {
@@ -194,21 +194,24 @@ export function SimuladorPlano({
         </p>
       )}
 
-      {/* Salvar parâmetros */}
-      <form action={salvarParametrosPlano} className="flex items-center gap-3">
+      {/* Salvar parâmetros — regenera a curva-alvo de verdade, não só os
+          parâmetros do simulador (ver comentário em salvarPlanoCompleto). */}
+      <form action={salvarPlanoCompleto} className="flex items-center gap-3">
         <input type="hidden" name="entidade_id" value={entidadeId} />
-        <input type="hidden" name="caminho" value="/bank/plano" />
-        <input type="hidden" name="param_plano6m_aporte_mensal" value={aporteMensal} />
-        <input type="hidden" name="param_plano6m_rentabilidade_aa" value={rentabilidade} />
-        <input type="hidden" name="param_plano6m_crescimento_aporte_aa" value={crescimentoAporte} />
+        <input type="hidden" name="patrimonio_atual" value={patrimonioAtual} />
+        <input type="hidden" name="aporte_mensal" value={aporteMensal} />
+        <input type="hidden" name="rentabilidade" value={rentabilidade} />
+        <input type="hidden" name="crescimento_aporte" value={crescimentoAporte} />
         <button
           type="submit"
           onClick={() => setRevelado(true)}
           className="rounded-[8px] bg-bank-primaria px-4 py-2 text-sm font-medium text-white"
         >
-          Salvar esses parâmetros
+          Salvar esse plano
         </button>
-        <span className="text-xs text-text-faint">ficam como padrão do simulador e do score</span>
+        <span className="text-xs text-text-faint">
+          vira o plano de verdade a partir de {new Date().getFullYear()} — atualiza a curva, o score e o Modo TV
+        </span>
       </form>
 
       {revelado && (
