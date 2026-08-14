@@ -13,7 +13,7 @@ import {
 import { CardMetrica } from "@/components/bank/ui/card-metrica";
 import { ProgressBar } from "@/components/bank/ui/progress-bar";
 import { FaseCard } from "@/components/bank/arthur/fase-card";
-import { Line } from "@/components/bank/ui/grafico";
+import { CurvaArthur } from "@/components/bank/arthur/curva-arthur";
 import { IconPigMoney, IconTarget, IconTrendingUp, IconPlus } from "@/components/bank/ui/icones";
 
 export const metadata = { title: "Carteira Arthur" };
@@ -30,12 +30,6 @@ function idadeDetalhada() {
     meses += 12;
   }
   return { anos, meses };
-}
-
-function brlCompacto(v: number) {
-  if (v >= 1_000_000) return `R$ ${(v / 1_000_000).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}M`;
-  if (v >= 1_000) return `R$ ${(v / 1_000).toLocaleString("pt-BR", { maximumFractionDigits: 0 })}K`;
-  return `R$ ${v.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}`;
 }
 
 // Carteira do Arthur — plano fixo em 7 fases (0 a 6), do nascimento até os
@@ -122,40 +116,7 @@ export default async function PaginaArthur() {
       {/* Curva planejada */}
       <section className="card-bank p-4 sm:p-5">
         <h2 className="mb-3 text-sm font-semibold">📈 A curva do plano</h2>
-        <div className="h-56">
-          <Line
-            data={{
-              labels: curva.map((p) => `${p.idade}a`),
-              datasets: [
-                {
-                  label: "Patrimônio planejado",
-                  data: curva.map((p) => p.valor),
-                  borderColor: "#3b5b74",
-                  backgroundColor: "rgba(59, 91, 116, 0.12)",
-                  fill: true,
-                  pointRadius: 3,
-                  tension: 0.3,
-                },
-              ],
-            }}
-            options={{
-              maintainAspectRatio: false,
-              plugins: {
-                legend: { display: false },
-                tooltip: {
-                  callbacks: {
-                    title: (items) => `Aos ${items[0].label}`,
-                    label: (ctx) => ` ${brlCompacto(Number(ctx.raw ?? 0))}`,
-                  },
-                },
-              },
-              scales: {
-                y: { ticks: { callback: (v) => brlCompacto(Number(v)) } },
-                x: { grid: { display: false } },
-              },
-            }}
-          />
-        </div>
+        <CurvaArthur pontos={curva} />
       </section>
 
       {/* Fases */}
