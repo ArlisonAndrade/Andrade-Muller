@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { confirmarSugestao, excluirFaturamento } from "@/lib/acoes/faturamento";
 import { BotaoExcluir } from "@/components/crm/botao-excluir";
-import { nomeCliente, type Cliente, type Transacao } from "@/lib/tipos";
+import { ENTIDADE_ID, nomeCliente, type Cliente, type Transacao } from "@/lib/tipos";
 import { moedaBRL, dataBR, mesBR, mesCurto, rotuloTrimestre } from "@/lib/formato";
 
 interface Nota {
@@ -59,6 +59,7 @@ export default async function PaginaFinanceiro({
       supabase
         .from("transacoes")
         .select("*, categoria:categorias(id, nome, tipo, grupo_dre)")
+        .eq("entidade_id", ENTIDADE_ID)
         .order("data", { ascending: false }),
       supabase
         .from("fm_contratos")
@@ -69,6 +70,18 @@ export default async function PaginaFinanceiro({
 
   const todasNotas = (notas ?? []) as Nota[];
   const todasTrans = (transacoes ?? []) as Transacao[];
+
+  // ---------- faturamento acumulado histórico + marcos ----------
+  const totalFaturadoHistorico = todasNotas
+    .filter((n) => n.status === "concluido")
+    .reduce((s, n) => s + Number(n.valor), 0);
+  const MARCOS = [100_000, 500_000, 1_000_000];
+  const proximoMarco = MARCOS.find((m) => m > totalFaturadoHistorico) ?? MARCOS[MARCOS.length - 1];
+  const marcoAnterior = [0, ...MARCOS].filter((m) => m < proximoMarco).pop() ?? 0;
+  const pctProximoMarco = Math.min(
+    100,
+    ((totalFaturadoHistorico - marcoAnterior) / (proximoMarco - marcoAnterior)) * 100,
+  );
 
   // ---------- somas mensais (base de tudo) ----------
   const fatDoMes = (m: string) =>
@@ -130,15 +143,18 @@ export default async function PaginaFinanceiro({
   ];
 
   // ---------- Alocação de destinação de lucro ----------
+  // Pró-labore líquido = bruto menos 11% de INSS retido — é o que de fato é retirado.
+  const INSS_PROLABORE = 0.11;
+  const prolaboreLiquidoDoMes = (m: string) => grupoDoMes(m, "folha") * (1 - INSS_PROLABORE);
   const linhasAlocacao: Linha[] = [
     { rotulo: "Reserva de Emergência (RE)", tipo: "valor", porMes: (m) => categoriaDoMes(m, "Reserva") },
-    { rotulo: "Retirada de Pró-Labore", tipo: "valor", porMes: (m) => grupoDoMes(m, "folha") },
+    { rotulo: "Retirada de Pró-Labore", tipo: "valor", porMes: prolaboreLiquidoDoMes },
     { rotulo: "Pagamento de Dividendos", tipo: "valor", porMes: (m) => categoriaDoMes(m, "Dividendos") },
   ];
   const lucroAcionista = (m: string) => {
     const fat = fatDoMes(m);
     if (fat === 0) return null;
-    return (grupoDoMes(m, "folha") + categoriaDoMes(m, "Dividendos")) / fat;
+    return (prolaboreLiquidoDoMes(m) + categoriaDoMes(m, "Dividendos")) / fat;
   };
 
   // ---------- Fator R (Simples Nacional) ----------
@@ -254,6 +270,54 @@ export default async function PaginaFinanceiro({
           </Link>
         ))}
       </nav>
+
+      <Card className="mb-6">
+        <div className="mb-4 flex items-end justify-between">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-ink-faint">
+              Faturamento acumulado — histórico
+            </p>
+            <p className="font-display text-3xl font-semibold text-ink">
+              {moedaBRL(totalFaturadoHistorico)}
+            </p>
+          </div>
+          <p className="text-sm text-ink-faint">
+            Faltam {moedaBRL(proximoMarco - totalFaturadoHistorico)} para{" "}
+            {moedaBRL(proximoMarco)}
+          </p>
+        </div>
+        <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-divider">
+          <div
+            className="h-full rounded-full bg-bronze transition-all"
+            style={{ width: `${pctProximoMarco}%` }}
+          />
+        </div>
+        <div className="mt-3 flex justify-between">
+          {MARCOS.map((marco) => {
+            const atingido = totalFaturadoHistorico >= marco;
+            return (
+              <div key={marco} className="flex flex-col items-center gap-1">
+                <span
+                  className={`flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
+                    atingido
+                      ? "bg-salvia text-card"
+                      : "bg-card text-ink-faint shadow-card"
+                  }`}
+                >
+                  {atingido ? "✓" : ""}
+                </span>
+                <span
+                  className={`font-display text-xs font-medium ${
+                    atingido ? "text-salvia" : "text-ink-faint"
+                  }`}
+                >
+                  {marco >= 1_000_000 ? "1M" : `${marco / 1000}k`}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
 
       {sugestoes.length > 0 && (
         <Card title={`Sugestões de ${mesBR(competenciaAtual)}`} className="mb-6">
@@ -394,7 +458,7 @@ export default async function PaginaFinanceiro({
                     const fat = mesesTri.reduce((s, x) => s + fatDoMes(x), 0);
                     const bolso = mesesTri.reduce(
                       (s, x) =>
-                        s + grupoDoMes(x, "folha") + categoriaDoMes(x, "Dividendos"),
+                        s + prolaboreLiquidoDoMes(x) + categoriaDoMes(x, "Dividendos"),
                       0,
                     );
                     pct = fat > 0 ? bolso / fat : null;
