@@ -95,6 +95,13 @@ export type Pessoa = {
   ativo: boolean;
 };
 
+// Liga cada pessoa da Família ao "tipo" fixo de renda_mensal (mesmo enum
+// usado pela Ponte pró-labore) — só existem essas duas pessoas hoje, então
+// o mapeamento é por nome mesmo, sem coluna nova.
+export function tipoRendaDaPessoa(nome: string): "salario_arlison" | "pro_labore_franciele" {
+  return nome === "Arlison" ? "salario_arlison" : "pro_labore_franciele";
+}
+
 export type OrcamentoItem = {
   id: string;
   entidade_id: string;

@@ -11,7 +11,7 @@ import { TransacoesRecentes } from "@/components/bank/home/transacoes-recentes";
 import { ProximasContas, type ContaProxima } from "@/components/bank/home/proximas-contas";
 import { ScoreSaude } from "@/components/bank/home/score-saude";
 import { calcularScoreSaude } from "@/lib/bank/score";
-import { EvolucaoPatrimonio } from "@/components/bank/investimentos/evolucao-patrimonio";
+import { JornadaPatrimonio } from "@/components/bank/home/jornada-patrimonio";
 import { DonutAlocacao } from "@/components/bank/investimentos/donut-alocacao";
 import { patrimonio, valorInvestido } from "@/lib/bank/calculos";
 import { agregarPorClasse, type Cotacao, type PosicaoDetalhada } from "@/lib/bank/calculos-investimentos";
@@ -52,9 +52,6 @@ export default async function Home() {
 
   const hoje = new Date();
   const inicioMes = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-01`;
-  const dozeMesesAtras = new Date();
-  dozeMesesAtras.setMonth(dozeMesesAtras.getMonth() - 12);
-  const corte12M = dozeMesesAtras.toISOString().slice(0, 10);
 
   const supabase = await createClient();
 
@@ -70,8 +67,9 @@ export default async function Home() {
     { data: metas },
     { data: dividas },
     { data: metasAlocacao },
-    { data: snapshots },
     { data: recorrencias },
+    { data: curvaPlano },
+    { data: orcamentoPlanejado },
   ] = await Promise.all([
     supabase.from("contas").select("id, entidade_id, saldo_inicial").in("entidade_id", entidadesDaVisao),
     supabase
@@ -93,17 +91,36 @@ export default async function Home() {
       .in("entidade_id", entidadesDaVisao),
     supabase.from("metas_alocacao").select("classe, percentual_alvo").eq("entidade_id", ENTIDADE_FAMILIA),
     supabase
-      .from("snapshots_patrimonio")
-      .select("entidade_id, competencia, valor_aplicado, valor_mercado")
-      .in("entidade_id", entidadesDaVisao)
-      .gte("competencia", corte12M)
-      .order("competencia"),
-    supabase
       .from("recorrencias")
       .select("descricao, valor, dia_do_mes, categoria:categorias(nome)")
       .eq("entidade_id", ENTIDADE_FAMILIA)
       .eq("ativa", true),
+    supabase
+      .from("plano_patrimonio")
+      .select("ano, valor_alvo")
+      .eq("entidade_id", ENTIDADE_FAMILIA)
+      .eq("ano", hoje.getFullYear())
+      .maybeSingle(),
+    supabase
+      .from("orcamento_planejado")
+      .select("valor, grupo_orcamento")
+      .eq("entidade_id", ENTIDADE_FAMILIA)
+      .eq("ativo", true),
   ]);
+
+  const { data: jornadaRaw } = await supabase
+    .from("jornada_patrimonio")
+    .select("ano, investimento, dividas, marco_emoji, marco_titulo, marco_data")
+    .eq("entidade_id", ENTIDADE_FAMILIA)
+    .order("ano");
+  const jornada = (jornadaRaw ?? []).map((p) => ({
+    ano: p.ano,
+    investimento: Number(p.investimento),
+    dividas: Number(p.dividas),
+    marcoEmoji: p.marco_emoji,
+    marcoTitulo: p.marco_titulo,
+    marcoData: p.marco_data,
+  }));
 
   // Score de saúde financeira (sempre baseado na Família).
   const score = await calcularScoreSaude(supabase);
@@ -114,6 +131,10 @@ export default async function Home() {
   const transacoesTyped = (transacoes ?? []) as unknown as Transacao[];
 
   const valorPatrimonio = patrimonio(contas ?? [], transacoesTyped, posicoes ?? [], cotacoesMap);
+  const posicaoVsPlano =
+    curvaPlano && Number(curvaPlano.valor_alvo) > 0
+      ? (valorPatrimonio / Number(curvaPlano.valor_alvo) - 1) * 100
+      : null;
   // Fundos + Cripto são a carteira do Arthur por decisão do Arlison (ver
   // finalidadeDaClasse) — ainda guardados na entidade Família, sem carteira
   // própria migrada, então entram aqui além do que já está em ENTIDADE_ARTHUR.
@@ -158,6 +179,9 @@ export default async function Home() {
   const despesasMes = doMes
     .filter((t) => t.categoria?.tipo === "despesa")
     .reduce((s, t) => s + Number(t.valor), 0);
+  const despesasPlanejadas = (orcamentoPlanejado ?? [])
+    .filter((i) => i.grupo_orcamento !== "investimento_20")
+    .reduce((s, i) => s + Number(i.valor), 0);
   const gastoPorGrupo: Record<string, number> = {};
   for (const t of doMes) {
     if (t.categoria?.tipo !== "despesa" || !t.categoria?.grupo_orcamento) continue;
@@ -227,23 +251,6 @@ export default async function Home() {
     .order("data", { ascending: false })
     .limit(5);
 
-  // ---------- Evolução consolidada (soma dos snapshots por competência) ----------
-  const evolucao = new Map<string, { aplicado: number; mercado: number }>();
-  for (const s of snapshots ?? []) {
-    const chave = String(s.competencia);
-    const atual = evolucao.get(chave) ?? { aplicado: 0, mercado: 0 };
-    atual.aplicado += Number(s.valor_aplicado);
-    atual.mercado += Number(s.valor_mercado);
-    evolucao.set(chave, atual);
-  }
-  const pontosEvolucao = [...evolucao.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([competencia, v]) => ({
-      competencia,
-      valorAplicado: v.aplicado,
-      ganho: v.mercado - v.aplicado,
-    }));
-
   const saldoMes = receitasMes - despesasMes;
 
   return (
@@ -253,6 +260,18 @@ export default async function Home() {
         <CardMetrica
           label="Patrimônio da Família"
           valor={moedaBRL(valorPatrimonio)}
+          apoio={
+            posicaoVsPlano != null ? (
+              <span className={posicaoVsPlano >= 0 ? "text-bank-positivo" : "text-bank-negativo"}>
+                {posicaoVsPlano >= 0 ? "+" : ""}
+                {posicaoVsPlano.toFixed(1).replace(".", ",")}% do plano de {hoje.getFullYear()}
+              </span>
+            ) : (
+              <Link href="/bank/plano" className="text-bank-primaria underline">
+                definir plano do ano
+              </Link>
+            )
+          }
           icone={<IconPigMoney size={18} stroke={1.7} />}
         />
         <CardMetrica
@@ -266,18 +285,26 @@ export default async function Home() {
           }
           icone={<IconChartPie size={18} stroke={1.7} />}
         />
-        <CardMetrica
-          label="Receitas do mês"
-          valor={moedaBRL(receitasMes)}
-          corValor="text-bank-positivo"
-          icone={<IconTrendingUp size={18} stroke={1.7} />}
-        />
+        <Link href="/bank/norte" className="block">
+          <CardMetrica
+            label="Receitas do mês"
+            valor={moedaBRL(receitasMes)}
+            corValor="text-bank-positivo"
+            apoio={<span className="text-bank-primaria underline">planejar renda</span>}
+            icone={<IconTrendingUp size={18} stroke={1.7} />}
+          />
+        </Link>
         <CardMetrica
           label="Despesas do mês"
           valor={moedaBRL(despesasMes)}
           corValor="text-bank-negativo"
           apoio={
             <>
+              {despesasPlanejadas > 0 && (
+                <>
+                  {moedaBRL(despesasMes)} de {moedaBRL(despesasPlanejadas)} planejado ·{" "}
+                </>
+              )}
               Saldo{" "}
               <span className={saldoMes >= 0 ? "text-bank-positivo" : "text-bank-negativo"}>
                 {moedaBRL(saldoMes)}
@@ -292,12 +319,12 @@ export default async function Home() {
       <div className="grid gap-4 lg:grid-cols-5">
         <section className="card-bank p-4 sm:p-5 lg:col-span-3">
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold">Evolução do patrimônio investido</h2>
-            <Link href="/bank/investimentos" className="text-xs text-bank-primaria underline">
-              detalhes
+            <h2 className="text-sm font-semibold">A jornada do patrimônio</h2>
+            <Link href="/bank/plano" className="text-xs text-bank-primaria underline">
+              plano completo
             </Link>
           </div>
-          <EvolucaoPatrimonio pontos={pontosEvolucao} />
+          <JornadaPatrimonio pontos={jornada} anoAtual={hoje.getFullYear()} />
         </section>
         <section className="card-bank p-4 sm:p-5 lg:col-span-2">
           <div className="mb-3 flex items-center justify-between">

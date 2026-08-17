@@ -1,19 +1,29 @@
 import { createClient } from "@/lib/supabase/server";
 import { ProgressBar } from "@/components/bank/ui/progress-bar";
-import { RendaFamilia } from "@/components/bank/norte/renda-familia";
+import { RendaFamilia, type RendaDoMes } from "@/components/bank/norte/renda-familia";
 import { DivisaoPresets } from "@/components/bank/norte/divisao-presets";
 import { CardsResponsavel } from "@/components/bank/norte/cards-responsavel";
 import { CartoesVisual } from "@/components/bank/norte/cartoes-visual";
 import { ProvedorPrivacidade, BotaoPrivacidade, ValorMoeda } from "@/components/bank/norte/privacidade";
+import { mesBR } from "@/lib/bank/formato";
 import type { ItemView } from "@/components/bank/norte/tabela-divisao";
 import {
   ENTIDADE_FAMILIA,
   NOME_GRUPO,
+  tipoRendaDaPessoa,
   type GrupoOrcamento,
   type Pessoa,
   type DivisaoConfig,
   type Cartao,
 } from "@/lib/bank/tipos";
+
+function addMeses(competencia: string, n: number) {
+  const [ano, mes] = competencia.slice(0, 7).split("-").map(Number);
+  const total = (ano * 12 + (mes - 1)) + n;
+  const anoNovo = Math.floor(total / 12);
+  const mesNovo = (total % 12) + 1;
+  return `${anoNovo}-${String(mesNovo).padStart(2, "0")}-01`;
+}
 
 export const metadata = { title: "Planejamento" };
 
@@ -36,8 +46,17 @@ type ItemRow = {
 // Aba "Norte" — o orçamento fixo/médio da família (quem ganha, quem paga o
 // quê, em qual cartão) como parâmetro do mês. Espelha a página "Orçamento
 // Mensal" do Notion, mas tudo editável aqui.
-export default async function PaginaNorte() {
+export default async function PaginaNorte({
+  searchParams,
+}: {
+  searchParams: Promise<{ mes?: string }>;
+}) {
+  const { mes } = await searchParams;
   const supabase = await createClient();
+
+  const hoje = new Date();
+  const competenciaAtual = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-01`;
+  const competencia = mes && /^\d{4}-\d{2}$/.test(mes) ? `${mes}-01` : competenciaAtual;
 
   const [
     { data: pessoasRaw },
@@ -45,6 +64,7 @@ export default async function PaginaNorte() {
     { data: categorias },
     { data: cartoesRaw },
     { data: configRaw },
+    { data: rendaMesRaw },
   ] = await Promise.all([
     supabase
       .from("pessoas")
@@ -76,6 +96,11 @@ export default async function PaginaNorte() {
       .select("*")
       .eq("entidade_id", ENTIDADE_FAMILIA)
       .maybeSingle(),
+    supabase
+      .from("renda_mensal")
+      .select("tipo, valor, confirmado")
+      .eq("entidade_id", ENTIDADE_FAMILIA)
+      .eq("competencia", competencia),
   ]);
 
   const pessoas = (pessoasRaw ?? []) as Pessoa[];
@@ -91,7 +116,21 @@ export default async function PaginaNorte() {
     extra_nome: null,
   };
 
-  const rendaTotal = pessoas.reduce((s, p) => s + Number(p.renda_base), 0);
+  const rendaMesPorTipo = new Map(
+    (rendaMesRaw ?? []).map((r) => [r.tipo, { valor: Number(r.valor), confirmado: r.confirmado ?? false }]),
+  );
+  const rendaPorPessoa = new Map<string, RendaDoMes>(
+    pessoas.map((p) => {
+      const lancado = rendaMesPorTipo.get(tipoRendaDaPessoa(p.nome));
+      return [
+        p.id,
+        lancado
+          ? { valor: lancado.valor, confirmado: lancado.confirmado, temLancamento: true }
+          : { valor: Number(p.renda_base), confirmado: false, temLancamento: false },
+      ];
+    }),
+  );
+  const rendaTotal = pessoas.reduce((s, p) => s + (rendaPorPessoa.get(p.id)?.valor ?? 0), 0);
 
   const planejadoPorGrupo: Record<string, number> = {};
   for (const i of itens) {
@@ -137,7 +176,14 @@ export default async function PaginaNorte() {
         <BotaoPrivacidade />
       </div>
 
-      <RendaFamilia pessoas={pessoas} />
+      <RendaFamilia
+        pessoas={pessoas}
+        competencia={competencia}
+        rendaPorPessoa={rendaPorPessoa}
+        rotuloMes={mesBR(competencia)}
+        mesAnteriorHref={`/bank/norte?mes=${addMeses(competencia, -1).slice(0, 7)}`}
+        mesProximoHref={`/bank/norte?mes=${addMeses(competencia, 1).slice(0, 7)}`}
+      />
 
       <DivisaoPresets entidadeId={ENTIDADE_FAMILIA} config={config} rendaTotal={rendaTotal} />
 

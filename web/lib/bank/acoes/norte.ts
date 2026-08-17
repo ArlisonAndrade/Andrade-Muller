@@ -20,6 +20,38 @@ export async function atualizarRendaPessoa(formData: FormData) {
   revalidar();
 }
 
+// ---- Renda mensal planejada (por pessoa, por mês) ----
+// Reusa a tabela renda_mensal (já existente pra Ponte pró-labore) como o
+// plano do mês: uma linha confirmado=true significa "já recebido de
+// verdade" (a Ponte grava assim) e fica travada pra edição; sem linha, ou
+// com confirmado=false, é plano e pode ser sobrescrito à vontade.
+export async function salvarRendaMes(formData: FormData) {
+  const supabase = await createClient();
+  const entidade_id = String(formData.get("entidade_id"));
+  const competencia = String(formData.get("competencia"));
+  const tipo = String(formData.get("tipo"));
+  const valor = Number(formData.get("valor") || 0);
+
+  const { data: existente } = await supabase
+    .from("renda_mensal")
+    .select("id, confirmado")
+    .eq("entidade_id", entidade_id)
+    .eq("competencia", competencia)
+    .eq("tipo", tipo)
+    .maybeSingle();
+
+  if (existente?.confirmado) {
+    throw new Error("Esse mês já foi recebido de verdade — não dá pra editar o plano.");
+  }
+
+  const { error } = await supabase.from("renda_mensal").upsert(
+    { entidade_id, competencia, tipo, valor, confirmado: false },
+    { onConflict: "entidade_id,competencia,tipo" },
+  );
+  if (error) throw new Error(`Falha ao salvar renda do mês: ${error.message}`);
+  revalidar();
+}
+
 // ---- Divisão 50/30/20 ----
 export async function selecionarDivisaoPreset(formData: FormData) {
   const supabase = await createClient();
