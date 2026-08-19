@@ -276,3 +276,15 @@ Quatro coisas quebraram na mudança para a VPS própria, nesta ordem de descober
 
 E o de sempre: o Telegram aceita **um webhook por bot**. Desativar no antigo
 antes de ativar no novo.
+
+## Workflows versionados aqui
+
+| Arquivo | Workflow no n8n | Gatilho |
+|---|---|---|
+| `telegram-consultor.json` | Andrade Muller — Consultor financeiro (Telegram) | Telegram Trigger (grupo) |
+| `telegram-resumos.json` | Andrade Muller — Consultor: resumos automáticos | 3 crons: 21h seg–sáb · dom 20h · dia 1 às 9h |
+
+Os dois JSON são reimportáveis (**Workflows → ⋮ → Import from File**), mas vêm
+**sem credencial**: depois de importar, religue o `Header Auth` no nó HTTP e a
+credencial do bot nos nós de Telegram. Foi justamente uma religação errada —
+Supabase no lugar do Header Auth — que causou o `401` de 19/ago/2026.
