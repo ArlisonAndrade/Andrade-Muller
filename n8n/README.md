@@ -11,12 +11,15 @@ Grupo Telegram ──► n8n ──► POST /api/bank/agente/mensagem
                                              app grava em transacoes)
 ```
 
-> **Onde isso roda hoje**: no n8n que já hospeda a Nina e a integração da Agenda
-> (`teste01-n8n.snm8u2.easypanel.host`), não numa instância nova. O workflow
-> **já está criado** lá — [Andrade Muller — Consultor financeiro
-> (Telegram)](https://teste01-n8n.snm8u2.easypanel.host/workflow/bu5mqygcax1Y3NVV).
-> O Passo 2 (subir o n8n) só interessa se um dia for preciso recriar do zero; o
-> Passo 5 virou "conferir credenciais e ativar".
+> **Onde isso roda hoje** (desde 19/ago/2026): VPS própria da Hostinger,
+> `https://n8n-dmu8.srv1913873.hstgr.cloud`. Migrado do n8n compartilhado que
+> hospedava a Nina e a Agenda (`teste01-n8n.snm8u2.easypanel.host`). O compose
+> que está rodando lá é o `docker-compose.vps.yml` deste diretório — o template
+> original da Hostinger trazia labels de Traefik sem Traefik instalado, então
+> nada atendia em 443 e o Telegram não conseguia entregar os webhooks; o Caddy
+> entrou no lugar. Passo a passo da migração em `MIGRACAO-VPS.md`.
+>
+> O Passo 2 (subir o n8n) só interessa se um dia for preciso recriar do zero.
 
 O n8n é só o canal. Toda a regra — quem pode falar, como categorizar, o que
 responder, o que impede lançamento duplicado — vive no `web/`, versionada junto
@@ -247,3 +250,29 @@ Cada `message_id` só é processado uma vez — para repetir o teste, mude o nú
 
 Logs úteis: `docker compose logs -f n8n` na VPS, e **Vercel → Deployments →
 Runtime Logs** para o lado do app (os erros saem com o prefixo `[agente/...]`).
+
+---
+
+## Migração de instância — o que quebra (aprendido em 19/ago/2026)
+
+Quatro coisas quebraram na mudança para a VPS própria, nesta ordem de descoberta:
+
+1. **Nada respondia em 443.** O template da Hostinger trazia labels `traefik.*`
+   mas o Traefik não estava instalado — o n8n rodava sozinho numa porta
+   aleatória. Telegram Trigger é webhook: sem porta aberta, nenhum workflow
+   funciona, por mais correto que esteja. Resolvido com o Caddy
+   (`docker-compose.vps.yml`).
+2. **Credenciais não migram** — a chave de criptografia fica no container
+   antigo. Recriar na mão.
+3. **Ao reatribuir credencial, é fácil pegar a errada da lista.** Foi o que
+   aconteceu: os nós HTTP ficaram com `predefinedCredentialType: supabaseApi`
+   em vez de `httpHeaderAuth`, e o app respondia `401 não autorizado` — erro
+   que parece de segredo errado, mas era de tipo de autenticação.
+4. **`Bearer` é do n8n, não da Vercel.** Na Vercel vai só o segredo; no campo
+   Value do Header Auth vai `Bearer ` + o segredo. A interface nova da Vercel
+   **não deixa reler** o valor de uma variável (o `sk_live_a12…` cinza é
+   placeholder, não conteúdo) — se perder, gere outro e **redeploy**, senão o
+   app continua rodando com o valor velho.
+
+E o de sempre: o Telegram aceita **um webhook por bot**. Desativar no antigo
+antes de ativar no novo.
