@@ -2,6 +2,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { moedaBRL } from "@/lib/bank/formato";
 import { entraNaSemana, identificarMembro, montarContexto } from "@/lib/bank/agente/contexto";
 import { interpretarMensagem } from "@/lib/bank/agente/interpretar";
+import {
+  EMOJI_FAIXA,
+  faixaDaSemana,
+  linhaMarco,
+  marcoCruzado,
+} from "@/lib/bank/agente/marcos";
 import { hojeSP, somarDias } from "@/lib/bank/agente/datas";
 import type {
   ContextoAgente,
@@ -357,6 +363,12 @@ function montarResposta(
   const linhas = confirmacoes.map((c) => `✅ ${c}`);
   linhas.push(linhaSemana(contexto, gastoSemana));
 
+  // contexto.semana.gasto é o total ANTES deste lançamento (o contexto é
+  // montado antes do insert) e gastoSemana é o depois: a diferença entre os
+  // dois é o que diz se esta mensagem cruzou uma linha.
+  const cruzou = marcoCruzado(contexto.semana.gasto, gastoSemana, contexto.semana.meta);
+  if (cruzou) linhas.push(...linhaMarco(cruzou, contexto.semana.inicio));
+
   if (chutes.length > 0) {
     linhas.push(
       temBotoes
@@ -376,11 +388,12 @@ function linhaSemana(contexto: ContextoAgente, gasto: number): string {
   }
 
   const percentual = Math.round((gasto / meta) * 100);
+  const emoji = EMOJI_FAIXA[faixaDaSemana(gasto, meta)];
   if (gasto > meta) {
-    return `Semana: ${moedaBRL(gasto)} de ${moedaBRL(meta)} (${percentual}%) — ${moedaBRL(gasto - meta)} acima da meta.`;
+    return `${emoji} Semana: ${moedaBRL(gasto)} de ${moedaBRL(meta)} (${percentual}%) — ${moedaBRL(gasto - meta)} acima da meta.`;
   }
   const dias = diasRestantes === 1 ? "último dia da semana" : `faltam ${diasRestantes} dias`;
-  return `Semana: ${moedaBRL(gasto)} de ${moedaBRL(meta)} (${percentual}%) — ${dias}.`;
+  return `${emoji} Semana: ${moedaBRL(gasto)} de ${moedaBRL(meta)} (${percentual}%) — ${dias}.`;
 }
 
 // ---------- Utilitários ----------

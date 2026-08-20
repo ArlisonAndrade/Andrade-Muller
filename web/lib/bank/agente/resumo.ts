@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { montarContextoCompleto } from "@/lib/bank/agente/contexto";
 import { hojeSP } from "@/lib/bank/agente/datas";
 import { DOUTRINA_ARKAD } from "@/lib/bank/agente/arkad";
+import { linhaVitoria } from "@/lib/bank/agente/marcos";
 
 // Camada proativa: o consultor fala sem ninguém perguntar. É o que separa um
 // bot de lançamento de um consultor de verdade — mas é também o jeito mais
@@ -112,9 +113,23 @@ export async function gerarResumo(
   if (!bloco || bloco.type !== "text") return { enviar: false, texto: "", chatId };
 
   const saida = JSON.parse(bloco.text) as { enviar: boolean; texto: string };
-  const texto = saida.texto.trim();
+  let texto = saida.texto.trim();
 
-  return { enviar: saida.enviar && texto.length > 0 && chatId != null, texto, chatId };
+  // Vitória é fato, não opinião do modelo: se a semana fechou dentro da meta,
+  // a linha vai — inclusive quando o modelo decidiu que não tinha o que dizer.
+  // Fechar dentro é justamente o dia em que calar seria o erro.
+  const { meta, gasto, inicio } = contexto.semana;
+  const venceu = tipo === "semanal" && meta != null && meta > 0 && gasto <= meta;
+  if (venceu) {
+    const vitoria = linhaVitoria(inicio);
+    texto = texto ? `${vitoria}\n\n${texto}` : vitoria;
+  }
+
+  return {
+    enviar: (saida.enviar || venceu) && texto.length > 0 && chatId != null,
+    texto,
+    chatId,
+  };
 }
 
 /**
