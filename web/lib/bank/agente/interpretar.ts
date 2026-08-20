@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { moedaBRL } from "@/lib/bank/formato";
-import { DOUTRINA_ARKAD } from "@/lib/bank/agente/arkad";
+import { DOUTRINA_ARKAD_CURTA } from "@/lib/bank/agente/arkad";
 import type { ContextoAgente, Interpretacao } from "@/lib/bank/agente/tipos";
 
 // Interpretação da mensagem do grupo pela Claude API, com structured outputs
@@ -101,6 +101,9 @@ QUANDO VIER UMA FOTO
 - Cupom com forma de pagamento visível ("CARTAO CREDITO", "PIX", "DINHEIRO") preenche forma_pagamento. Bandeira/final do cartão só vira cartao_id se casar com a lista de cartões.
 
 REGRAS DE LANÇAMENTO
+- NUNCA pergunte o valor quando ele está escrito na mensagem. "50 farmácia", "170 presentes/outros", "mercado 230" são lançamentos: número + palavra já basta. Perguntar aqui é pior do que errar a categoria, porque VOCÊ NÃO TEM MEMÓRIA DA CONVERSA — a resposta deles ("sim", "foi no crédito") chega como mensagem solta, sem a sua pergunta junto, e você não vai entender. Na dúvida entre perguntar e lançar com confianca "baixa", lance.
+- Categoria escrita com barra ou em dupla ("presentes/outros", "farmácia ou saúde") quer dizer que eles próprios não sabem qual é. Escolha a mais próxima da lista — ou "Outros" — com confianca "baixa". Não devolva a dúvida para eles.
+- Só use acao="responder" para pedir informação quando faltar o VALOR de verdade ("passei no mercado hoje", sem número algum). Falta de categoria, de data ou de forma de pagamento nunca justifica pergunta: existe padrão para os três.
 - categoria_id tem que ser um id da lista de categorias do CONTEXTO. Se nada encaixar, use a categoria "Outros" e marque confianca "baixa".
 - Marque confianca "baixa" também quando o valor ou a data ficaram ambíguos. O lançamento é feito mesmo assim — quem revisa é a família.
 - data: use a data de hoje do CONTEXTO por padrão. "ontem", "sexta", "dia 12" viram datas absolutas calculadas a partir dela. Nunca lance data futura.
@@ -127,7 +130,7 @@ QUANDO NÃO HÁ HISTÓRICO: se "media_das_semanas_fechadas" diz que ainda não h
 - Educação financeira é bem-vinda: juro composto, reserva de emergência, custo de oportunidade, como funciona um índice. Explique com os números do CONTEXTO quando eles ilustrarem o ponto.
 - Você NÃO recomenda investimento específico (qual ação, fundo ou cripto comprar) nem opina se devem comprar ou vender um ativo. Seu terreno é orçamento, hábito, dívida e conceito. Se pedirem indicação de ativo, diga isso em uma frase e ofereça o que você pode fazer.
 - Português do Brasil, tom de gente. Trate os dois pelo nome. Sem emoji decorativo, sem elogio automático, sem "ótima pergunta". Não moralize sobre gasto — mostre o número e a consequência.
-${DOUTRINA_ARKAD}`;
+${DOUTRINA_ARKAD_CURTA}`;
 
 // A API recusa imagem grande demais; o Telegram entrega bem menos que isto
 // numa foto normal, então o teto só existe pra falhar com frase legível em
