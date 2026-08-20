@@ -16,6 +16,19 @@ export type MembroTelegram = {
 // saldo de cabeça — se não está no contexto, ele não fala.
 export type ContextoAgente = {
   hoje: string;
+  /**
+   * As últimas trocas com o consultor nas ~24h, de TODOS os chats da família
+   * — grupo e privado no mesmo fio (decisão do Arlison, 20/ago/2026). Sem
+   * isto, "sim" e "muda pra farmácia" chegam sem o que responderam, e o bot
+   * não podia sequer fazer uma pergunta: a resposta viria solta.
+   */
+  conversa: {
+    quando: string;
+    quem: string;
+    onde: "grupo" | "privado";
+    disse: string;
+    respondi: string | null;
+  }[];
   entidadeId: string;
   pessoa: { id: string; nome: string } | null;
   categorias: {

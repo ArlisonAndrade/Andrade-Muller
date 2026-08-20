@@ -111,6 +111,10 @@ REGRAS DE LANÇAMENTO
 - Sem menção de forma de pagamento, deixe forma_pagamento e cartao_id nulos — não invente.
 
 REGRAS DE CONVERSA
+- Você tem "conversa_recente" no CONTEXTO: as últimas trocas das ~24h, em ordem, do grupo E do privado juntos. É a mesma memória nos dois lugares — no privado você sabe o que foi dito no grupo, e vice-versa.
+- Use isso para resolver o que a mensagem sozinha não diz: "sim" confirma o que você acabou de perguntar; "esse gasto", "o do mercado", "ela" e "muda pra farmácia" se referem ao que está ali. Sem candidato claro na conversa, trate a mensagem como nova em vez de adivinhar.
+- Se eles corrigirem algo que você já lançou ("era 60, não 50", "isso foi no crédito"), NÃO lance de novo: use acao="responder" e diga o que precisa ser ajustado na mão. Você não edita nem apaga lançamento — só o botão desfazer faz isso.
+- "conversa_recente" é memória de conversa, não fonte de número. Saldo, total e média continuam saindo só dos campos financeiros do CONTEXTO.
 - A meta da semana cobre só o gasto que se decide na semana — mercado, food, jantar, farmácia, presente, combustível. Conta fixa, fatura, parcela de compra antiga e aporte NÃO entram (são as categorias com entra_na_meta_da_semana=false). Se lançarem uma dessas, confirme normalmente e não trate como "estourou a meta": esse dinheiro já estava decidido.
 - Todo número que você citar tem que estar no CONTEXTO. Você não tem acesso a mais nada: nunca estime, projete de cabeça ou invente saldo, total ou percentual. Se a informação não está lá, diga que não tem esse dado ainda.
 - Com acao="lancar", a "resposta" é UMA frase curta. O app já escreve sozinho o valor confirmado e o status da semana — não repita nenhum dos dois. Se não tiver nada útil a dizer, devolva string vazia. Silêncio é melhor que enrolação diária.
@@ -162,6 +166,12 @@ export async function interpretarMensagem(
   const resumoContexto = {
     hoje: contexto.hoje,
     quem_falou: autor,
+    conversa_recente: contexto.conversa.map((m) => ({
+      quem: m.quem,
+      onde: m.onde,
+      disse: m.disse,
+      voce_respondeu: m.respondi,
+    })),
     categorias: contexto.categorias.map((c) => ({
       id: c.id,
       nome: c.nome,

@@ -138,8 +138,17 @@ export async function montarContexto(
 
   const entidadeId = membro.entidade_id || ENTIDADE_FAMILIA;
 
-  const [panorama, { data: categorias }, { data: cartoes }, { data: transacoes }] =
-    await Promise.all([
+  // 24h: o suficiente para resolver "sim" e "esse gasto", curto o bastante
+  // para não arrastar conversa velha nem inflar a entrada de toda mensagem.
+  const desdeConversa = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+  const [
+    panorama,
+    { data: categorias },
+    { data: cartoes },
+    { data: transacoes },
+    { data: conversa },
+  ] = await Promise.all([
       // A leitura semanal (por categoria, por dia, média das anteriores) é a
       // mesma que a tela /bank/semanas mostra — o consultor e o site nunca
       // divergem sobre a mesma semana.
@@ -162,6 +171,16 @@ export async function montarContexto(
         .eq("entidade_id", entidadeId)
         .gte("data", desde)
         .order("data", { ascending: false }),
+      // Memória compartilhada: filtra por entidade, NÃO por chat — é o que
+      // faz o privado enxergar o que rolou no grupo.
+      supabase
+        .from("agente_mensagens")
+        .select("created_at, telegram_chat_id, texto_recebido, resposta_enviada, pessoa:pessoas(nome)")
+        .eq("entidade_id", entidadeId)
+        .not("texto_recebido", "is", null)
+        .gte("created_at", desdeConversa)
+        .order("created_at", { ascending: false })
+        .limit(12),
     ]);
 
   const lista = (transacoes ?? []) as unknown as TransacaoLeve[];
@@ -218,6 +237,21 @@ export async function montarContexto(
       gasto: doMes.reduce((soma, t) => soma + Number(t.valor), 0),
       porGrupo,
     },
+    // Ordem cronológica: o modelo lê a conversa de cima para baixo.
+    conversa: (conversa ?? [])
+      .slice()
+      .reverse()
+      .map((m) => {
+        const p = m.pessoa as { nome: string } | { nome: string }[] | null;
+        const nome = Array.isArray(p) ? p[0]?.nome : p?.nome;
+        return {
+          quando: new Date(m.created_at as string).toISOString(),
+          quem: nome ?? "alguém da família",
+          onde: Number(m.telegram_chat_id) < 0 ? ("grupo" as const) : ("privado" as const),
+          disse: recortar(m.texto_recebido as string),
+          respondi: m.resposta_enviada ? recortar(m.resposta_enviada as string) : null,
+        };
+      }),
     ultimos: lista.slice(0, 5).map((t) => ({
       descricao: t.descricao,
       valor: Number(t.valor),
@@ -225,4 +259,10 @@ export async function montarContexto(
       categoria: t.categoria?.nome ?? null,
     })),
   };
+}
+
+/** Corta mensagem longa: o histórico não pode dominar a entrada. */
+function recortar(texto: string, teto = 220): string {
+  const limpo = texto.replace(/\s+/g, " ").trim();
+  return limpo.length <= teto ? limpo : limpo.slice(0, teto) + "…";
 }
