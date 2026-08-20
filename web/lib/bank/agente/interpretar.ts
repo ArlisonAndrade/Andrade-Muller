@@ -207,18 +207,18 @@ export async function interpretarMensagem(
   };
 
   const response = await anthropic.beta.messages.create({
-    model: "claude-opus-5",
+    // Haiku 4.5 (decisão do Arlison, 20/ago/2026): extração + uma frase de
+    // consultoria é tarefa curta, e esta chamada roda a CADA mensagem do
+    // grupo — era o grosso da conta da Anthropic. Os resumos continuam na
+    // Opus 5 (resumo.ts): são poucos por dia e é onde o raciocínio aparece.
+    // Haiku não aceita `output_config.effort` nem o fallback por recusa
+    // (`stop_reason: "refusal"` não existe fora da família Opus 4.7+), então
+    // os dois saíram junto com a troca.
+    model: "claude-haiku-4-5",
     max_tokens: 16000,
-    // Extração + uma frase de consultoria: tarefa curta, não precisa de
-    // raciocínio profundo, e no Telegram a latência é o que se percebe.
     output_config: {
-      effort: "low",
       format: { type: "json_schema", schema: SCHEMA_INTERPRETACAO },
     },
-    // Se um classificador de segurança recusar uma mensagem qualquer do
-    // grupo, a API refaz na Opus 4.8 em vez de o bot ficar mudo.
-    betas: ["server-side-fallback-2026-06-01"],
-    fallbacks: [{ model: "claude-opus-4-8" }],
     system: SISTEMA,
     messages: [
       {
