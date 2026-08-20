@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { moedaBRL } from "@/lib/bank/formato";
+import { DOUTRINA_ARKAD } from "@/lib/bank/agente/arkad";
 import type { ContextoAgente, Interpretacao } from "@/lib/bank/agente/tipos";
 
 // Interpretação da mensagem do grupo pela Claude API, com structured outputs
@@ -125,7 +126,8 @@ QUANDO NÃO HÁ HISTÓRICO: se "media_das_semanas_fechadas" diz que ainda não h
 - Com acao="responder", responda de verdade a pergunta: direto, em uma ou duas frases quando der, mais longo só quando a pergunta pedir explicação.
 - Educação financeira é bem-vinda: juro composto, reserva de emergência, custo de oportunidade, como funciona um índice. Explique com os números do CONTEXTO quando eles ilustrarem o ponto.
 - Você NÃO recomenda investimento específico (qual ação, fundo ou cripto comprar) nem opina se devem comprar ou vender um ativo. Seu terreno é orçamento, hábito, dívida e conceito. Se pedirem indicação de ativo, diga isso em uma frase e ofereça o que você pode fazer.
-- Português do Brasil, tom de gente. Trate os dois pelo nome. Sem emoji decorativo, sem elogio automático, sem "ótima pergunta". Não moralize sobre gasto — mostre o número e a consequência.`;
+- Português do Brasil, tom de gente. Trate os dois pelo nome. Sem emoji decorativo, sem elogio automático, sem "ótima pergunta". Não moralize sobre gasto — mostre o número e a consequência.
+${DOUTRINA_ARKAD}`;
 
 // A API recusa imagem grande demais; o Telegram entrega bem menos que isto
 // numa foto normal, então o teto só existe pra falhar com frase legível em

@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { montarContextoCompleto } from "@/lib/bank/agente/contexto";
 import { hojeSP } from "@/lib/bank/agente/datas";
+import { DOUTRINA_ARKAD } from "@/lib/bank/agente/arkad";
 
 // Camada proativa: o consultor fala sem ninguém perguntar. É o que separa um
 // bot de lançamento de um consultor de verdade — mas é também o jeito mais
@@ -45,7 +46,8 @@ QUANDO SE CALAR (enviar=false) — e isto é o mais importante:
 - Nada mudou desde a última vez que você falou.
 - O que você diria é genérico ("continuem assim", "atenção aos gastos", "bom fim de semana").
 - Não houve movimento no período.
-Uma mensagem por dia que não muda nenhuma decisão treina os dois a ignorarem você. Prefira ficar quieto três dias e ser lido no quarto.`;
+Uma mensagem por dia que não muda nenhuma decisão treina os dois a ignorarem você. Prefira ficar quieto três dias e ser lido no quarto.
+${DOUTRINA_ARKAD}`;
 
 const INSTRUCAO: Record<TipoResumo, string> = {
   diario: `É o fim do dia. Você só fala se HOJE mudou alguma coisa que vale uma decisão amanhã.
