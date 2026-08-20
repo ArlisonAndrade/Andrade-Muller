@@ -67,7 +67,15 @@ export async function processarMensagem(
 
   let interpretacao: Interpretacao;
   try {
-    interpretacao = await interpretarMensagem(contexto, msg.texto, autor, msg.imagem ?? null);
+    // chatId positivo = conversa 1:1; negativo = grupo. É o que decide se o
+    // bot pode ficar em silêncio.
+    interpretacao = await interpretarMensagem(
+      contexto,
+      msg.texto,
+      autor,
+      msg.imagem ?? null,
+      msg.chatId > 0,
+    );
   } catch (erro) {
     await registrarMensagem(supabase, membro, msg, "erro", null, [], null);
     return {

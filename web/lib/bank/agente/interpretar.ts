@@ -137,6 +137,13 @@ export async function interpretarMensagem(
   texto: string,
   autor: string,
   imagem: { base64: string; mime: string } | null = null,
+  /**
+   * Conversa 1:1 com o bot (chat_id positivo no Telegram). A regra "prefira
+   * ignorar a interromper" existe por causa do grupo, onde o casal conversa
+   * entre si e o bot não deve se meter. No privado não há terceiro: toda
+   * mensagem é dirigida a ele, e calar vira bot quebrado.
+   */
+  privado: boolean = false,
 ): Promise<Interpretacao> {
   if (!process.env.ANTHROPIC_API_KEY) {
     throw new Error("ANTHROPIC_API_KEY não configurada — o agente do Telegram precisa dela.");
@@ -242,6 +249,9 @@ export async function interpretarMensagem(
             type: "text" as const,
             text:
               `CONTEXTO (única fonte de números):\n${JSON.stringify(resumoContexto, null, 2)}\n\n` +
+              (privado
+                ? `CONVERSA PRIVADA: ${autor} está falando com você a sós, não no grupo. Aqui não existe "conversa entre eles" — toda mensagem é dirigida a você. Nunca use acao="ignorar" nesta conversa; se a mensagem for só um cumprimento ou papo, responda como um consultor responderia, curto e cordial.\n\n`
+                : "") +
               (imagem
                 ? `${autor.toUpperCase()} MANDOU A FOTO ACIMA${texto ? ` com a legenda:\n${texto}` : " sem legenda."}`
                 : `MENSAGEM DE ${autor.toUpperCase()}:\n${texto}`),
