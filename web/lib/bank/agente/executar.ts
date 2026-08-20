@@ -7,6 +7,7 @@ import {
   faixaDaSemana,
   linhaMarco,
   marcoCruzado,
+  passagemDoMomento,
 } from "@/lib/bank/agente/marcos";
 import { hojeSP, somarDias } from "@/lib/bank/agente/datas";
 import type {
@@ -123,6 +124,24 @@ export async function processarMensagem(
   }
 
   const gastoSemana = await recalcularGastoSemana(supabase, contexto);
+
+  // contexto.semana.gasto é o total ANTES deste lançamento (o contexto é
+  // montado antes do insert) e gastoSemana é o depois: a diferença entre os
+  // dois é o que diz se esta mensagem cruzou uma linha.
+  const cruzou = marcoCruzado(contexto.semana.gasto, gastoSemana, contexto.semana.meta);
+  const linhasMarco = cruzou
+    ? linhaMarco(
+        cruzou,
+        await passagemDoMomento(cruzou, {
+          gasto: gastoSemana,
+          meta: contexto.semana.meta as number,
+          diasRestantes: contexto.semana.diasRestantes,
+          semanaInicio: contexto.semana.inicio,
+          categoriaLider: maiorCategoria(contexto),
+        }),
+      )
+    : [];
+
   const texto = montarResposta(
     confirmacoes,
     chutes,
@@ -130,6 +149,7 @@ export async function processarMensagem(
     gastoSemana,
     interpretacao.resposta.trim(),
     incertos.length > 0,
+    linhasMarco,
   );
   const registro = await registrarMensagem(
     supabase,
@@ -359,15 +379,11 @@ function montarResposta(
   gastoSemana: number,
   comentario: string,
   temBotoes: boolean,
+  linhasMarco: string[] = [],
 ): string {
   const linhas = confirmacoes.map((c) => `✅ ${c}`);
   linhas.push(linhaSemana(contexto, gastoSemana));
-
-  // contexto.semana.gasto é o total ANTES deste lançamento (o contexto é
-  // montado antes do insert) e gastoSemana é o depois: a diferença entre os
-  // dois é o que diz se esta mensagem cruzou uma linha.
-  const cruzou = marcoCruzado(contexto.semana.gasto, gastoSemana, contexto.semana.meta);
-  if (cruzou) linhas.push(...linhaMarco(cruzou, contexto.semana.inicio));
+  linhas.push(...linhasMarco);
 
   if (chutes.length > 0) {
     linhas.push(
@@ -441,4 +457,12 @@ function rotuloForma(forma: string): string {
     outro: "outro",
   };
   return rotulos[forma] ?? forma;
+}
+
+/** A categoria que mais pesou na semana — o gancho concreto da analogia. */
+function maiorCategoria(contexto: ContextoAgente): { nome: string; gasto: number } | null {
+  const ordenadas = contexto.semana.porCategoria
+    .filter((c) => c.gasto > 0)
+    .sort((a, b) => b.gasto - a.gasto);
+  return ordenadas[0] ? { nome: ordenadas[0].nome, gasto: ordenadas[0].gasto } : null;
 }

@@ -56,7 +56,7 @@ Bons motivos para falar: uma categoria passou a fatia planejada da semana; o rit
 No máximo 3 linhas. Uma observação, um número, e — quando couber — a decisão concreta dos próximos dias ("se sexta for em casa, fecha em X").`,
 
   semanal: `A semana fechou (domingo). Faça o fechamento: quanto foi, contra a meta, contra o normal das semanas anteriores, e a categoria que explica a diferença.
-Se fechou dentro da meta, diga isso com o número e cite a sequência (streak) se houver — é o placar do jogo.
+Se fechou dentro da meta, diga isso com o número e cite a sequência (streak) se houver — é o placar do jogo. Comemore de verdade, e ligue a vitória a um princípio da Babilônia com uma analogia que caiba NESTA semana (o app já põe o troféu na primeira linha; não repita "parabéns" nem o emoji).
 Se estourou, aponte a categoria que puxou e o quanto, sem sermão.
 Termine com uma coisa concreta para a semana que começa.
 No máximo 6 linhas.`,
