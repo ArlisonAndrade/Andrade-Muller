@@ -59,6 +59,12 @@ export type ContextoAgente = {
     }[];
     porDia: { diaSemana: string; total: number }[];
     porPessoa: { nome: string; total: number }[];
+    /**
+     * A folga acumulada das semanas fechadas. Estouro sai daqui antes de ser
+     * chamado de estouro — é o contrapeso que faz a semana deixar de ser um
+     * veredito de 7 dias.
+     */
+    cofre: { saldo: number; teto: number; semanas: number };
   };
   /** A régua do "mais que o normal". Vazio enquanto não houver semana fechada. */
   historico: {

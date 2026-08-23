@@ -222,6 +222,11 @@ export async function montarContexto(
         .map((c) => ({ nome: c.nome, gasto: c.gasto, alvo: c.alvo, media: c.media })),
       porDia: panorama.atual.porDia.map((d) => ({ diaSemana: d.diaSemana, total: d.total })),
       porPessoa: panorama.atual.porPessoa,
+      cofre: {
+        saldo: panorama.cofre.saldo,
+        teto: panorama.cofre.teto,
+        semanas: panorama.cofre.semanas,
+      },
     },
     historico: {
       mediaSemanal: panorama.mediaHistorica,

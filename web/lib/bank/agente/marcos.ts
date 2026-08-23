@@ -124,6 +124,8 @@ export type DadosDoMomento = {
   semanaInicio: string;
   /** A categoria que mais pesou na semana — o gancho concreto da analogia. */
   categoriaLider: { nome: string; gasto: number } | null;
+  /** Saldo do cofre ANTES de absorver o excesso desta semana. */
+  cofreSaldo: number;
 };
 
 const ROTULO: Record<Exclude<FaixaMeta, "tranquila">, string> = {
@@ -153,7 +155,9 @@ export async function passagemDoMomento(
       ? "Eles acabaram de cruzar 75% da meta da semana."
       : faixa === "perigo"
         ? "Eles acabaram de cruzar 90% da meta da semana."
-        : "Eles acabaram de estourar a meta da semana.";
+        : dados.cofreSaldo > 0
+        ? "Eles acabaram de passar da meta da semana, e a folga guardada nas semanas anteriores está cobrindo o excesso."
+        : "Eles acabaram de estourar a meta da semana, e não há folga guardada para cobrir.";
 
   try {
     const anthropic = new Anthropic();
@@ -168,6 +172,7 @@ export async function passagemDoMomento(
         "TAREFA: escreva UMA frase — no máximo duas, curtas — ligando um princípio da Babilônia ao momento exato que os números mostram.",
         "- Escolha o princípio que cabe NESTE caso. Não recite o que estiver mais à mão.",
         "- Analogia é bem-vinda: a semana como a bolsa de Arkad, a categoria que pesou como a mão frequente demais na abertura, a dívida como os credores de Dabasir. Seja concreto com a vida deles, não poético no vazio.",
+        "- Eles têm um COFRE: a folga das semanas fechadas vira saldo, e o estouro sai dali antes de virar estouro. Quando o cofre cobre, não fale em fracasso — fale no que aquilo custou da reserva que eles levaram semanas construindo. É a bolsa de Arkad esvaziando, não a semana perdida.",
         "- Pode nomear o princípio ('a segunda cura', 'a quarta lei') e usar os personagens (Bansir, Kobbi, Algamish, Dabasir, Nomasir).",
         "- NÃO repita os números: o app já mostrou o total, a meta e o percentual na linha de cima. Você pode citar a categoria pelo nome.",
         "- Nunca invente citação literal do livro. Trabalhe com os princípios que estão acima.",
@@ -200,10 +205,17 @@ export async function passagemDoMomento(
   }
 }
 
-/** As linhas do marco, prontas para o Telegram. */
-export function linhaMarco(faixa: FaixaMeta, passagem: string): string[] {
+/**
+ * As linhas do marco, prontas para o Telegram. Passar da meta deixou de ser
+ * veredito: com cofre, é saque; sem cofre, é estouro de verdade.
+ */
+export function linhaMarco(faixa: FaixaMeta, passagem: string, cofreCobre = false): string[] {
   if (faixa === "tranquila") return [];
-  return [ROTULO[faixa], `📖 ${passagem}`];
+  const rotulo =
+    faixa === "estourada" && cofreCobre
+      ? "💸 Passou da meta — o cofre cobriu, a semana não está perdida."
+      : ROTULO[faixa];
+  return [rotulo, `📖 ${passagem}`];
 }
 
 /** A linha de vitória, para quando a semana fecha dentro da meta. */

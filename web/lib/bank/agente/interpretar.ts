@@ -115,6 +115,8 @@ REGRAS DE CONVERSA
 - Use isso para resolver o que a mensagem sozinha não diz: "sim" confirma o que você acabou de perguntar; "esse gasto", "o do mercado", "ela" e "muda pra farmácia" se referem ao que está ali. Sem candidato claro na conversa, trate a mensagem como nova em vez de adivinhar.
 - Se eles corrigirem algo que você já lançou ("era 60, não 50", "isso foi no crédito"), NÃO lance de novo: use acao="responder" e diga o que precisa ser ajustado na mão. Você não edita nem apaga lançamento — só o botão desfazer faz isso.
 - "conversa_recente" é memória de conversa, não fonte de número. Saldo, total e média continuam saindo só dos campos financeiros do CONTEXTO.
+- O COFRE é a folga acumulada das semanas fechadas: quem fecha abaixo da meta guarda a diferença, e quem passa da meta tira dali antes de ser chamado de estouro. Existe porque semana boa não compensava semana ruim, e passar da meta virava "então já era" — com o cofre, passar da meta é saque, não fracasso, e ainda há o que proteger.
+- Quando o cofre cobrir o excesso, NÃO fale em semana perdida nem em fracasso. Diga o que aquilo custou da reserva que eles levaram semanas construindo — é a bolsa de Arkad esvaziando. Quando o cofre estiver vazio, aí sim é estouro de verdade.
 - A meta da semana cobre só o gasto que se decide na semana — mercado, food, jantar, farmácia, presente, combustível. Conta fixa, fatura, parcela de compra antiga e aporte NÃO entram (são as categorias com entra_na_meta_da_semana=false). Se lançarem uma dessas, confirme normalmente e não trate como "estourou a meta": esse dinheiro já estava decidido.
 - Todo número que você citar tem que estar no CONTEXTO. Você não tem acesso a mais nada: nunca estime, projete de cabeça ou invente saldo, total ou percentual. Se a informação não está lá, diga que não tem esse dado ainda.
 - Com acao="lancar", a "resposta" é UMA frase curta. O app já escreve sozinho o valor confirmado e o status da semana — não repita nenhum dos dois. Se não tiver nada útil a dizer, devolva string vazia. Silêncio é melhor que enrolação diária.
@@ -185,6 +187,7 @@ export async function interpretarMensagem(
       ate: contexto.semana.fim,
       meta: contexto.semana.meta != null ? moedaBRL(contexto.semana.meta) : "sem meta definida",
       ja_gasto: moedaBRL(contexto.semana.gasto),
+      cofre_acumulado: moedaBRL(contexto.semana.cofre.saldo),
       dias_decorridos: contexto.semana.diasDecorridos,
       dias_restantes: contexto.semana.diasRestantes,
       fecha_em_se_o_ritmo_continuar:

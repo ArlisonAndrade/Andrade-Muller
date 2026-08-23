@@ -138,7 +138,9 @@ export async function processarMensagem(
           diasRestantes: contexto.semana.diasRestantes,
           semanaInicio: contexto.semana.inicio,
           categoriaLider: maiorCategoria(contexto),
+          cofreSaldo: contexto.semana.cofre.saldo,
         }),
+        contexto.semana.cofre.saldo >= gastoSemana - (contexto.semana.meta ?? 0),
       )
     : [];
 
@@ -404,12 +406,29 @@ function linhaSemana(contexto: ContextoAgente, gasto: number): string {
   }
 
   const percentual = Math.round((gasto / meta) * 100);
-  const emoji = EMOJI_FAIXA[faixaDaSemana(gasto, meta)];
+  const { saldo } = contexto.semana.cofre;
+
   if (gasto > meta) {
-    return `${emoji} Semana: ${moedaBRL(gasto)} de ${moedaBRL(meta)} (${percentual}%) — ${moedaBRL(gasto - meta)} acima da meta.`;
+    const excesso = gasto - meta;
+    // O cofre absorve E o custo é dito: o alívio sem o preço vira licença
+    // para gastar, que é o oposto do que ele existe para fazer.
+    if (saldo >= excesso) {
+      return (
+        `🟠 Semana: ${moedaBRL(gasto)} de ${moedaBRL(meta)} (${percentual}%) — ` +
+        `${moedaBRL(excesso)} acima, cobertos pelo cofre. Sobram ${moedaBRL(saldo - excesso)}.`
+      );
+    }
+    const restante = saldo > 0 ? ` O cofre cobriu ${moedaBRL(saldo)} e zerou.` : " O cofre está vazio.";
+    return (
+      `🔴 Semana: ${moedaBRL(gasto)} de ${moedaBRL(meta)} (${percentual}%) — ` +
+      `${moedaBRL(excesso)} acima da meta.${restante}`
+    );
   }
+
+  const emoji = EMOJI_FAIXA[faixaDaSemana(gasto, meta)];
   const dias = diasRestantes === 1 ? "último dia da semana" : `faltam ${diasRestantes} dias`;
-  return `${emoji} Semana: ${moedaBRL(gasto)} de ${moedaBRL(meta)} (${percentual}%) — ${dias}.`;
+  const cofre = saldo > 0 ? ` · cofre ${moedaBRL(saldo)}` : "";
+  return `${emoji} Semana: ${moedaBRL(gasto)} de ${moedaBRL(meta)} (${percentual}%) — ${dias}${cofre}.`;
 }
 
 // ---------- Utilitários ----------

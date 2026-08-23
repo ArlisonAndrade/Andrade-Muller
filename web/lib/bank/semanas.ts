@@ -19,6 +19,13 @@ export const SEMANAS_DE_HISTORICO = 20;
 // de referência que ele já usa.
 const SEMANA_ANCORA = { inicio: "2026-07-27", numero: 16 };
 
+/**
+ * Onde o cofre começa a contar. É a semana 01 do sistema — o mesmo corte que
+ * o resto do Bank usa. Antes disso é a era da planilha, com semanas agregadas
+ * numa linha só: creditar folga daquilo seria inventar saldo.
+ */
+export const COFRE_INICIO = "2026-07-27";
+
 export function numeroDaSemana(inicio: string): number {
   const dias =
     (new Date(`${inicio}T12:00:00Z`).getTime() -
@@ -63,9 +70,34 @@ export type SemanaResumo = {
   porPessoa: { nome: string; total: number }[];
 };
 
+/**
+ * O contrapeso da meta (decisão do Arlison, 23/ago/2026). A folga de uma
+ * semana fechada vira saldo; o estouro da seguinte sai daí antes de ser
+ * chamado de estouro.
+ *
+ * Existe porque a régua rígida punia variância, não comportamento: o gasto
+ * semanal da família varia 30% em torno da média, então cruzar a linha era
+ * frequente mesmo sem nada ter mudado — e cada cruzada trazia o "então já
+ * era", que é o que faz alguém desistir do controle inteiro.
+ *
+ * Não tem tabela: é derivado das semanas fechadas, sempre. Saldo guardado
+ * viraria uma segunda verdade sobre o mesmo dinheiro, e teria que ser
+ * reconciliado toda vez que um lançamento antigo mudasse.
+ */
+export type Cofre = {
+  saldo: number;
+  /** Teto de acúmulo: 2 semanas de meta. Sem ele, o cofre vira licença. */
+  teto: number;
+  /** Piso: uma semana de meta. Dívida sem fundo desanima igual à meta rígida. */
+  piso: number;
+  /** Quantas semanas fechadas entraram na conta. */
+  semanas: number;
+};
+
 export type PanoramaSemanal = {
   atual: SemanaResumo;
   anteriores: SemanaResumo[];
+  cofre: Cofre;
   /** Média semanal das semanas fechadas — a régua do "mais que o normal". */
   mediaHistorica: number | null;
   /** Semanas fechadas seguidas dentro da meta, da mais recente pra trás. */
@@ -101,7 +133,14 @@ export async function montarPanoramaSemanal(
   opcoes: { hoje?: string; semanas?: number } = {},
 ): Promise<PanoramaSemanal> {
   const hoje = opcoes.hoje ?? hojeSP();
-  const quantas = opcoes.semanas ?? SEMANAS_DE_HISTORICO;
+  // A janela precisa alcançar o início do cofre, senão o saldo nasceria
+  // truncado conforme as semanas passam.
+  const semanasDesdeCofre =
+    Math.floor(
+      (Date.parse(`${segundaDaSemana(hoje)}T00:00:00Z`) - Date.parse(`${COFRE_INICIO}T00:00:00Z`)) /
+        (7 * 86_400_000),
+    ) + 1;
+  const quantas = opcoes.semanas ?? Math.max(SEMANAS_DE_HISTORICO, semanasDesdeCofre);
   const inicioAtual = segundaDaSemana(hoje);
   const inicioJanela = somarDias(inicioAtual, -7 * quantas);
   const fimAtual = somarDias(inicioAtual, 6);
@@ -171,12 +210,30 @@ export async function montarPanoramaSemanal(
       ? anteriores.reduce((s, r) => s + r.gasto, 0) / anteriores.length
       : null;
 
+  // Cofre e streak saem da mesma passada: uma semana "conta" quando fechou
+  // dentro OU quando o saldo acumulado cobriu o excesso. É o que impede uma
+  // semana ruim de apagar três boas — o motivo de o streak existir.
+  const doCofre = anteriores.filter((s) => s.inicio >= COFRE_INICIO && s.meta != null);
+  let saldo = 0;
+  let teto = 0;
+  let piso = 0;
+  const cobriu: boolean[] = [];
+  for (const s of doCofre) {
+    const meta = s.meta as number;
+    teto = meta * 2;
+    piso = -meta;
+    const delta = meta - s.gasto;
+    cobriu.push(saldo + delta >= 0);
+    saldo = Math.max(piso, Math.min(teto, saldo + delta));
+  }
+
   let streak = 0;
-  for (let i = anteriores.length - 1; i >= 0; i--) {
-    const s = anteriores[i];
-    if (s.meta != null && s.gasto <= s.meta) streak++;
+  for (let i = cobriu.length - 1; i >= 0; i--) {
+    if (cobriu[i]) streak++;
     else break;
   }
+
+  const cofre: Cofre = { saldo, teto, piso, semanas: doCofre.length };
 
   // Média por categoria vira o "normal" de cada uma na semana corrente.
   for (const cat of atual.porCategoria) {
@@ -186,7 +243,7 @@ export async function montarPanoramaSemanal(
     cat.media = historico.length > 0 ? historico.reduce((a, b) => a + b, 0) / historico.length : null;
   }
 
-  return { atual, anteriores, mediaHistorica, streak };
+  return { atual, anteriores, cofre, mediaHistorica, streak };
 }
 
 function resumirSemana(
