@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { EstadoSemConfiguracao } from "@/components/bank/home/estado-sem-configuracao";
-import { CardMetrica } from "@/components/bank/ui/card-metrica";
 import { PonteProLabore } from "@/components/bank/home/ponte-pro-labore";
 import { Orcamento503020 } from "@/components/bank/home/orcamento-503020";
 import { CarteiraArthur } from "@/components/bank/home/carteira-arthur";
@@ -14,16 +13,9 @@ import { calcularScoreSaude } from "@/lib/bank/score";
 import { JornadaPatrimonio } from "@/components/bank/home/jornada-patrimonio";
 import { montarJornada } from "@/lib/bank/jornada";
 import { patrimonio, valorInvestido } from "@/lib/bank/calculos";
-import { agregarPorClasse, type Cotacao, type PosicaoDetalhada } from "@/lib/bank/calculos-investimentos";
 import { classeDe, finalidadeDaClasse } from "@/lib/bank/classes-ativos";
 import { gerarRecorrenciasPendentes } from "@/lib/bank/acoes/recorrencias";
 import { garantirSnapshotDoMes } from "@/lib/bank/acoes/investimentos";
-import {
-  IconPigMoney,
-  IconChartPie,
-  IconTrendingUp,
-  IconTrendingDown,
-} from "@/components/bank/ui/icones";
 import { moedaBRL } from "@/lib/bank/formato";
 import {
   ENTIDADE_FAMILIA,
@@ -56,7 +48,6 @@ export default async function Home() {
   const supabase = await createClient();
 
   const [
-    { data: contas },
     { data: transacoes },
     { data: cartoesFamilia },
     { data: posicoes },
@@ -66,12 +57,8 @@ export default async function Home() {
     { data: posicoesArthur },
     { data: metas },
     { data: dividas },
-    { data: metasAlocacao },
     { data: recorrencias },
-    { data: curvaPlano },
-    { data: orcamentoPlanejado },
   ] = await Promise.all([
-    supabase.from("contas").select("id, entidade_id, saldo_inicial").in("entidade_id", entidadesDaVisao),
     supabase
       .from("transacoes")
       .select("id, entidade_id, descricao, valor, data, transacao_vinculada_id, categoria:categorias(nome, tipo, grupo_orcamento)")
@@ -89,23 +76,11 @@ export default async function Home() {
       .select("id, descricao, valor_total, valor_pago, parcelas_total, parcelas_pagas, data_vencimento_proxima")
       .eq("quitada", false)
       .in("entidade_id", entidadesDaVisao),
-    supabase.from("metas_alocacao").select("classe, percentual_alvo").eq("entidade_id", ENTIDADE_FAMILIA),
     supabase
       .from("recorrencias")
       .select("descricao, valor, dia_do_mes, categoria:categorias(nome)")
       .eq("entidade_id", ENTIDADE_FAMILIA)
       .eq("ativa", true),
-    supabase
-      .from("plano_patrimonio")
-      .select("ano, valor_alvo")
-      .eq("entidade_id", ENTIDADE_FAMILIA)
-      .eq("ano", hoje.getFullYear())
-      .maybeSingle(),
-    supabase
-      .from("orcamento_planejado")
-      .select("valor, grupo_orcamento")
-      .eq("entidade_id", ENTIDADE_FAMILIA)
-      .eq("ativo", true),
   ]);
 
   // Score de saúde financeira (sempre baseado na Família).
@@ -116,11 +91,6 @@ export default async function Home() {
   );
   const transacoesTyped = (transacoes ?? []) as unknown as Transacao[];
 
-  const valorPatrimonio = patrimonio(contas ?? [], transacoesTyped, posicoes ?? [], cotacoesMap);
-  const posicaoVsPlano =
-    curvaPlano && Number(curvaPlano.valor_alvo) > 0
-      ? (valorPatrimonio / Number(curvaPlano.valor_alvo) - 1) * 100
-      : null;
   // Fundos + Cripto são a carteira do Arthur por decisão do Arlison (ver
   // finalidadeDaClasse) — ainda guardados na entidade Família, sem carteira
   // própria migrada, então entram aqui além do que já está em ENTIDADE_ARTHUR.
@@ -139,39 +109,13 @@ export default async function Home() {
   // o futuro é recalculado com o cronograma das parcelas e o aporte do plano.
   const jornada = await montarJornada(supabase, investidoFamilia);
 
-  // Alocação por classe (pro donut) + variação do dia ponderada.
-  const mapaCotacoesDetalhe = new Map<string, Cotacao>(
-    (cotacoesRaw ?? []).map((c) => [
-      c.ativo_id,
-      { preco_atual: c.preco_atual, variacao_dia_pct: c.variacao_dia_pct },
-    ]),
-  );
-  const classes = agregarPorClasse(
-    (posicoes ?? []) as PosicaoDetalhada[],
-    mapaCotacoesDetalhe,
-    new Map((metasAlocacao ?? []).map((m) => [m.classe, Number(m.percentual_alvo)])),
-  );
-  const classesComVariacao = classes.filter((c) => c.variacaoDiaPct != null && c.valorMercado > 0);
-  const pesoVariacao = classesComVariacao.reduce((s, c) => s + c.valorMercado, 0);
-  const variacaoDia =
-    pesoVariacao > 0
-      ? classesComVariacao.reduce((s, c) => s + (c.variacaoDiaPct as number) * c.valorMercado, 0) /
-        pesoVariacao
-      : undefined;
-
-  // ---------- Mês corrente (receitas, despesas, orçamento 50/30/20) ----------
+  // ---------- Mês corrente (orçamento 50/30/20) ----------
   const doMes = transacoesTyped.filter(
     (t) => t.data >= inicioMes && t.entidade_id === ENTIDADE_FAMILIA,
   );
   const receitasMes = doMes
     .filter((t) => t.categoria?.tipo === "receita")
     .reduce((s, t) => s + Number(t.valor), 0);
-  const despesasMes = doMes
-    .filter((t) => t.categoria?.tipo === "despesa")
-    .reduce((s, t) => s + Number(t.valor), 0);
-  const despesasPlanejadas = (orcamentoPlanejado ?? [])
-    .filter((i) => i.grupo_orcamento !== "investimento_20")
-    .reduce((s, i) => s + Number(i.valor), 0);
   const gastoPorGrupo: Record<string, number> = {};
   for (const t of doMes) {
     if (t.categoria?.tipo !== "despesa" || !t.categoria?.grupo_orcamento) continue;
@@ -241,70 +185,8 @@ export default async function Home() {
     .order("data", { ascending: false })
     .limit(5);
 
-  const saldoMes = receitasMes - despesasMes;
-
   return (
     <div className="flex flex-col gap-6">
-      {/* Métricas do topo */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <CardMetrica
-          label="Patrimônio da Família"
-          valor={moedaBRL(valorPatrimonio)}
-          apoio={
-            posicaoVsPlano != null ? (
-              <span className={posicaoVsPlano >= 0 ? "text-bank-positivo" : "text-bank-negativo"}>
-                {posicaoVsPlano >= 0 ? "+" : ""}
-                {posicaoVsPlano.toFixed(1).replace(".", ",")}% do plano de {hoje.getFullYear()}
-              </span>
-            ) : (
-              <Link href="/bank/plano" className="text-bank-primaria underline">
-                definir plano do ano
-              </Link>
-            )
-          }
-          icone={<IconPigMoney size={18} stroke={1.7} />}
-        />
-        <CardMetrica
-          label="Investimentos"
-          valor={moedaBRL(investidoFamilia)}
-          variacaoPct={variacaoDia}
-          apoio={
-            <Link href="/bank/investimentos" className="text-bank-primaria underline">
-              ver carteira
-            </Link>
-          }
-          icone={<IconChartPie size={18} stroke={1.7} />}
-        />
-        <Link href="/bank/norte" className="block">
-          <CardMetrica
-            label="Receitas do mês"
-            valor={moedaBRL(receitasMes)}
-            corValor="text-bank-positivo"
-            apoio={<span className="text-bank-primaria underline">planejar renda</span>}
-            icone={<IconTrendingUp size={18} stroke={1.7} />}
-          />
-        </Link>
-        <CardMetrica
-          label="Despesas do mês"
-          valor={moedaBRL(despesasMes)}
-          corValor="text-bank-negativo"
-          apoio={
-            <>
-              {despesasPlanejadas > 0 && (
-                <>
-                  {moedaBRL(despesasMes)} de {moedaBRL(despesasPlanejadas)} planejado ·{" "}
-                </>
-              )}
-              Saldo{" "}
-              <span className={saldoMes >= 0 ? "text-bank-positivo" : "text-bank-negativo"}>
-                {moedaBRL(saldoMes)}
-              </span>
-            </>
-          }
-          icone={<IconTrendingDown size={18} stroke={1.7} />}
-        />
-      </div>
-
       {/* A jornada, em largura total */}
       <section className="card-bank p-4 sm:p-5">
         <div className="mb-3 flex items-center justify-between">

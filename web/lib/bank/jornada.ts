@@ -71,9 +71,11 @@ export async function montarJornada(
   const saldoDevedorHoje = [...amortizacaoPorAno.values()].reduce((s, v) => s + v, 0);
   const ultimoAnoDeDivida = Math.max(anoAtual, ...(amortizacaoPorAno.size ? [...amortizacaoPorAno.keys()] : [anoAtual]));
 
-  // A carteira parte do valor real de hoje. O ano corrente conta só os meses
-  // que ainda faltam — projetar 12 meses num ano já quase vivido inflaria o
-  // "você está aqui".
+  // O ponto do ano corrente é o retrato de HOJE, não o fechamento de dezembro:
+  // é nele que a pílula diz "você está aqui", e é ele que a faixa de números do
+  // card mostra — tem que bater com o card de métrica da home, que lê a mesma
+  // carteira. A projeção só começa no ano seguinte, e para isso ainda precisa
+  // saber onde a carteira fecha este ano (os meses que faltam).
   const mesesRestantesNoAno = 12 - new Date().getMonth();
   const aporteMensal = param("plano6m_aporte_mensal", 1000);
   const rentabilidade = param("plano6m_rentabilidade_aa", 10);
@@ -115,8 +117,8 @@ export async function montarJornada(
     return Math.max(0, Math.round(saldoRestante * 100) / 100);
   };
 
-  const investimentoAtual = Math.round(investimentoFimDoAno * 100) / 100;
-  const dividaAtual = dividaNoFimDe(anoAtual);
+  const investimentoAtual = Math.round(investidoHoje * 100) / 100;
+  const dividaAtual = Math.round(saldoDevedorHoje * 100) / 100;
   pontos.push({
     ano: anoAtual,
     investimento: investimentoAtual,
@@ -126,6 +128,10 @@ export async function montarJornada(
     marcoEmoji: null,
     marcoTitulo: null,
   });
+
+  // As parcelas que ainda vencem neste ano saem do saldo antes do primeiro ano
+  // projetado — o ponto de hoje já passou, mas o dinheiro dele não.
+  saldoRestante -= amortizacaoPorAno.get(anoAtual) ?? 0;
 
   for (const p of projecao) {
     const divida = dividaNoFimDe(p.ano);

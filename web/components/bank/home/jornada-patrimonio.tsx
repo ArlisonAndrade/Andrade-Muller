@@ -296,7 +296,7 @@ export function JornadaPatrimonio({ jornada }: { jornada: Jornada }) {
                   fill="transparent"
                 >
                   <title>
-                    {`${p.ano}${p.projetado ? " (projeção)" : ""}\nInvestido: ${moedaBRL(
+                    {`${p.ano}${p.projetado ? " (projeção)" : ehHoje ? " (hoje)" : ""}\nInvestido: ${moedaBRL(
                       p.investimento,
                     )}\nDívida: ${moedaBRL(p.divida)}\nLíquido: ${moedaBRL(p.liquido)}`}
                   </title>
