@@ -12,10 +12,10 @@ import { ProximasContas, type ContaProxima } from "@/components/bank/home/proxim
 import { ScoreSaude } from "@/components/bank/home/score-saude";
 import { calcularScoreSaude } from "@/lib/bank/score";
 import { JornadaPatrimonio } from "@/components/bank/home/jornada-patrimonio";
-import { DonutAlocacao } from "@/components/bank/investimentos/donut-alocacao";
+import { montarJornada } from "@/lib/bank/jornada";
 import { patrimonio, valorInvestido } from "@/lib/bank/calculos";
 import { agregarPorClasse, type Cotacao, type PosicaoDetalhada } from "@/lib/bank/calculos-investimentos";
-import { CLASSES_ATIVOS, classeDe, finalidadeDaClasse } from "@/lib/bank/classes-ativos";
+import { classeDe, finalidadeDaClasse } from "@/lib/bank/classes-ativos";
 import { gerarRecorrenciasPendentes } from "@/lib/bank/acoes/recorrencias";
 import { garantirSnapshotDoMes } from "@/lib/bank/acoes/investimentos";
 import {
@@ -108,20 +108,6 @@ export default async function Home() {
       .eq("ativo", true),
   ]);
 
-  const { data: jornadaRaw } = await supabase
-    .from("jornada_patrimonio")
-    .select("ano, investimento, dividas, marco_emoji, marco_titulo, marco_data")
-    .eq("entidade_id", ENTIDADE_FAMILIA)
-    .order("ano");
-  const jornada = (jornadaRaw ?? []).map((p) => ({
-    ano: p.ano,
-    investimento: Number(p.investimento),
-    dividas: Number(p.dividas),
-    marcoEmoji: p.marco_emoji,
-    marcoTitulo: p.marco_titulo,
-    marcoData: p.marco_data,
-  }));
-
   // Score de saúde financeira (sempre baseado na Família).
   const score = await calcularScoreSaude(supabase);
 
@@ -148,6 +134,10 @@ export default async function Home() {
     cotacoesMap,
   );
   const investidoFamilia = valorInvestido(posicoes ?? [], cotacoesMap);
+
+  // A jornada parte do investido real de hoje: o passado vem da tabela curada,
+  // o futuro é recalculado com o cronograma das parcelas e o aporte do plano.
+  const jornada = await montarJornada(supabase, investidoFamilia);
 
   // Alocação por classe (pro donut) + variação do dia ponderada.
   const mapaCotacoesDetalhe = new Map<string, Cotacao>(
@@ -315,43 +305,16 @@ export default async function Home() {
         />
       </div>
 
-      {/* Evolução + alocação */}
-      <div className="grid gap-4 lg:grid-cols-5">
-        <section className="card-bank p-4 sm:p-5 lg:col-span-3">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold">A jornada do patrimônio</h2>
-            <Link href="/bank/plano" className="text-xs text-bank-primaria underline">
-              plano completo
-            </Link>
-          </div>
-          <JornadaPatrimonio pontos={jornada} anoAtual={hoje.getFullYear()} />
-        </section>
-        <section className="card-bank p-4 sm:p-5 lg:col-span-2">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold">Alocação</h2>
-            <Link href="/bank/investimentos" className="text-xs text-bank-primaria underline">
-              metas
-            </Link>
-          </div>
-          {classes.length === 0 ? (
-            <p className="py-8 text-center text-sm text-text-faint">
-              Sem posições ainda —{" "}
-              <Link href="/bank/investimentos/novo" className="text-bank-primaria underline">
-                registrar a primeira compra
-              </Link>
-              .
-            </p>
-          ) : (
-            <DonutAlocacao
-              fatias={classes.map((c) => ({
-                rotulo: CLASSES_ATIVOS[c.classe].rotuloCurto,
-                valor: c.valorMercado,
-                cor: CLASSES_ATIVOS[c.classe].cor,
-              }))}
-            />
-          )}
-        </section>
-      </div>
+      {/* A jornada, em largura total */}
+      <section className="card-bank p-4 sm:p-5">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold">A jornada do patrimônio</h2>
+          <Link href="/bank/plano" className="text-xs text-bank-primaria underline">
+            plano completo
+          </Link>
+        </div>
+        <JornadaPatrimonio jornada={jornada} />
+      </section>
 
       {/* Grade de módulos */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
