@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ROTULO_GRUPO, type GrupoOrcamento } from "@/lib/bank/tipos";
 import {
   criarOrcamentoItem,
@@ -182,6 +183,7 @@ export function LinhaItem({
   categorias: Opcao[];
   cartoes: Opcao[];
 }) {
+  const router = useRouter();
   const [editando, setEditando] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const metodoLabel = item.cartao_id ? item.cartaoNome : item.metodo;
@@ -192,6 +194,8 @@ export function LinhaItem({
     setSalvando(true);
     try {
       await editarOrcamentoItem(formData);
+      // Ver a nota em renda-familia.tsx: sem refresh a lista fica velha.
+      router.refresh();
       setEditando(false);
     } finally {
       setSalvando(false);
@@ -270,6 +274,7 @@ export function FormAdicionarItem({
   cartoes: Opcao[];
   defaultsIniciais?: Partial<ItemView>;
 }) {
+  const router = useRouter();
   const [adicionando, setAdicionando] = useState(false);
   const [salvando, setSalvando] = useState(false);
 
@@ -277,6 +282,8 @@ export function FormAdicionarItem({
     setSalvando(true);
     try {
       await criarOrcamentoItem(formData);
+      // Ver a nota em renda-familia.tsx: sem refresh a lista fica velha.
+      router.refresh();
       setAdicionando(false);
     } finally {
       setSalvando(false);

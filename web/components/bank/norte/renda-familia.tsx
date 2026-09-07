@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { salvarRendaMes } from "@/lib/bank/acoes/norte";
 import { IconUser } from "@/components/bank/ui/icones";
@@ -22,6 +23,7 @@ function CardPessoa({
   competencia: string;
   renda: RendaDoMes;
 }) {
+  const router = useRouter();
   const [editando, setEditando] = useState(false);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
@@ -31,6 +33,12 @@ function CardPessoa({
     setErro(null);
     try {
       await salvarRendaMes(formData);
+      // O `action=` aqui é uma função cliente, não a server action direta —
+      // então o React não atualiza o router sozinho e o revalidatePath do
+      // servidor só marca a página como suja. Sem este refresh o valor era
+      // gravado no banco e a tela continuava mostrando o número velho, que
+      // pro usuário é indistinguível de "não salvou".
+      router.refresh();
       setEditando(false);
     } catch (e) {
       setErro(e instanceof Error ? e.message : "Falha ao salvar.");
