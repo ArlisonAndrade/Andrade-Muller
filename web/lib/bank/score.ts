@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { ENTIDADE_FAMILIA } from "@/lib/bank/tipos";
 import { classeDe, finalidadeDaClasse } from "@/lib/bank/classes-ativos";
 import { valorInvestido } from "@/lib/bank/calculos";
+import { montarRendaDoMes, competenciaDe } from "@/lib/bank/renda";
 
 // Score de saúde financeira 0–100: 4 pilares × 25 pts.
 // orçamento (aderência 50/30/20 do mês) + dívida (em dia, progresso,
@@ -83,14 +84,16 @@ export async function calcularScoreSaude(
   const doMes = lista.filter((t) => t.data >= inicioMes);
 
   // ---------- Pilar 1: orçamento 50/30/20 ----------
-  const receitasMes = doMes
-    .filter((t) => t.categoria?.tipo === "receita")
-    .reduce((s, t) => s + Number(t.valor), 0);
+  // A régua é a renda que o Arlison edita em Planejamento, não a soma das
+  // receitas lançadas: o salário muda todo mês e é ele quem ajusta o número.
+  // Medir contra lançamento fazia o score despencar todo dia 1º, antes de o
+  // salário cair, e ignorava a edição dele — ver lib/bank/renda.ts.
+  const receitasMes = (await montarRendaDoMes(supabase, competenciaDe(hoje))).total;
   let pontosOrcamento: number;
   let dicaOrcamento: string;
   if (receitasMes <= 0) {
     pontosOrcamento = 12;
-    dicaOrcamento = "Lance as receitas do mês pra medir a aderência ao 50/30/20.";
+    dicaOrcamento = "Defina a renda do mês em Planejamento pra medir a aderência ao 50/30/20.";
   } else {
     const frações: number[] = [];
     let piorGrupo = "";

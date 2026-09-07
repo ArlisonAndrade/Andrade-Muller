@@ -7,12 +7,7 @@ import { salvarRendaMes } from "@/lib/bank/acoes/norte";
 import { IconUser } from "@/components/bank/ui/icones";
 import { ValorMoeda } from "@/components/bank/norte/privacidade";
 import { tipoRendaDaPessoa, type Pessoa } from "@/lib/bank/tipos";
-
-export type RendaDoMes = {
-  valor: number;
-  confirmado: boolean;
-  temLancamento: boolean; // false = valor é só o fallback (renda_base), ainda não salvo pro mês
-};
+import type { RendaDoMes } from "@/lib/bank/renda";
 
 function CardPessoa({
   pessoa,

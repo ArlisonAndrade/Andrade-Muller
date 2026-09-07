@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { ProgressBar } from "@/components/bank/ui/progress-bar";
-import { RendaFamilia, type RendaDoMes } from "@/components/bank/norte/renda-familia";
+import { RendaFamilia } from "@/components/bank/norte/renda-familia";
+import { montarRendaDoMes } from "@/lib/bank/renda";
 import { DivisaoPresets } from "@/components/bank/norte/divisao-presets";
 import { CardsResponsavel } from "@/components/bank/norte/cards-responsavel";
 import { CartoesVisual } from "@/components/bank/norte/cartoes-visual";
@@ -10,9 +11,7 @@ import type { ItemView } from "@/components/bank/norte/tabela-divisao";
 import {
   ENTIDADE_FAMILIA,
   NOME_GRUPO,
-  tipoRendaDaPessoa,
   type GrupoOrcamento,
-  type Pessoa,
   type DivisaoConfig,
   type Cartao,
 } from "@/lib/bank/tipos";
@@ -59,19 +58,11 @@ export default async function PaginaNorte({
   const competencia = mes && /^\d{4}-\d{2}$/.test(mes) ? `${mes}-01` : competenciaAtual;
 
   const [
-    { data: pessoasRaw },
     { data: itensRaw },
     { data: categorias },
     { data: cartoesRaw },
     { data: configRaw },
-    { data: rendaMesRaw },
   ] = await Promise.all([
-    supabase
-      .from("pessoas")
-      .select("id, entidade_id, nome, cor, renda_base, ordem, ativo")
-      .eq("entidade_id", ENTIDADE_FAMILIA)
-      .eq("ativo", true)
-      .order("ordem"),
     supabase
       .from("orcamento_planejado")
       .select(
@@ -96,14 +87,11 @@ export default async function PaginaNorte({
       .select("*")
       .eq("entidade_id", ENTIDADE_FAMILIA)
       .maybeSingle(),
-    supabase
-      .from("renda_mensal")
-      .select("tipo, valor, confirmado")
-      .eq("entidade_id", ENTIDADE_FAMILIA)
-      .eq("competencia", competencia),
   ]);
 
-  const pessoas = (pessoasRaw ?? []) as Pessoa[];
+  // Mesma leitura que a home e o score usam — ver lib/bank/renda.ts.
+  const renda = await montarRendaDoMes(supabase, competencia);
+  const pessoas = renda.pessoas;
   const itens = (itensRaw ?? []) as unknown as ItemRow[];
   const cartoes = (cartoesRaw ?? []) as Cartao[];
   const config: DivisaoConfig = configRaw ?? {
@@ -116,21 +104,8 @@ export default async function PaginaNorte({
     extra_nome: null,
   };
 
-  const rendaMesPorTipo = new Map(
-    (rendaMesRaw ?? []).map((r) => [r.tipo, { valor: Number(r.valor), confirmado: r.confirmado ?? false }]),
-  );
-  const rendaPorPessoa = new Map<string, RendaDoMes>(
-    pessoas.map((p) => {
-      const lancado = rendaMesPorTipo.get(tipoRendaDaPessoa(p.nome));
-      return [
-        p.id,
-        lancado
-          ? { valor: lancado.valor, confirmado: lancado.confirmado, temLancamento: true }
-          : { valor: Number(p.renda_base), confirmado: false, temLancamento: false },
-      ];
-    }),
-  );
-  const rendaTotal = pessoas.reduce((s, p) => s + (rendaPorPessoa.get(p.id)?.valor ?? 0), 0);
+  const rendaPorPessoa = renda.porPessoa;
+  const rendaTotal = renda.total;
 
   const planejadoPorGrupo: Record<string, number> = {};
   for (const i of itens) {

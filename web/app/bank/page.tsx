@@ -12,6 +12,7 @@ import { ScoreSaude } from "@/components/bank/home/score-saude";
 import { calcularScoreSaude } from "@/lib/bank/score";
 import { JornadaPatrimonio } from "@/components/bank/home/jornada-patrimonio";
 import { montarJornada } from "@/lib/bank/jornada";
+import { montarRendaDoMes, competenciaDe } from "@/lib/bank/renda";
 import { patrimonio, valorInvestido } from "@/lib/bank/calculos";
 import { classeDe, finalidadeDaClasse } from "@/lib/bank/classes-ativos";
 import { gerarRecorrenciasPendentes } from "@/lib/bank/acoes/recorrencias";
@@ -113,9 +114,9 @@ export default async function Home() {
   const doMes = transacoesTyped.filter(
     (t) => t.data >= inicioMes && t.entidade_id === ENTIDADE_FAMILIA,
   );
-  const receitasMes = doMes
-    .filter((t) => t.categoria?.tipo === "receita")
-    .reduce((s, t) => s + Number(t.valor), 0);
+  // Renda planejada do mês (editável em Planejamento) — mesma leitura do score
+  // e da tela de Planejamento, pra não existirem duas verdades sobre o salário.
+  const rendaDoMes = (await montarRendaDoMes(supabase, competenciaDe(hoje))).total;
   const gastoPorGrupo: Record<string, number> = {};
   for (const t of doMes) {
     if (t.categoria?.tipo !== "despesa" || !t.categoria?.grupo_orcamento) continue;
@@ -201,7 +202,7 @@ export default async function Home() {
       {/* Grade de módulos */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <ScoreSaude score={score} />
-        <Orcamento503020 totalReceita={receitasMes} gastoPorGrupo={gastoPorGrupo} />
+        <Orcamento503020 totalReceita={rendaDoMes} gastoPorGrupo={gastoPorGrupo} />
         <ProximasContas contas={proximas} />
         <CarteiraArthur
           patrimonio={patrimonioArthur}
