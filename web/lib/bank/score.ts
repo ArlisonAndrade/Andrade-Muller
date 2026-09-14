@@ -3,6 +3,7 @@ import { ENTIDADE_FAMILIA } from "@/lib/bank/tipos";
 import { classeDe, finalidadeDaClasse } from "@/lib/bank/classes-ativos";
 import { valorInvestido } from "@/lib/bank/calculos";
 import { montarRendaDoMes, competenciaDe } from "@/lib/bank/renda";
+import { aporteDoMesPlanejado } from "@/lib/bank/plano";
 
 // Score de saúde financeira 0–100: 4 pilares × 25 pts.
 // orçamento (aderência 50/30/20 do mês) + dívida (em dia, progresso,
@@ -44,8 +45,7 @@ export async function calcularScoreSaude(
     { data: transacoes3M },
     { data: dividas },
     { data: parcelas },
-    { data: comprasMes },
-    { data: plano },
+    { data: fotosAplicado },
     { data: contas },
     { data: posicoes },
     { data: cotacoesRaw },
@@ -59,18 +59,16 @@ export async function calcularScoreSaude(
     supabase
       .from("parcelas_divida")
       .select("divida_id, paga, adiantada, data_vencimento"),
+    // Aporte = quanto o aplicado cresceu desde a foto do mês anterior. As
+    // posições são espelho do Investidor10 (lib/bank/investidor10.ts), então
+    // não existe mais "compra com data" pra somar.
     supabase
-      .from("movimentacoes_ativos")
-      .select("quantidade, preco_unitario, tipo")
+      .from("snapshots_patrimonio")
+      .select("competencia, valor_aplicado")
       .eq("entidade_id", ENTIDADE_FAMILIA)
-      .eq("tipo", "compra")
-      .gte("data", inicioMes),
-    supabase
-      .from("plano_patrimonio")
-      .select("aporte_planejado")
-      .eq("entidade_id", ENTIDADE_FAMILIA)
-      .eq("ano", hoje.getFullYear())
-      .maybeSingle(),
+      .lte("competencia", inicioMes)
+      .order("competencia", { ascending: false })
+      .limit(2),
     supabase.from("contas").select("saldo_inicial").eq("entidade_id", ENTIDADE_FAMILIA),
     supabase
       .from("posicao_ativos")
@@ -147,23 +145,25 @@ export async function calcularScoreSaude(
   }
 
   // ---------- Pilar 3: aporte ----------
-  const aporteMes = (comprasMes ?? []).reduce(
-    (s, m) => s + Number(m.quantidade) * Number(m.preco_unitario),
-    0,
+  const [fotoDoMes, fotoAnterior] = (fotosAplicado ?? []).filter(
+    (f) => String(f.competencia).slice(0, 10) <= inicioMes,
   );
-  const aporteAnual = Number(plano?.aporte_planejado ?? 0);
-  const alvoMensal = aporteAnual > 0 ? aporteAnual / 12 : null;
+  const aporteMes =
+    fotoDoMes && fotoAnterior && String(fotoDoMes.competencia).slice(0, 10) === inicioMes
+      ? Math.max(0, Number(fotoDoMes.valor_aplicado) - Number(fotoAnterior.valor_aplicado))
+      : 0;
+  const alvoMensal = await aporteDoMesPlanejado(supabase, hoje);
   let pontosAporte: number;
   let dicaAporte: string;
-  if (alvoMensal == null) {
+  if (alvoMensal <= 0) {
     pontosAporte = aporteMes > 0 ? 20 : 10;
-    dicaAporte = "Defina o aporte do ano na página Plano pra calibrar este pilar.";
+    dicaAporte = "Defina o aporte na página Plano pra calibrar este pilar.";
   } else {
     pontosAporte = Math.round(Math.min(1, aporteMes / alvoMensal) * 25);
     dicaAporte =
       pontosAporte >= 25
         ? "Aporte do mês batido — o plano dos R$ 6M agradece."
-        : `Faltam R$ ${(alvoMensal - aporteMes).toFixed(0)} de aporte pra bater o alvo do mês (${
+        : `Faltam R$ ${(alvoMensal - aporteMes).toFixed(0)} de aporte pra bater o plano do mês (${
             aporteMes > 0 ? `R$ ${aporteMes.toFixed(0)} já investidos` : "nenhum aporte ainda"
           }).`;
   }

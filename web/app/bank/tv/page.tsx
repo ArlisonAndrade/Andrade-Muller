@@ -18,7 +18,7 @@ import {
 } from "@/lib/bank/calculos-investimentos";
 import { ROTULO_FINALIDADE, COR_FINALIDADE } from "@/lib/bank/classes-ativos";
 import { obterPatrimonioArthur, obterMetaArthur } from "@/lib/bank/arthur";
-import { projetarPatrimonio, anoDoMarco } from "@/lib/bank/projecao";
+import { carregarPlano, rotuloMes, rotuloValor } from "@/lib/bank/plano";
 import { faseAtual, statusDaFase, ROTULO_STATUS_FASE, EMOJI_STATUS_FASE } from "@/lib/bank/plano-arthur";
 import { BigStat } from "@/components/bank/tv/big-stat";
 import { TvSlideshow, type SlideTv } from "@/components/bank/tv/tv-slideshow";
@@ -59,8 +59,6 @@ export default async function PaginaTv() {
     { data: itensOrcamento },
     { data: configRaw },
     { data: dividas },
-    { data: curvaPlano },
-    { data: parametrosPlano },
   ] = await Promise.all([
     supabase.from("contas").select("id, saldo_inicial").eq("entidade_id", ENTIDADE_FAMILIA),
     // Histórico completo — o cálculo de patrimônio (saldo + fluxo de caixa)
@@ -91,12 +89,6 @@ export default async function PaginaTv() {
       .eq("ativo", true),
     supabase.from("divisao_orcamento_config").select("*").eq("entidade_id", ENTIDADE_FAMILIA).maybeSingle(),
     supabase.from("dividas").select("valor_total, valor_pago, quitada").eq("quitada", false),
-    supabase
-      .from("plano_patrimonio")
-      .select("ano, valor_alvo")
-      .eq("entidade_id", ENTIDADE_FAMILIA)
-      .order("ano"),
-    supabase.from("parametros_plano").select("chave, valor").eq("entidade_id", ENTIDADE_FAMILIA),
   ]);
 
   const score = await calcularScoreSaude(supabase);
@@ -145,16 +137,10 @@ export default async function PaginaTv() {
   const totalEmAberto = dividasAbertas.reduce((s, d) => s + (Number(d.valor_total) - Number(d.valor_pago)), 0);
   const totalJaPago = dividasAbertas.reduce((s, d) => s + Number(d.valor_pago), 0);
 
-  // ---------- Plano US$ 1 milhão ----------
-  const paramsPlano = new Map((parametrosPlano ?? []).map((p) => [p.chave, Number(p.valor)]));
-  const aporteMensalPlano = paramsPlano.get("plano6m_aporte_mensal") ?? 1000;
-  const rentabilidadePlano = paramsPlano.get("plano6m_rentabilidade_aa") ?? 12;
-  const crescimentoPlano = paramsPlano.get("plano6m_crescimento_aporte_aa") ?? 10;
-  const alvoAno = (curvaPlano ?? []).find((c) => c.ano === anoAtual);
-  const posicaoVsPlano =
-    alvoAno && Number(alvoAno.valor_alvo) > 0 ? (patrimonioFamilia / Number(alvoAno.valor_alvo) - 1) * 100 : null;
-  const simulacaoPlano = projetarPatrimonio(patrimonioFamilia, aporteMensalPlano, rentabilidadePlano, anoAtual, anoAtual + 30, crescimentoPlano);
-  const ano6M = anoDoMarco(simulacaoPlano, 6_000_000);
+  // ---------- Plano ----------
+  // Mesma leitura da página /bank/plano: carteira real (espelho do Investidor10)
+  // contra a curva calculada dos parâmetros — não o saldo de fluxo de caixa.
+  const plano = await carregarPlano(supabase, { patrimonio: valorMercado, aplicado: valorAplicado });
 
   // ---------- Arthur ----------
   const { atual: patrimonioArthur } = await obterPatrimonioArthur(supabase, cotacoesMap);
@@ -261,19 +247,25 @@ export default async function PaginaTv() {
         ),
     },
     {
-      titulo: "US$ 1 milhão",
+      titulo: "Plano",
       emoji: "🚀",
       fundo: FUNDO.planoUsd,
       conteudo: (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-          <BigStat rotulo="Patrimônio hoje" valor={moedaBRL(patrimonioFamilia)} />
-          <BigStat rotulo={`Alvo do plano (${anoAtual})`} valor={alvoAno ? moedaBRL(Number(alvoAno.valor_alvo)) : "—"} />
+          <BigStat rotulo="Carteira hoje" valor={moedaBRL(plano.patrimonioHoje)} />
           <BigStat
-            rotulo="Você está"
-            valor={posicaoVsPlano != null ? `${posicaoVsPlano >= 0 ? "+" : ""}${posicaoVsPlano.toFixed(1)}%` : "—"}
-            cor={posicaoVsPlano != null && posicaoVsPlano >= 0 ? "#86efac" : "#fca5a5"}
+            rotulo={`Fase ${plano.faseAtual.numero} · ${plano.faseAtual.nome}`}
+            valor={`${Math.round(plano.progressoFase)}%`}
           />
-          <BigStat rotulo="R$ 6 milhões chegam em" valor={ano6M ? String(ano6M) : "—"} />
+          <BigStat
+            rotulo={plano.proximoMarco ? `Próximo marco · ${rotuloValor(plano.proximoMarco.valor)}` : "Meta"}
+            valor={plano.proximoMarco ? `${Math.round(plano.proximoMarco.progresso)}%` : "✓"}
+            cor="#86efac"
+          />
+          <BigStat
+            rotulo={`${rotuloValor(plano.parametros.metaFinal)} chegam em`}
+            valor={plano.mesDaMeta ? rotuloMes(plano.mesDaMeta) : "—"}
+          />
         </div>
       ),
     },

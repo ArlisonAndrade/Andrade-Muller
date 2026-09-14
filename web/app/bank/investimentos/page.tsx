@@ -11,8 +11,8 @@ import {
 } from "@/lib/bank/calculos-investimentos";
 import { CLASSES_ATIVOS, classeDe, ROTULO_FINALIDADE, COR_FINALIDADE } from "@/lib/bank/classes-ativos";
 import { obterPatrimonioArthur, obterMetaArthur } from "@/lib/bank/arthur";
+import { BotaoSincronizarInvestidor10 } from "@/components/bank/investimentos/botao-sincronizar-investidor10";
 import {
-  acaoAtualizarCotacoes,
   garantirSnapshotDoMes,
   registrarProvento,
 } from "@/lib/bank/acoes/investimentos";
@@ -24,8 +24,6 @@ import { DonutAlocacao } from "@/components/bank/investimentos/donut-alocacao";
 import { EvolucaoPatrimonio } from "@/components/bank/investimentos/evolucao-patrimonio";
 import { MetaFinalidadeEditavel } from "@/components/bank/investimentos/meta-finalidade";
 import {
-  IconRefresh,
-  IconPlus,
   IconPigMoney,
   IconChartLine,
   IconCoins,
@@ -52,6 +50,7 @@ export default async function PaginaInvestimentos() {
     { data: snapshots },
     { data: proventos },
     { data: parametrosFamilia },
+    { data: ultimaSync },
   ] = await Promise.all([
     supabase
       .from("posicao_ativos")
@@ -78,7 +77,26 @@ export default async function PaginaInvestimentos() {
       .eq("entidade_id", ENTIDADE_FAMILIA)
       .eq("chave", "meta_reserva_emergencia")
       .maybeSingle(),
+    supabase
+      .from("sincronizacoes_investidor10")
+      .select("executado_em, ok, erro")
+      .eq("entidade_id", ENTIDADE_FAMILIA)
+      .order("executado_em", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
+
+  // "Atualizado em 14/09 às 06:00" — ou o aviso de que a última rodada falhou,
+  // pra carteira não ficar velha em silêncio de novo.
+  const rotuloSync = ultimaSync
+    ? `${ultimaSync.ok ? "Atualizado" : "Última tentativa falhou"} em ${new Date(ultimaSync.executado_em).toLocaleString("pt-BR", {
+        timeZone: "America/Sao_Paulo",
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+      })}${ultimaSync.ok ? "" : ` — ${ultimaSync.erro}`}`
+    : "Ainda não sincronizado";
 
   const mapaCotacoes = new Map<string, Cotacao>(
     (cotacoes ?? []).map((c) => [
@@ -159,20 +177,9 @@ export default async function PaginaInvestimentos() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-lg font-semibold">Investimentos</h1>
         <div className="flex gap-2">
-          <form action={acaoAtualizarCotacoes}>
-            <button
-              type="submit"
-              className="flex items-center gap-1.5 rounded-[8px] border border-border bg-surface-1 px-3 py-2 text-sm text-text-secondary hover:text-text-primary"
-            >
-              <IconRefresh size={16} stroke={1.8} /> Atualizar cotações
-            </button>
-          </form>
-          <Link
-            href="/bank/investimentos/novo"
-            className="flex items-center gap-1.5 rounded-[8px] bg-bank-primaria px-3 py-2 text-sm font-medium text-white"
-          >
-            <IconPlus size={16} stroke={2} /> Nova compra
-          </Link>
+          {/* Sem "Nova compra": a carteira é registrada no Investidor10 e espelhada
+              aqui. Compra lançada à mão no Bank dobraria a posição. */}
+          <BotaoSincronizarInvestidor10 ultimaSync={rotuloSync} />
         </div>
       </div>
 
@@ -306,12 +313,8 @@ export default async function PaginaInvestimentos() {
         </h2>
         {classes.length === 0 && (
           <div className="card-bank p-6 text-sm text-text-faint">
-            Nenhum ativo em carteira ainda.{" "}
-            <Link href="/bank/investimentos/novo" className="text-bank-primaria underline">
-              Registrar a primeira compra
-            </Link>
-            . Pra replicar sua carteira do Investidor10, cadastre cada ativo com a
-            quantidade e o preço médio atuais.
+            Nenhum ativo em carteira ainda. A carteira vem do Investidor10 — use
+            &quot;Sincronizar com Investidor10&quot; acima.
           </div>
         )}
         <div className="flex flex-col gap-5">

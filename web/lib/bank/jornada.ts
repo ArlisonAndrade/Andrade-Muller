@@ -1,6 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ENTIDADE_FAMILIA } from "@/lib/bank/tipos";
-import { projetarPatrimonio } from "@/lib/bank/projecao";
+import { lerParametros, mesAtual, projetarMeses } from "@/lib/bank/plano";
 
 // A jornada patrimonial (2021 → ~2032) tem duas metades com origens diferentes,
 // de propósito:
@@ -58,9 +58,6 @@ export async function montarJornada(
       .eq("entidade_id", ENTIDADE_FAMILIA),
   ]);
 
-  const param = (chave: string, padrao: number) =>
-    Number((parametros ?? []).find((p) => p.chave === chave)?.valor ?? padrao);
-
   // Amortização (principal) que ainda vence, por ano. Juros futuros ficam de
   // fora: não são dívida hoje e somem se o Arlison adiantar parcelas.
   const amortizacaoPorAno = new Map<number, number>();
@@ -76,26 +73,14 @@ export async function montarJornada(
   // card mostra — tem que bater com o card de métrica da home, que lê a mesma
   // carteira. A projeção só começa no ano seguinte, e para isso ainda precisa
   // saber onde a carteira fecha este ano (os meses que faltam).
-  const mesesRestantesNoAno = 12 - new Date().getMonth();
-  const aporteMensal = param("plano6m_aporte_mensal", 1000);
-  const rentabilidade = param("plano6m_rentabilidade_aa", 10);
-  const crescimentoAporte = param("plano6m_crescimento_aporte_aa", 0);
-  const taxaMensal = Math.pow(1 + rentabilidade / 100, 1 / 12) - 1;
-
-  let investimentoFimDoAno = investidoHoje;
-  for (let m = 0; m < mesesRestantesNoAno; m++) {
-    investimentoFimDoAno = investimentoFimDoAno * (1 + taxaMensal) + aporteMensal;
-  }
-
+  // Mesma rampa de aporte e rentabilidade da página do plano (lib/bank/plano.ts):
+  // a home e o plano nunca mostram dois futuros diferentes.
   const anoFinal = Math.max(anoAtual + ANOS_DE_PROJECAO, ultimoAnoDeDivida);
-  const projecao = projetarPatrimonio(
-    investimentoFimDoAno,
-    aporteMensal * (1 + crescimentoAporte / 100),
-    rentabilidade,
-    anoAtual + 1,
-    anoFinal,
-    crescimentoAporte,
-  );
+  const parametrosPlano = lerParametros(parametros);
+  const meses = projetarMeses(parametrosPlano, investidoHoje, mesAtual(), anoFinal * 100 + 12);
+  const projecao = meses
+    .filter((q) => q.mes % 100 === 12 && Math.floor(q.mes / 100) > anoAtual)
+    .map((q) => ({ ano: Math.floor(q.mes / 100), valor: Math.round(q.valor * 100) / 100 }));
 
   const pontos: PontoJornada[] = (historico ?? []).map((h) => {
     const investimento = Number(h.investimento);

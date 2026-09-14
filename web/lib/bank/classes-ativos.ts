@@ -42,12 +42,6 @@ export function classeDe(tipo: string | null): ClasseAtivo {
   return (tipo && tipo in CLASSES_ATIVOS ? tipo : "outro") as ClasseAtivo;
 }
 
-// Só ações, FIIs e ETFs B3 têm cotação automática (brapi.dev). O resto
-// (renda fixa, tesouro, fundos, cripto, internacional) atualiza manual.
-export function temCotacaoAutomatica(tipo: string | null) {
-  return tipo === "acao" || tipo === "fii";
-}
-
 // Pra que cada posição existe — demarcação manual do Arlison em 13/ago/2026
 // (marcada à mão em cima do print do "Meus Ativos"): toda Renda Fixa é
 // reserva de emergência; Fundos de Investimento + Cripto são a carteira do

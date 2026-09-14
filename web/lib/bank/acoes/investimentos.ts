@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { atualizarCotacoesB3 } from "@/lib/bank/cotacoes";
+import { sincronizarInvestidor10, type ResultadoSync } from "@/lib/bank/investidor10";
 import { ENTIDADE_FAMILIA, ENTIDADE_ARTHUR } from "@/lib/bank/tipos";
 
 // Garante o ativo (ticker é global, compartilhado entre entidades) e lança a
@@ -123,30 +123,15 @@ export async function excluirProvento(formData: FormData) {
   revalidatePath("/bank/investimentos");
 }
 
-// Atualização manual de preço — renda fixa, tesouro, fundos, cripto e
-// internacional (o que a brapi B3 não cobre). Pra renda fixa o padrão é
-// quantidade 1 × preço = valor atual do contrato.
-export async function atualizarValorAtivo(formData: FormData) {
+// Botão "Sincronizar com o Investidor10" — roda com a sessão do usuário.
+// Devolve o resultado pra tela mostrar o que mudou (ou por que falhou).
+export async function acaoSincronizarInvestidor10(): Promise<ResultadoSync> {
   const supabase = await createClient();
-  const { error } = await supabase.from("cotacoes_atuais").upsert(
-    {
-      ativo_id: String(formData.get("ativo_id")),
-      preco_atual: Number(formData.get("preco_atual")),
-      atualizado_em: new Date().toISOString(),
-    },
-    { onConflict: "ativo_id" },
-  );
-  if (error) throw new Error(`Falha ao atualizar valor: ${error.message}`);
+  const resultado = await sincronizarInvestidor10(supabase, "manual");
   revalidatePath("/bank/investimentos");
-}
-
-// Botão "Atualizar cotações" — roda com a sessão do usuário (RLS de
-// cotacoes_atuais permite upsert de membro autenticado).
-export async function acaoAtualizarCotacoes() {
-  const supabase = await createClient();
-  await atualizarCotacoesB3(supabase);
-  revalidatePath("/bank/investimentos");
+  revalidatePath("/bank/plano");
   revalidatePath("/bank");
+  return resultado;
 }
 
 // Foto mensal do patrimônio investido — upsert idempotente por competência;

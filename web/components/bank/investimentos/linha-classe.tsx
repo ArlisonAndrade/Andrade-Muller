@@ -3,8 +3,6 @@
 import { useState } from "react";
 import { BadgeVariacao } from "@/components/bank/ui/badge-variacao";
 import { IconChevronDown } from "@/components/bank/ui/icones";
-import { atualizarValorAtivo } from "@/lib/bank/acoes/investimentos";
-import { temCotacaoAutomatica } from "@/lib/bank/classes-ativos";
 import type { ClasseResumo } from "@/lib/bank/calculos-investimentos";
 
 function brl(v: number) {
@@ -112,28 +110,9 @@ export function LinhaClasse({
                     {brl(a.precoMedio)}
                   </td>
                   <td className="py-2.5 text-right text-text-secondary">
-                    {temCotacaoAutomatica(classe) ? (
-                      brl(a.precoAtual)
-                    ) : (
-                      // Classes sem cotação automática: edição manual inline.
-                      <form action={atualizarValorAtivo} className="inline-flex items-center gap-1">
-                        <input type="hidden" name="ativo_id" value={a.ativo_id} />
-                        <input
-                          name="preco_atual"
-                          type="number"
-                          step="0.0001"
-                          defaultValue={a.precoAtual.toFixed(2)}
-                          className="w-24 rounded-[6px] border border-border bg-surface-2 px-2 py-1 text-right text-xs outline-none"
-                          aria-label={`Preço atual de ${a.ticker}`}
-                        />
-                        <button
-                          type="submit"
-                          className="rounded-[6px] border border-border px-1.5 py-1 text-[10px] text-text-secondary hover:text-text-primary"
-                        >
-                          ok
-                        </button>
-                      </form>
-                    )}
+                    {/* Todo preço vem do Investidor10 (lib/bank/investidor10.ts) —
+                        edição manual aqui seria sobrescrita na sincronização seguinte. */}
+                    {brl(a.precoAtual)}
                   </td>
                   <td className="py-2.5 text-right font-medium">{brl(a.valorMercado)}</td>
                   <td className="hidden py-2.5 text-right md:table-cell">

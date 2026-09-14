@@ -9,7 +9,7 @@ import { NextResponse, type NextRequest } from "next/server";
 // cotações não têm browser. Sem esta saída antecipada elas eram redirecionadas
 // para /entrar e nunca chegavam a rodar.
 function autenticaPorSegredo(pathname: string) {
-  return pathname.startsWith("/api/bank/agente") || pathname === "/api/bank/cotacoes";
+  return pathname.startsWith("/api/bank/agente") || pathname === "/api/bank/investidor10";
 }
 
 export async function updateSession(request: NextRequest) {

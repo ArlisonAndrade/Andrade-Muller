@@ -2,7 +2,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 // As rotas do agente são chamadas pelo n8n, que não tem sessão de browser —
 // por isso usam service-role + um segredo compartilhado no header, no mesmo
-// espírito do CRON_SECRET de /api/bank/cotacoes.
+// espírito do CRON_SECRET de /api/bank/investidor10.
 
 type ClientAdmin = NonNullable<ReturnType<typeof createAdminClient>>;
 
