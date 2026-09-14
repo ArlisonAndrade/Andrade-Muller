@@ -3,44 +3,28 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { acaoSincronizarInvestidor10 } from "@/lib/bank/acoes/investimentos";
-import type { ResultadoSync } from "@/lib/bank/investidor10";
 import { IconRefresh } from "@/components/bank/ui/icones";
 
-function descreverAlteracoes(r: ResultadoSync) {
-  if (r.alteracoes.length === 0) return "Posições iguais; valores atualizados.";
-  return r.alteracoes
-    .map((a) => {
-      const fmt = (v: number | null) => (v ?? 0).toLocaleString("pt-BR", { maximumFractionDigits: 6 });
-      if (a.campo === "novo") return `${a.ticker}: novo`;
-      if (a.campo === "zerado") return `${a.ticker}: vendido`;
-      if (a.campo === "quantidade") return `${a.ticker}: ${fmt(a.antes)} → ${fmt(a.depois)}`;
-      return `${a.ticker}: aplicado R$ ${fmt(a.antes)} → R$ ${fmt(a.depois)}`;
-    })
-    .join(" · ");
-}
-
-// O botão diz o que houve. O da brapi chamava a action direto e engolia o
-// erro — por 6 semanas pareceu só "não funcionar".
+// Embaixo do botão fica só a data da última sincronização (decisão do
+// Arlison, 14/set/2026 — a lista do que mudou poluía a tela; ela continua
+// gravada em sincronizacoes_investidor10.alteracoes). Falha, essa sim, aparece
+// com o motivo: o botão da brapi engolia o erro e por 6 semanas pareceu só
+// "não funcionar".
 export function BotaoSincronizarInvestidor10({ ultimaSync }: { ultimaSync: string | null }) {
   const router = useRouter();
   const [rodando, setRodando] = useState(false);
-  const [resultado, setResultado] = useState<ResultadoSync | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
 
   async function sincronizar() {
     setRodando(true);
-    setResultado(null);
+    setErro(null);
     try {
-      setResultado(await acaoSincronizarInvestidor10());
+      const resultado = await acaoSincronizarInvestidor10();
+      if (!resultado.ok) setErro(resultado.erro ?? "Falha ao sincronizar.");
+      // Refaz a página: a data da última sincronização vem do servidor.
       router.refresh();
     } catch (e) {
-      setResultado({
-        ok: false,
-        erro: e instanceof Error ? e.message : "Falha ao sincronizar.",
-        aplicado: null,
-        patrimonio: null,
-        ativos: 0,
-        alteracoes: [],
-      });
+      setErro(e instanceof Error ? e.message : "Falha ao sincronizar.");
     } finally {
       setRodando(false);
     }
@@ -56,12 +40,8 @@ export function BotaoSincronizarInvestidor10({ ultimaSync }: { ultimaSync: strin
       >
         <IconRefresh size={16} stroke={1.8} /> {rodando ? "Sincronizando…" : "Sincronizar com Investidor10"}
       </button>
-      {resultado ? (
-        <p className={`max-w-sm text-right text-xs ${resultado.ok ? "text-text-faint" : "text-bank-negativo"}`}>
-          {resultado.ok
-            ? `${resultado.ativos} ativos · ${descreverAlteracoes(resultado)}`
-            : `Falhou: ${resultado.erro}`}
-        </p>
+      {erro ? (
+        <p className="max-w-sm text-right text-xs text-bank-negativo">Falhou: {erro}</p>
       ) : (
         ultimaSync && <p className="text-right text-xs text-text-faint">{ultimaSync}</p>
       )}
