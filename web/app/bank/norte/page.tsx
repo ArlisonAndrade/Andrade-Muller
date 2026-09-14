@@ -155,6 +155,8 @@ export default async function PaginaNorte({
         pessoas={pessoas}
         competencia={competencia}
         rendaPorPessoa={rendaPorPessoa}
+        pendente={renda.pendente}
+        rotuloHerdado={renda.herdadoDe ? mesBR(renda.herdadoDe) : null}
         rotuloMes={mesBR(competencia)}
         mesAnteriorHref={`/bank/norte?mes=${addMeses(competencia, -1).slice(0, 7)}`}
         mesProximoHref={`/bank/norte?mes=${addMeses(competencia, 1).slice(0, 7)}`}

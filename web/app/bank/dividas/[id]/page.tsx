@@ -9,6 +9,7 @@ import {
   atualizarParcela,
   excluirDivida,
 } from "@/lib/bank/acoes/dividas";
+import { baixarParcelasAutomaticas } from "@/lib/bank/dividas-automaticas";
 import { CardMetrica } from "@/components/bank/ui/card-metrica";
 import { ProgressBar } from "@/components/bank/ui/progress-bar";
 import { BotaoExcluir } from "@/components/bank/ui/botao-excluir";
@@ -30,6 +31,7 @@ export default async function DetalheDivida({
   const { economia: economiaParam } = await searchParams;
 
   const supabase = await createClient();
+  await baixarParcelasAutomaticas(supabase);
   const [{ data: divida }, { data: parcelasRaw }, { data: contas }] = await Promise.all([
     supabase
       .from("dividas")

@@ -1,27 +1,21 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { EstadoSemConfiguracao } from "@/components/bank/home/estado-sem-configuracao";
-import { PonteProLabore } from "@/components/bank/home/ponte-pro-labore";
-import { Orcamento503020 } from "@/components/bank/home/orcamento-503020";
 import { CarteiraArthur } from "@/components/bank/home/carteira-arthur";
 import { MetasAtivas } from "@/components/bank/home/metas-ativas";
 import { DividasAtivas } from "@/components/bank/home/dividas-ativas";
-import { TransacoesRecentes } from "@/components/bank/home/transacoes-recentes";
-import { ProximasContas, type ContaProxima } from "@/components/bank/home/proximas-contas";
 import { ScoreSaude } from "@/components/bank/home/score-saude";
 import { calcularScoreSaude } from "@/lib/bank/score";
 import { JornadaPatrimonio } from "@/components/bank/home/jornada-patrimonio";
 import { montarJornada } from "@/lib/bank/jornada";
-import { montarRendaDoMes, competenciaDe } from "@/lib/bank/renda";
 import { patrimonio, valorInvestido } from "@/lib/bank/calculos";
 import { classeDe, finalidadeDaClasse } from "@/lib/bank/classes-ativos";
 import { gerarRecorrenciasPendentes } from "@/lib/bank/acoes/recorrencias";
 import { garantirSnapshotDoMes } from "@/lib/bank/acoes/investimentos";
-import { moedaBRL } from "@/lib/bank/formato";
+import { baixarParcelasAutomaticas } from "@/lib/bank/dividas-automaticas";
 import {
   ENTIDADE_FAMILIA,
   ENTIDADE_ARTHUR,
-  ENTIDADE_CONSULTORIA,
   type Transacao,
 } from "@/lib/bank/tipos";
 
@@ -35,22 +29,19 @@ export default async function Home() {
     return <EstadoSemConfiguracao />;
   }
 
-  // Materializa recorrências e a foto mensal antes das queries (idempotentes).
+  const supabase = await createClient();
+
+  // Materializa recorrências, a foto mensal e a baixa do consignado antes das
+  // queries (idempotentes) — o score e a jornada leem as parcelas já baixadas.
   await gerarRecorrenciasPendentes();
   await garantirSnapshotDoMes();
+  await baixarParcelasAutomaticas(supabase);
 
   // A Home é a visão da Família. Arthur tem aba própria (mas mantém um card
   // glanceável aqui) e o CNPJ vive só no FM Gestão.
   const entidadesDaVisao = [ENTIDADE_FAMILIA];
 
-  const hoje = new Date();
-  const inicioMes = `${hoje.getFullYear()}-${String(hoje.getMonth() + 1).padStart(2, "0")}-01`;
-
-  const supabase = await createClient();
-
   const [
-    { data: transacoes },
-    { data: cartoesFamilia },
     { data: posicoes },
     { data: cotacoesRaw },
     { data: contasArthur },
@@ -58,14 +49,7 @@ export default async function Home() {
     { data: posicoesArthur },
     { data: metas },
     { data: dividas },
-    { data: recorrencias },
   ] = await Promise.all([
-    supabase
-      .from("transacoes")
-      .select("id, entidade_id, descricao, valor, data, transacao_vinculada_id, categoria:categorias(nome, tipo, grupo_orcamento)")
-      .in("entidade_id", entidadesDaVisao)
-      .order("data", { ascending: false }),
-    supabase.from("cartoes").select("id, nome").eq("entidade_id", ENTIDADE_FAMILIA),
     supabase.from("posicao_ativos").select("*").eq("entidade_id", ENTIDADE_FAMILIA),
     supabase.from("cotacoes_atuais").select("ativo_id, preco_atual, variacao_dia_pct"),
     supabase.from("contas").select("id, saldo_inicial").eq("entidade_id", ENTIDADE_ARTHUR),
@@ -77,11 +61,6 @@ export default async function Home() {
       .select("id, descricao, valor_total, valor_pago, parcelas_total, parcelas_pagas, data_vencimento_proxima")
       .eq("quitada", false)
       .in("entidade_id", entidadesDaVisao),
-    supabase
-      .from("recorrencias")
-      .select("descricao, valor, dia_do_mes, categoria:categorias(nome)")
-      .eq("entidade_id", ENTIDADE_FAMILIA)
-      .eq("ativa", true),
   ]);
 
   // Score de saúde financeira (sempre baseado na Família).
@@ -90,7 +69,6 @@ export default async function Home() {
   const cotacoesMap = new Map(
     (cotacoesRaw ?? []).map((c) => [c.ativo_id, Number(c.preco_atual)]),
   );
-  const transacoesTyped = (transacoes ?? []) as unknown as Transacao[];
 
   // Fundos + Cripto são a carteira do Arthur por decisão do Arlison (ver
   // finalidadeDaClasse) — ainda guardados na entidade Família, sem carteira
@@ -110,82 +88,6 @@ export default async function Home() {
   // o futuro é recalculado com o cronograma das parcelas e o aporte do plano.
   const jornada = await montarJornada(supabase, investidoFamilia);
 
-  // ---------- Mês corrente (orçamento 50/30/20) ----------
-  const doMes = transacoesTyped.filter(
-    (t) => t.data >= inicioMes && t.entidade_id === ENTIDADE_FAMILIA,
-  );
-  // Renda planejada do mês (editável em Planejamento) — mesma leitura do score
-  // e da tela de Planejamento, pra não existirem duas verdades sobre o salário.
-  const rendaDoMes = (await montarRendaDoMes(supabase, competenciaDe(hoje))).total;
-  const gastoPorGrupo: Record<string, number> = {};
-  for (const t of doMes) {
-    if (t.categoria?.tipo !== "despesa" || !t.categoria?.grupo_orcamento) continue;
-    const chave = t.categoria.grupo_orcamento;
-    gastoPorGrupo[chave] = (gastoPorGrupo[chave] ?? 0) + Number(t.valor);
-  }
-
-  // ---------- Próximas contas (recorrências + fatura + dívida) ----------
-  const proximas: ContaProxima[] = [];
-  const diaHoje = hoje.getDate();
-  for (const r of (recorrencias ?? []) as unknown as Array<{
-    descricao: string;
-    valor: number;
-    dia_do_mes: number;
-    categoria: { nome: string } | null;
-  }>) {
-    // Já venceu neste mês → mostra a ocorrência do mês que vem.
-    const base = new Date(hoje.getFullYear(), hoje.getMonth() + (r.dia_do_mes <= diaHoje ? 1 : 0), r.dia_do_mes);
-    proximas.push({
-      rotulo: r.descricao,
-      detalhe: r.categoria?.nome ?? "recorrência",
-      valor: Number(r.valor),
-      data: `${base.getFullYear()}-${String(base.getMonth() + 1).padStart(2, "0")}-${String(base.getDate()).padStart(2, "0")}`,
-    });
-  }
-  const idsCartoesFamilia = (cartoesFamilia ?? []).map((c) => c.id);
-  if (idsCartoesFamilia.length > 0) {
-    const { data: fatura } = await supabase
-      .from("faturas_cartao")
-      .select("competencia, valor_total, cartao:cartoes(nome)")
-      .in("cartao_id", idsCartoesFamilia)
-      .eq("paga", false)
-      .order("competencia", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-    if (fatura) {
-      const f = fatura as unknown as {
-        competencia: string;
-        valor_total: number | null;
-        cartao: { nome: string } | null;
-      };
-      proximas.push({
-        rotulo: `Fatura ${f.cartao?.nome ?? "cartão"}`,
-        detalhe: "fatura em aberto",
-        valor: f.valor_total != null ? Number(f.valor_total) : null,
-        data: String(f.competencia),
-      });
-    }
-  }
-  for (const d of dividas ?? []) {
-    if (d.data_vencimento_proxima) {
-      proximas.push({
-        rotulo: d.descricao,
-        detalhe: `parcela ${(d.parcelas_pagas ?? 0) + 1}${d.parcelas_total ? `/${d.parcelas_total}` : ""}`,
-        valor: null,
-        data: String(d.data_vencimento_proxima),
-      });
-    }
-  }
-
-  // ---------- Ponte pró-labore ----------
-  const { data: pontesData } = await supabase
-    .from("transacoes")
-    .select("id, descricao, valor, data")
-    .eq("entidade_id", ENTIDADE_CONSULTORIA)
-    .not("transacao_vinculada_id", "is", null)
-    .order("data", { ascending: false })
-    .limit(5);
-
   return (
     <div className="flex flex-col gap-6">
       {/* A jornada, em largura total */}
@@ -202,16 +104,12 @@ export default async function Home() {
       {/* Grade de módulos */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <ScoreSaude score={score} />
-        <Orcamento503020 totalReceita={rendaDoMes} gastoPorGrupo={gastoPorGrupo} />
-        <ProximasContas contas={proximas} />
         <CarteiraArthur
           patrimonio={patrimonioArthur}
           posicoes={[...(posicoesArthur ?? []), ...posicoesArthurNaFamilia]}
         />
         <DividasAtivas dividas={dividas ?? []} />
         <MetasAtivas metas={metas ?? []} />
-        <PonteProLabore pontes={pontesData ?? []} />
-        <TransacoesRecentes transacoes={transacoesTyped.slice(0, 8)} />
       </div>
     </div>
   );

@@ -52,6 +52,40 @@ export async function salvarRendaMes(formData: FormData) {
   revalidar();
 }
 
+// ---- Salvar os salários do mês de uma vez ----
+// Virada de mês: a tela mostra os valores repetidos do último mês salvo e o
+// Arlison confirma (Salvar) ou ajusta (Editar → Salvar). O form manda pares
+// `tipo`/`valor` na mesma ordem. Linha já confirmada (recebida) fica intacta.
+export async function salvarRendasDoMes(formData: FormData) {
+  const supabase = await createClient();
+  const entidade_id = String(formData.get("entidade_id"));
+  const competencia = String(formData.get("competencia"));
+  const tipos = formData.getAll("tipo").map(String);
+  const valores = formData.getAll("valor").map((v) => Number(v || 0));
+  if (tipos.length === 0 || tipos.length !== valores.length) {
+    throw new Error("Formulário de salários incompleto.");
+  }
+
+  const { data: confirmadas } = await supabase
+    .from("renda_mensal")
+    .select("tipo")
+    .eq("entidade_id", entidade_id)
+    .eq("competencia", competencia)
+    .eq("confirmado", true);
+  const travadas = new Set((confirmadas ?? []).map((r) => r.tipo));
+
+  const linhas = tipos
+    .map((tipo, i) => ({ entidade_id, competencia, tipo, valor: valores[i], confirmado: false }))
+    .filter((l) => !travadas.has(l.tipo));
+  if (linhas.length === 0) return;
+
+  const { error } = await supabase
+    .from("renda_mensal")
+    .upsert(linhas, { onConflict: "entidade_id,competencia,tipo" });
+  if (error) throw new Error(`Falha ao salvar os salários: ${error.message}`);
+  revalidar();
+}
+
 // ---- Divisão 50/30/20 ----
 export async function selecionarDivisaoPreset(formData: FormData) {
   const supabase = await createClient();

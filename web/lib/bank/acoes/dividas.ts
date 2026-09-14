@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { cronogramaPrice } from "@/lib/bank/calculos-divida";
+import { sincronizarAgregado as sincronizarAgregadoDivida } from "@/lib/bank/dividas-automaticas";
 
 // Cria a dívida e, se vier taxa + nº de parcelas + 1º vencimento, gera o
 // cronograma Price completo. `dividas` guarda o AGREGADO (valor_total =
@@ -199,36 +200,8 @@ export async function adiantarParcela(formData: FormData) {
   redirect(`/bank/dividas/${dividaId}?economia=${economia.toFixed(2)}`);
 }
 
-// Recalcula o agregado de `dividas` a partir das parcelas — fonte única
-// de sincronia entre o detalhe e o card da home. Total a pagar cai quando
-// uma parcela é adiantada (o juro dela sai da conta).
 async function sincronizarAgregado(dividaId: string) {
-  const supabase = await createClient();
-  const { data: parcelas } = await supabase
-    .from("parcelas_divida")
-    .select("valor_parcela, valor_pago_efetivo, paga, adiantada, data_vencimento, numero")
-    .eq("divida_id", dividaId);
-  if (!parcelas || parcelas.length === 0) return;
-
-  const pagas = parcelas.filter((p) => p.paga);
-  const abertas = parcelas.filter((p) => !p.paga).sort((a, b) => a.numero - b.numero);
-  const valorPago = pagas.reduce(
-    (s, p) => s + Number(p.valor_pago_efetivo ?? p.valor_parcela),
-    0,
-  );
-  const restante = abertas.reduce((s, p) => s + Number(p.valor_parcela), 0);
-
-  await supabase
-    .from("dividas")
-    .update({
-      valor_total: Math.round((valorPago + restante) * 100) / 100,
-      valor_pago: Math.round(valorPago * 100) / 100,
-      parcelas_total: parcelas.length,
-      parcelas_pagas: pagas.length,
-      data_vencimento_proxima: abertas[0]?.data_vencimento ?? null,
-      quitada: abertas.length === 0,
-    })
-    .eq("id", dividaId);
+  await sincronizarAgregadoDivida(await createClient(), dividaId);
 }
 
 // Compat: fluxo antigo de amortização livre (dívidas sem cronograma).

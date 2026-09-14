@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { salvarRendaMes } from "@/lib/bank/acoes/norte";
+import { salvarRendaMes, salvarRendasDoMes } from "@/lib/bank/acoes/norte";
 import { IconUser } from "@/components/bank/ui/icones";
 import { ValorMoeda } from "@/components/bank/norte/privacidade";
 import { tipoRendaDaPessoa, type Pessoa } from "@/lib/bank/tipos";
@@ -104,9 +104,108 @@ function CardPessoa({
           ? "recebido ✓"
           : renda.temLancamento
             ? "toque para editar"
-            : "previsto — toque para confirmar"}
+            : "não salvo — toque para editar"}
       </span>
     </button>
+  );
+}
+
+/**
+ * Virada de mês: os salários ainda não foram salvos e a tela está mostrando os
+ * valores repetidos do último mês salvo. Salvar confirma como está; Editar
+ * abre os campos de todo mundo num formulário só.
+ */
+function ConfirmarSalarios({
+  pessoas,
+  competencia,
+  rendaPorPessoa,
+  rotuloMes,
+  rotuloHerdado,
+}: {
+  pessoas: Pessoa[];
+  competencia: string;
+  rendaPorPessoa: Map<string, RendaDoMes>;
+  rotuloMes: string;
+  rotuloHerdado: string | null;
+}) {
+  const router = useRouter();
+  const [editando, setEditando] = useState(false);
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
+
+  async function salvar(formData: FormData) {
+    setSalvando(true);
+    setErro(null);
+    try {
+      await salvarRendasDoMes(formData);
+      // Mesmo motivo do CardPessoa: action em função cliente não refaz o router.
+      router.refresh();
+      setEditando(false);
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Falha ao salvar.");
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <form
+      action={salvar}
+      className="mb-3 flex flex-col gap-3 rounded-[10px] border border-bank-primaria bg-bank-primaria-bg p-3 sm:p-4"
+    >
+      <input type="hidden" name="entidade_id" value={pessoas[0]?.entidade_id ?? ""} />
+      <input type="hidden" name="competencia" value={competencia} />
+      <p className="text-sm text-text-primary">
+        <strong className="capitalize">Salários de {rotuloMes}</strong> ainda não foram salvos.{" "}
+        <span className="text-text-secondary">
+          {rotuloHerdado
+            ? `Os valores abaixo repetem ${rotuloHerdado}.`
+            : "Os valores abaixo são a renda base de cada um."}{" "}
+          O cálculo do mês segue o que você salvar.
+        </span>
+      </p>
+
+      {pessoas.map((p) => {
+        const valor = rendaPorPessoa.get(p.id)?.valor ?? Number(p.renda_base);
+        return editando ? (
+          <label key={p.id} className="flex items-center gap-3 text-sm">
+            <span className="w-24 shrink-0 text-text-secondary">{p.nome}</span>
+            <input type="hidden" name="tipo" value={tipoRendaDaPessoa(p.nome)} />
+            <input
+              name="valor"
+              type="number"
+              step="0.01"
+              min="0"
+              defaultValue={valor}
+              className="min-w-0 flex-1 rounded-[8px] border border-border bg-surface-1 px-3 py-2 font-semibold outline-none"
+            />
+          </label>
+        ) : (
+          <span key={p.id} hidden>
+            <input type="hidden" name="tipo" value={tipoRendaDaPessoa(p.nome)} />
+            <input type="hidden" name="valor" value={valor} />
+          </span>
+        );
+      })}
+
+      {erro && <p className="text-xs text-bank-negativo">{erro}</p>}
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="submit"
+          disabled={salvando}
+          className="rounded-[8px] bg-bank-primaria px-3 py-1.5 text-xs font-medium text-white disabled:opacity-60"
+        >
+          {salvando ? "Salvando…" : "Salvar salários"}
+        </button>
+        <button
+          type="button"
+          onClick={() => setEditando((e) => !e)}
+          className="rounded-[8px] border border-border bg-surface-1 px-3 py-1.5 text-xs text-text-secondary"
+        >
+          {editando ? "Cancelar" : "Editar"}
+        </button>
+      </div>
+    </form>
   );
 }
 
@@ -114,6 +213,8 @@ export function RendaFamilia({
   pessoas,
   competencia,
   rendaPorPessoa,
+  pendente,
+  rotuloHerdado,
   mesAnteriorHref,
   mesProximoHref,
   rotuloMes,
@@ -121,6 +222,8 @@ export function RendaFamilia({
   pessoas: Pessoa[];
   competencia: string;
   rendaPorPessoa: Map<string, RendaDoMes>;
+  pendente: boolean;
+  rotuloHerdado: string | null;
   mesAnteriorHref: string;
   mesProximoHref: string;
   rotuloMes: string;
@@ -141,6 +244,16 @@ export function RendaFamilia({
           </Link>
         </div>
       </div>
+      {pendente && (
+        <ConfirmarSalarios
+          key={competencia}
+          pessoas={pessoas}
+          competencia={competencia}
+          rendaPorPessoa={rendaPorPessoa}
+          rotuloMes={rotuloMes}
+          rotuloHerdado={rotuloHerdado}
+        />
+      )}
       <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
         <div className="flex flex-1 flex-col gap-2 sm:flex-row">
           {pessoas.map((p) => (

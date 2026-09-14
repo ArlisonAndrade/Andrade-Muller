@@ -4,6 +4,7 @@ import { moedaBRL, dataBR } from "@/lib/bank/formato";
 import { ProgressBar } from "@/components/bank/ui/progress-bar";
 import { BotaoExcluir } from "@/components/bank/ui/botao-excluir";
 import { excluirDivida } from "@/lib/bank/acoes/dividas";
+import { baixarParcelasAutomaticas } from "@/lib/bank/dividas-automaticas";
 import { IconPlus } from "@/components/bank/ui/icones";
 
 export const metadata = { title: "Dívidas" };
@@ -12,6 +13,7 @@ export const metadata = { title: "Dívidas" };
 // o jogo de quitação acontece no detalhe.
 export default async function PaginaDividas() {
   const supabase = await createClient();
+  await baixarParcelasAutomaticas(supabase);
 
   const [{ data: dividas }, { data: parcelasAdiantadas }] = await Promise.all([
     supabase

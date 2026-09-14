@@ -2,6 +2,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { exigirLeituras, montarContextoCompleto } from "@/lib/bank/agente/contexto";
 import { hojeSP } from "@/lib/bank/agente/datas";
+import { baixarParcelasAutomaticas } from "@/lib/bank/dividas-automaticas";
 import { DOUTRINA_ARKAD } from "@/lib/bank/agente/arkad";
 import { linhaVitoria } from "@/lib/bank/agente/marcos";
 
@@ -75,6 +76,9 @@ export async function gerarResumo(
   }
 
   const chatId = await descobrirGrupo(supabase);
+  // O resumo pode rodar num dia 2 antes de alguém abrir o site: sem a baixa, o
+  // consultor leria a parcela do consignado como atrasada.
+  await baixarParcelasAutomaticas(supabase);
   const contexto = await montarContextoCompleto(supabase);
 
   // Sem nenhum gasto na semana não há retrato a fazer — evita queimar uma
