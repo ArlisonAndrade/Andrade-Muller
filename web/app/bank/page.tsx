@@ -13,6 +13,8 @@ import { classeDe, finalidadeDaClasse } from "@/lib/bank/classes-ativos";
 import { gerarRecorrenciasPendentes } from "@/lib/bank/acoes/recorrencias";
 import { garantirSnapshotDoMes } from "@/lib/bank/acoes/investimentos";
 import { baixarParcelasAutomaticas } from "@/lib/bank/dividas-automaticas";
+import { conquistasParaCelebrar } from "@/lib/bank/conquistas";
+import { CelebracaoConquistas } from "@/components/bank/conquistas/celebracao";
 import {
   ENTIDADE_FAMILIA,
   ENTIDADE_ARTHUR,
@@ -88,8 +90,13 @@ export default async function Home() {
   // o futuro é recalculado com o cronograma das parcelas e o aporte do plano.
   const jornada = await montarJornada(supabase, investidoFamilia);
 
+  // Medalha conquistada (pela sincronização, pelo resumo das 21h ou pela
+  // página do plano) comemora na primeira abertura do site — só lê, não avalia.
+  const paraCelebrar = await conquistasParaCelebrar(supabase);
+
   return (
     <div className="flex flex-col gap-6">
+      <CelebracaoConquistas conquistas={paraCelebrar} />
       {/* A jornada, em largura total */}
       <section className="card-bank p-4 sm:p-5">
         <div className="mb-3 flex items-center justify-between">

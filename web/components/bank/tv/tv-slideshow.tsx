@@ -16,7 +16,7 @@ export type SlideTv = {
 // trocar sozinho. Cada slide é montado no server (app/bank/tv/page.tsx) e
 // só passa por aqui como conteúdo pronto — este componente só cuida do
 // índice atual e da navegação.
-export function TvSlideshow({ slides }: { slides: SlideTv[] }) {
+export function TvSlideshow({ slides, cabecalho }: { slides: SlideTv[]; cabecalho?: ReactNode }) {
   const [indice, setIndice] = useState(0);
   const total = slides.length;
 
@@ -25,6 +25,9 @@ export function TvSlideshow({ slides }: { slides: SlideTv[] }) {
 
   useEffect(() => {
     function aoTeclar(e: KeyboardEvent) {
+      // Na reunião trimestral há campos de texto: seta ali move o cursor, não o slide.
+      const alvo = e.target as HTMLElement | null;
+      if (alvo && (alvo.tagName === "INPUT" || alvo.tagName === "TEXTAREA" || alvo.isContentEditable)) return;
       if (e.key === "ArrowRight") proximo();
       if (e.key === "ArrowLeft") anterior();
     }
@@ -44,6 +47,7 @@ export function TvSlideshow({ slides }: { slides: SlideTv[] }) {
         >
           <IconX size={16} stroke={1.8} /> Sair do Modo TV
         </Link>
+        {cabecalho}
         <div className="flex items-center gap-1.5">
           {slides.map((s, i) => (
             <button

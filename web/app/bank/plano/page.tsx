@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { ENTIDADE_FAMILIA } from "@/lib/bank/tipos";
 import { moedaBRL } from "@/lib/bank/formato";
@@ -15,6 +16,9 @@ import { ProgressBar } from "@/components/bank/ui/progress-bar";
 import { GraficoPlano } from "@/components/bank/plano/grafico-plano";
 import { GraficoAportes } from "@/components/bank/plano/grafico-aportes";
 import { ParametrosPlanoForm } from "@/components/bank/plano/parametros-plano";
+import { VitrineConquistas } from "@/components/bank/conquistas/vitrine";
+import { CelebracaoConquistas } from "@/components/bank/conquistas/celebracao";
+import { aoAlcance, avaliarConquistas, conquistasParaCelebrar } from "@/lib/bank/conquistas";
 
 export const metadata = { title: "Plano" };
 
@@ -63,6 +67,9 @@ export default async function PaginaPlano() {
   const aplicadoHoje = abertas.reduce((s, p) => s + Number(p.quantidade_atual) * Number(p.preco_medio ?? 0), 0);
 
   const plano = await carregarPlano(supabase, { patrimonio: patrimonioHoje, aplicado: aplicadoHoje });
+  // Avaliar antes de ler as pendentes: medalha nova já comemora nesta visita.
+  const conquistas = await avaliarConquistas(supabase);
+  const paraCelebrar = await conquistasParaCelebrar(supabase);
   const { parametros: p, hoje } = plano;
   const antesDoInicio = hoje < p.inicio;
 
@@ -86,6 +93,7 @@ export default async function PaginaPlano() {
 
   return (
     <div className="flex flex-col gap-6">
+      <CelebracaoConquistas conquistas={paraCelebrar} />
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <h1 className="text-lg font-semibold">Plano patrimonial</h1>
@@ -93,6 +101,13 @@ export default async function PaginaPlano() {
             Rumo a {rotuloValor(p.metaFinal)} até {p.anoMeta}, um degrau de cada vez.
           </p>
         </div>
+        <div className="flex flex-col items-end gap-1">
+        <Link
+          href="/bank/tv/trimestre"
+          className="rounded-[8px] border border-border bg-surface-1 px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary"
+        >
+          📺 Reunião trimestral
+        </Link>
         <p className="text-xs text-text-faint">
           Carteira do Investidor10
           {ultimaSync
@@ -105,6 +120,7 @@ export default async function PaginaPlano() {
               })}`
             : " · ainda não sincronizada"}
         </p>
+        </div>
       </div>
 
       {/* Fase atual */}
@@ -236,6 +252,12 @@ export default async function PaginaPlano() {
           </p>
         </section>
       </div>
+
+      {/* Conquistas da família */}
+      <section className="card-bank p-4 sm:p-5">
+        <h2 className="mb-3 text-sm font-semibold">🏅 Conquistas da família</h2>
+        <VitrineConquistas estados={conquistas} alcance={aoAlcance(conquistas)} />
+      </section>
 
       {/* Escada de marcos */}
       <section className="card-bank p-4 sm:p-5">

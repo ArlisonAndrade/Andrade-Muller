@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ENTIDADE_FAMILIA } from "@/lib/bank/tipos";
 import { hojeSP } from "@/lib/bank/agente/datas";
+import { avaliarConquistas } from "@/lib/bank/conquistas";
 
 // Sincronização da carteira com o Investidor10 (decisão do Arlison, 14/set/2026).
 //
@@ -323,6 +324,14 @@ export async function sincronizarInvestidor10(
       ativos: carteira.posicoes.length,
       alteracoes,
     });
+  }
+
+  // Carteira nova pode ter passado de um degrau ou fechado o aporte do mês.
+  // Falha aqui não desfaz a sincronização — a próxima avaliação pega.
+  try {
+    await avaliarConquistas(supabase);
+  } catch (e) {
+    console.error("[investidor10] avaliar conquistas", e);
   }
 
   return registrar({
