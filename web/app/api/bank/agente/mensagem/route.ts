@@ -1,4 +1,5 @@
 import { autorizarAgente } from "@/lib/bank/agente/auth";
+import { BancoIndisponivel } from "@/lib/bank/agente/contexto";
 import { processarMensagem, type MensagemTelegram } from "@/lib/bank/agente/executar";
 
 // Entrada única do consultor do Telegram. O n8n só relaia: pega a mensagem do
@@ -60,6 +61,15 @@ export async function POST(request: Request) {
     });
   } catch (erro) {
     console.error("[agente/mensagem]", erro);
+    // Um 500 faz o n8n falhar calado e a pessoa acha que o gasto entrou.
+    if (erro instanceof BancoIndisponivel) {
+      return Response.json({
+        responder: true,
+        texto: "⚠️ Não consegui acessar o banco agora e não registrei nada. Manda de novo em um minuto.",
+        desfazer_token: null,
+        escolha_categoria: null,
+      });
+    }
     return Response.json(
       { erro: erro instanceof Error ? erro.message : "erro inesperado" },
       { status: 500 },

@@ -12,6 +12,21 @@ import {
 } from "@/lib/bank/agente/datas";
 
 /**
+ * O banco não respondeu (timeout, 504). Diferente de "não cadastrado": quem
+ * mandou precisa saber que nada foi registrado e que vale mandar de novo.
+ */
+export class BancoIndisponivel extends Error {}
+
+/**
+ * Leitura que falhou não pode virar lista vazia: o modelo lê "R$ 0" e "dívida
+ * zerada" como fato e escreve em cima disso (resumo de 13/set/2026).
+ */
+export function exigirLeituras(...erros: ({ message: string } | null)[]) {
+  const erro = erros.find(Boolean);
+  if (erro) throw new BancoIndisponivel(erro.message);
+}
+
+/**
  * Quem mandou a mensagem. Retorna null quando o par (grupo, pessoa) não está
  * cadastrado — é a porta de entrada do agente e o único ponto onde ele decide
  * se responde ou não.
@@ -21,7 +36,7 @@ export async function identificarMembro(
   chatId: number,
   userId: number,
 ): Promise<MembroTelegram | null> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("telegram_membros")
     .select(
       "id, entidade_id, telegram_chat_id, telegram_user_id, pessoa_id, nome_telegram, ativo, pessoa:pessoas(nome)",
@@ -29,6 +44,11 @@ export async function identificarMembro(
     .eq("telegram_chat_id", chatId)
     .eq("telegram_user_id", userId)
     .maybeSingle();
+
+  // Um 504 do Supabase chegava aqui como data=null e virava "ainda não te
+  // conheço" pra quem já estava cadastrado (12/set/2026). O client já tentou
+  // de novo (lib/supabase/admin.ts); se ainda falhou, é banco, não cadastro.
+  if (error) throw new BancoIndisponivel(error.message);
 
   if (!data || data.ativo === false) return null;
 
@@ -64,7 +84,7 @@ export async function montarContextoCompleto(supabase: SupabaseClient) {
     pessoa_nome: null,
   };
 
-  const [base, score, { data: dividas }, { data: metas }] = await Promise.all([
+  const [base, score, { data: dividas, error: erroDividas }, { data: metas, error: erroMetas }] = await Promise.all([
     montarContexto(supabase, membroSintetico),
     calcularScoreSaude(supabase),
     supabase
@@ -78,6 +98,7 @@ export async function montarContextoCompleto(supabase: SupabaseClient) {
       .eq("entidade_id", ENTIDADE_FAMILIA)
       .eq("status", "em_andamento"),
   ]);
+  exigirLeituras(erroDividas, erroMetas);
 
   return {
     ...base,
@@ -144,10 +165,10 @@ export async function montarContexto(
 
   const [
     panorama,
-    { data: categorias },
-    { data: cartoes },
-    { data: transacoes },
-    { data: conversa },
+    { data: categorias, error: erroCategorias },
+    { data: cartoes, error: erroCartoes },
+    { data: transacoes, error: erroTransacoes },
+    { data: conversa, error: erroConversa },
   ] = await Promise.all([
       // A leitura semanal (por categoria, por dia, média das anteriores) é a
       // mesma que a tela /bank/semanas mostra — o consultor e o site nunca
@@ -182,6 +203,7 @@ export async function montarContexto(
         .order("created_at", { ascending: false })
         .limit(12),
     ]);
+  exigirLeituras(erroCategorias, erroCartoes, erroTransacoes, erroConversa);
 
   const lista = (transacoes ?? []) as unknown as TransacaoLeve[];
   const despesas = lista.filter((t) => t.categoria?.tipo === "despesa");

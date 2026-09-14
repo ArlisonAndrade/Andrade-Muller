@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { montarContextoCompleto } from "@/lib/bank/agente/contexto";
+import { exigirLeituras, montarContextoCompleto } from "@/lib/bank/agente/contexto";
 import { hojeSP } from "@/lib/bank/agente/datas";
 import { DOUTRINA_ARKAD } from "@/lib/bank/agente/arkad";
 import { linhaVitoria } from "@/lib/bank/agente/marcos";
@@ -138,13 +138,14 @@ export async function gerarResumo(
  * e não duplicado numa configuração do n8n que ninguém lembra de atualizar.
  */
 async function descobrirGrupo(supabase: SupabaseClient): Promise<number | null> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("telegram_membros")
     .select("telegram_chat_id")
     .eq("ativo", true)
     .lt("telegram_chat_id", 0)
     .limit(1)
     .maybeSingle();
+  exigirLeituras(error);
 
   return data ? Number(data.telegram_chat_id) : null;
 }
