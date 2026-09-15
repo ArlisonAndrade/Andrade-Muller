@@ -11,6 +11,7 @@ import {
   mesDoIndice,
   rotuloMes,
   rotuloValor,
+  somarMeses,
 } from "@/lib/bank/plano";
 import { ProgressBar } from "@/components/bank/ui/progress-bar";
 import { GraficoPlano } from "@/components/bank/plano/grafico-plano";
@@ -71,7 +72,7 @@ export default async function PaginaPlano() {
   const conquistas = await avaliarConquistas(supabase);
   const paraCelebrar = await conquistasParaCelebrar(supabase);
   const { parametros: p, hoje } = plano;
-  const antesDoInicio = hoje < p.inicio;
+  const { antesDoPlacar } = plano;
 
   // Carteira real mês a mês (fotos mensais) + o valor vivo de hoje.
   const reais = (fotos ?? [])
@@ -81,10 +82,15 @@ export default async function PaginaPlano() {
 
   // Rampa do aporte: do início do plano até 1 ano depois de chegar no alvo.
   const realizadoPorMes = new Map(plano.aportes.map((a) => [a.mes, a.realizado]));
-  const mesesAporte: Array<{ mes: number; planejado: number; realizado: number | null }> = [];
+  const mesesAporte: Array<{ mes: number; planejado: number; realizado: number | null; reorganizacao: boolean }> = [];
   for (let i = indiceMes(p.inicio); i <= indiceMes(p.rampaFim) + 12; i++) {
     const mes = mesDoIndice(i);
-    mesesAporte.push({ mes, planejado: aporteDoMes(p, mes), realizado: realizadoPorMes.get(mes) ?? null });
+    mesesAporte.push({
+      mes,
+      planejado: aporteDoMes(p, mes),
+      realizado: realizadoPorMes.get(mes) ?? null,
+      reorganizacao: mes < p.inicioPlacar,
+    });
   }
 
   const falta = plano.aporteDoMesAtual.planejado - plano.aporteDoMesAtual.realizado;
@@ -131,7 +137,22 @@ export default async function PaginaPlano() {
               Fase {plano.faseAtual.numero} de 3 · {plano.faseAtual.nome}
             </p>
             <p className="mt-1 text-sm text-text-secondary">{plano.faseAtual.descricao}</p>
-            <div className="mt-4 flex items-baseline justify-between text-sm">
+            {plano.faseAtual.numero === 1 && (
+              // No começo o percentual é pequeno e desanima; o valor em reais
+              // construído desde a negociação com o BB conta a história certa.
+              <p className="mt-4 text-sm text-text-secondary">
+                <strong
+                  className={`text-2xl font-semibold numeros-tabulares ${
+                    plano.construidoDesdeMarcoZero >= 0 ? "text-bank-positivo" : "text-text-primary"
+                  }`}
+                >
+                  {plano.construidoDesdeMarcoZero >= 0 ? "+" : ""}
+                  {brl0(plano.construidoDesdeMarcoZero)}
+                </strong>{" "}
+                construídos desde o marco zero ({rotuloMes(p.inicio)})
+              </p>
+            )}
+            <div className="mt-3 flex items-baseline justify-between text-sm">
               <span className="text-text-secondary">
                 {brl0(plano.faseAtual.valorInicio)} → {brl0(plano.faseAtual.valorAlvo)}
                 {plano.faseAtual.ateMes && (
@@ -139,7 +160,7 @@ export default async function PaginaPlano() {
                 )}
               </span>
               <span className="text-xl font-semibold text-text-primary numeros-tabulares">
-                {Math.round(plano.progressoFase)}%
+                {plano.progressoFase.toLocaleString("pt-BR", { maximumFractionDigits: plano.progressoFase < 10 ? 1 : 0 })}%
               </span>
             </div>
             <ProgressBar percentual={plano.progressoFase} altura="h-3" className="mt-2" />
@@ -166,10 +187,11 @@ export default async function PaginaPlano() {
           <div className="rounded-[12px] bg-surface-2 p-4 lg:w-72">
             <p className="text-xs text-text-secondary">Carteira hoje</p>
             <p className="text-2xl font-semibold text-text-primary numeros-tabulares">{moedaBRL(patrimonioHoje)}</p>
-            {antesDoInicio ? (
+            {antesDoPlacar ? (
               <p className="mt-2 text-sm text-text-secondary">
-                O plano começa em <strong className="text-text-primary">{rotuloMes(p.inicio)}</strong>. A linha de
-                base é a carteira de hoje — dali pra frente, cada mês conta.
+                Marco zero em <strong className="text-text-primary">{rotuloMes(p.inicio)}</strong>, a negociação com o
+                BB. Até {rotuloMes(somarMeses(p.inicioPlacar, -1))} é reorganização; o placar começa em{" "}
+                <strong className="text-text-primary">{rotuloMes(p.inicioPlacar)}</strong>.
               </p>
             ) : plano.desvio >= 0 ? (
               <p className="mt-2 text-sm text-bank-positivo">
@@ -199,8 +221,8 @@ export default async function PaginaPlano() {
             className="mt-2"
           />
           <p className="mt-2 text-xs text-text-secondary">
-            {antesDoInicio
-              ? "Primeiro mês do plano. Registrou a compra no Investidor10, ela aparece aqui."
+            {antesDoPlacar
+              ? `Mês de reorganização — entra no histórico, não no placar. Em ${rotuloMes(p.inicioPlacar)} o plano pede ${brl0(aporteDoMes(p, p.inicioPlacar))}.`
               : falta <= 1
                 ? "✓ Aporte do mês cumprido."
                 : `Faltam ${brl0(falta)}. Registrou a compra no Investidor10, ela aparece aqui.`}
@@ -302,8 +324,9 @@ export default async function PaginaPlano() {
       <section className="card-bank p-4 sm:p-5">
         <h2 className="text-sm font-semibold">A rampa do aporte</h2>
         <p className="mb-2 text-xs text-text-secondary">
-          De {brl0(p.aporteInicial)} em {rotuloMes(p.inicio)} até {brl0(p.aporteAlvo)} em {rotuloMes(p.rampaFim)}, depois
-          +{p.reajusteAa}% ao ano. O aporte realizado é o quanto o valor aplicado no Investidor10 cresceu no mês.
+          De {brl0(p.aporteInicial)} em {rotuloMes(p.inicioPlacar)} até {brl0(p.aporteAlvo)} em {rotuloMes(p.rampaFim)},
+          depois +{p.reajusteAa}% ao ano. Cinza = reorganização (antes do placar). O realizado é o aporte informado ou,
+          sem ele, o quanto o aplicado cresceu no mês.
         </p>
         <GraficoAportes meses={mesesAporte} />
       </section>

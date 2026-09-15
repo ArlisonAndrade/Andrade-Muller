@@ -9,7 +9,7 @@ import { rotuloMes } from "@/lib/bank/plano";
 export function GraficoAportes({
   meses,
 }: {
-  meses: Array<{ mes: number; planejado: number; realizado: number | null }>;
+  meses: Array<{ mes: number; planejado: number; realizado: number | null; reorganizacao?: boolean }>;
 }) {
   return (
     <div className="h-56">
@@ -28,8 +28,9 @@ export function GraficoAportes({
             {
               label: "Aportado",
               data: meses.map((m) => (m.realizado == null ? null : Math.max(0, Math.round(m.realizado)))),
+              // Reorganização (antes do placar) é cinza: mostra o que entrou sem julgar.
               backgroundColor: meses.map((m) =>
-                m.realizado != null && m.realizado >= m.planejado - 1 ? "#16a34a" : "#dc2626",
+                m.reorganizacao ? "#94a3b8" : m.realizado != null && m.realizado >= m.planejado - 1 ? "#16a34a" : "#dc2626",
               ),
               borderRadius: 3,
               barPercentage: 0.5,

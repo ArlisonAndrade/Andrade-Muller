@@ -20,7 +20,7 @@ import { aaaammDe, carregarPlano, rotuloValor, type PlanoCompleto } from "@/lib/
 // do degrau), não a do dia em que o sistema percebeu — é por ela que a
 // reunião trimestral sabe o que foi conquistado naquele trimestre.
 
-import type { Nivel, Trilha } from "@/lib/bank/conquistas-visual";
+import type { Nivel, SeloHistoria, TomComemoracao, Trilha } from "@/lib/bank/conquistas-visual";
 
 type Contexto = {
   hoje: string;
@@ -30,9 +30,9 @@ type Contexto = {
   maiorSequenciaAporte: { meses: number; mes: number | null };
   aportes: PlanoCompleto["aportes"];
   parcelas: Array<{ paga: boolean; adiantada: boolean; valor_juros: number; paga_em: string | null }>;
-  quitadas: Array<{ id: string; ultimoPagamento: string | null }>;
   semanas: Array<{ inicio: string; fim: string; gasto: number; meta: number | null }>;
   arthur: number;
+  santander: { pagas: number; total: number; quitada: boolean; ultimoPagamento: string | null; quitacaoPrevista: string | null } | null;
 };
 
 type Avaliacao = { conquistada: boolean; data?: string; atual: number; alvo: number; detalhe?: Record<string, unknown> };
@@ -45,8 +45,63 @@ export type DefinicaoConquista = {
   nome: string;
   descricao: string; // o que precisa acontecer
   frase: string; // o que a comemoração diz
+  selo?: SeloHistoria; // selos da história têm desenho próprio
+  tom?: TomComemoracao; // padrão: festa
   avaliar: (c: Contexto) => Avaliacao;
 };
+
+// ---------- Selos da história (decisão do Arlison, 15/set/2026) ----------
+// Marcos de uma vida sem controle que viraram um plano. Ficam sempre no topo,
+// e "é sempre bom lembrar": abrem a vitrine e a reunião trimestral. Os dois
+// primeiros são fatos com data (não se avaliam, só se registram); o Fim do
+// Santander é o único "em construção" e mostra as parcelas pagas.
+// Texto: só o título e a data (decisão do Arlison) — a história é dele, não
+// cabe ao sistema narrar.
+const SELOS_HISTORIA: DefinicaoConquista[] = [
+  {
+    codigo: "historia_fundo_do_poco",
+    trilha: "historia",
+    nivel: "diamante",
+    emoji: "🕳️",
+    selo: "fundo_do_poco",
+    tom: "sobrio",
+    nome: "Fundo do Poço",
+    descricao: "08/05/2024",
+    frase: "08/05/2024",
+    avaliar: () => ({ conquistada: true, data: "2024-05-08", atual: 1, alvo: 1 }),
+  },
+  {
+    codigo: "historia_negociacao_bb",
+    trilha: "historia",
+    nivel: "diamante",
+    emoji: "🚦",
+    selo: "negociacao_bb",
+    nome: "Negociação com BB",
+    descricao: "22/06/2026",
+    frase: "22/06/2026",
+    avaliar: () => ({ conquistada: true, data: "2026-06-22", atual: 1, alvo: 1 }),
+  },
+  {
+    codigo: "historia_fim_santander",
+    trilha: "historia",
+    nivel: "diamante",
+    emoji: "⛓️‍💥",
+    selo: "fim_santander",
+    nome: "Fim do Santander",
+    descricao: "Em construção",
+    frase: "Fim do Santander",
+    avaliar: (c) => {
+      const s = c.santander;
+      if (s?.quitada) return { conquistada: true, data: s.ultimoPagamento ?? c.hoje, atual: s.total, alvo: s.total };
+      return {
+        conquistada: false,
+        atual: s?.pagas ?? 0,
+        alvo: Math.max(1, s?.total ?? 1),
+        detalhe: { quitacaoPrevista: s?.quitacaoPrevista ?? null, pagas: s?.pagas ?? 0, total: s?.total ?? 0 },
+      };
+    },
+  },
+];
 
 const inicioDoMes = (aaaamm: number) => `${Math.floor(aaaamm / 100)}-${String(aaaamm % 100).padStart(2, "0")}-01`;
 
@@ -161,6 +216,7 @@ function arthur(valor: number, nivel: Nivel, frase: string): DefinicaoConquista 
 }
 
 export const CATALOGO: DefinicaoConquista[] = [
+  ...SELOS_HISTORIA,
   degrau(50_000, "bronze", "🌰", "Os primeiros R$ 50 mil são os mais difíceis. Esses já são de vocês."),
   degrau(100_000, "bronze", "🌱", "Seis dígitos. A partir daqui os juros começam a ser notados."),
   degrau(250_000, "prata", "🌿", "Um quarto de milhão construído aporte por aporte."),
@@ -198,8 +254,9 @@ export const CATALOGO: DefinicaoConquista[] = [
     descricao: "Aportar o dobro do que o plano pede num mês.",
     frase: "Um mês aportando o dobro adianta a escada inteira.",
     avaliar: (c) => {
-      const mes = c.aportes.find((a) => a.realizado != null && a.realizado >= 2 * a.planejado);
-      const melhor = Math.max(0, ...c.aportes.map((a) => (a.realizado ?? 0) / Math.max(1, a.planejado)));
+      const valendo = c.aportes.filter((a) => !a.reorganizacao);
+      const mes = valendo.find((a) => a.realizado != null && a.realizado >= 2 * a.planejado);
+      const melhor = Math.max(0, ...valendo.map((a) => (a.realizado ?? 0) / Math.max(1, a.planejado)));
       return mes
         ? { conquistada: true, data: inicioDoMes(mes.mes), atual: 2, alvo: 2 }
         : { conquistada: false, atual: Math.min(2, melhor), alvo: 2 };
@@ -228,21 +285,8 @@ export const CATALOGO: DefinicaoConquista[] = [
   jurosEconomizados(1_000, "bronze", "Mil reais que iam pro banco e ficaram com vocês."),
   jurosEconomizados(5_000, "prata", "Cinco mil de juros cortados."),
   jurosEconomizados(10_000, "ouro", "Dez mil reais de juros que nunca vão ser pagos."),
-  {
-    codigo: "divida_quitada",
-    trilha: "divida",
-    nivel: "diamante",
-    emoji: "🏦",
-    nome: "Dívida quitada",
-    descricao: "Quitar um contrato de dívida inteiro.",
-    frase: "Dívida quitada. Tudo que ia pra ela agora vira aporte.",
-    avaliar: (c) => {
-      const quitada = c.quitadas[0];
-      if (quitada) return { conquistada: true, data: quitada.ultimoPagamento ?? c.hoje, atual: 1, alvo: 1 };
-      const total = c.parcelas.length;
-      return { conquistada: false, atual: c.parcelas.filter((p) => p.paga).length, alvo: Math.max(1, total) };
-    },
-  },
+  // "Dívida quitada" genérica saiu (15/set/2026): o Fim do Santander, na trilha
+  // da história, é essa medalha — ter as duas contaria o mesmo fato duas vezes.
 
   semanasSeguidas(1, "bronze", "✅", "Uma semana inteira dentro do combinado."),
   semanasSeguidas(4, "prata", "📅", "Um mês de semanas dentro da meta."),
@@ -292,6 +336,9 @@ export type EstadoConquista = {
   nome: string;
   descricao: string;
   frase: string;
+  selo?: SeloHistoria;
+  tom?: TomComemoracao;
+  detalhe?: Record<string, unknown>;
   conquistada: boolean;
   data: string | null; // referencia_data
   progresso: number; // 0–100
@@ -333,9 +380,9 @@ export async function avaliarConquistas(supabase: SupabaseClient): Promise<Estad
         .order("competencia"),
       supabase
         .from("parcelas_divida")
-        .select("divida_id, paga, adiantada, valor_juros, paga_em, divida:dividas!inner(entidade_id)")
+        .select("divida_id, paga, adiantada, valor_juros, paga_em, data_vencimento, divida:dividas!inner(entidade_id)")
         .eq("divida.entidade_id", ENTIDADE_FAMILIA),
-      supabase.from("dividas").select("id, quitada, parcelas_total").eq("entidade_id", ENTIDADE_FAMILIA),
+      supabase.from("dividas").select("id, descricao, quitada, parcelas_total").eq("entidade_id", ENTIDADE_FAMILIA),
       montarPanoramaSemanal(supabase, ENTIDADE_FAMILIA, { semanas: 60 }),
       obterPatrimonioArthur(supabase, carteira.cotacoesMap),
       supabase.from("conquistas").select("codigo, referencia_data").eq("entidade_id", ENTIDADE_FAMILIA),
@@ -358,18 +405,23 @@ export async function avaliarConquistas(supabase: SupabaseClient): Promise<Estad
     adiantada: !!p.adiantada,
     valor_juros: Number(p.valor_juros ?? 0),
     paga_em: p.paga_em ? String(p.paga_em) : null,
+    data_vencimento: String(p.data_vencimento),
   }));
-  const quitadas = (dividas ?? [])
-    .filter((d) => d.quitada && Number(d.parcelas_total ?? 0) > 0)
-    .map((d) => ({
-      id: String(d.id),
-      ultimoPagamento:
-        listaParcelas
-          .filter((p) => p.divida_id === d.id && p.paga_em)
-          .map((p) => p.paga_em as string)
-          .sort()
-          .pop() ?? null,
-    }));
+
+  // O contrato que nasceu da negociação com o BB. Se um dia houver mais de um
+  // Santander (recadastro), vale o que ainda tem parcela em aberto.
+  const contratos = (dividas ?? []).filter((d) => /santander/i.test(String(d.descricao)));
+  const contrato = contratos.find((d) => !d.quitada) ?? contratos[0];
+  const doContrato = contrato ? listaParcelas.filter((p) => p.divida_id === contrato.id) : [];
+  const santander = contrato
+    ? {
+        pagas: doContrato.filter((p) => p.paga).length,
+        total: doContrato.length || Number(contrato.parcelas_total ?? 0),
+        quitada: !!contrato.quitada,
+        ultimoPagamento: doContrato.map((p) => p.paga_em).filter((d): d is string => !!d).sort().pop() ?? null,
+        quitacaoPrevista: doContrato.filter((p) => !p.paga).map((p) => p.data_vencimento).sort().pop() ?? null,
+      }
+    : null;
 
   const contexto: Contexto = {
     hoje,
@@ -379,7 +431,7 @@ export async function avaliarConquistas(supabase: SupabaseClient): Promise<Estad
     maiorSequenciaAporte: maior,
     aportes: plano.aportes.filter((a) => a.mes < plano.hoje || a.cumprido),
     parcelas: listaParcelas,
-    quitadas,
+    santander,
     semanas: [...panorama.anteriores].sort((a, b) => a.inicio.localeCompare(b.inicio)),
     arthur: patrimonioArthur.atual,
   };
@@ -403,6 +455,7 @@ export async function avaliarConquistas(supabase: SupabaseClient): Promise<Estad
     void _avaliar;
     return {
       ...info,
+      detalhe: a.detalhe,
       conquistada,
       data: gravada ?? (a.conquistada ? (a.data ?? hoje) : null),
       atual: a.atual,
@@ -429,7 +482,7 @@ export async function conquistasParaCelebrar(supabase: SupabaseClient) {
   return (data ?? [])
     .map((c) => DEFINICAO_POR_CODIGO.get(c.codigo))
     .filter((d): d is DefinicaoConquista => !!d)
-    .map(({ codigo, emoji, nivel, nome, frase }) => ({ codigo, emoji, nivel, nome, frase }));
+    .map(({ codigo, emoji, nivel, nome, frase, selo, tom }) => ({ codigo, emoji, nivel, nome, frase, selo, tom }));
 }
 
 /**
@@ -457,12 +510,31 @@ export async function anunciarConquistasNovas(supabase: SupabaseClient): Promise
 
 /** As bloqueadas mais perto de sair — o "ao alcance". */
 export function aoAlcance(estados: EstadoConquista[], quantas = 3) {
-  return estados.filter((e) => !e.conquistada && e.progresso > 0).sort((a, b) => b.progresso - a.progresso).slice(0, quantas);
+  return estados
+    .filter((e) => e.trilha !== "historia" && !e.conquistada && e.progresso > 0)
+    .sort((a, b) => b.progresso - a.progresso)
+    .slice(0, quantas);
 }
 
 /** Texto do anúncio no grupo — curto, uma linha por medalha. */
 export function textoAnuncio(codigos: string[]): string {
-  const defs = codigos.map((c) => DEFINICAO_POR_CODIGO.get(c)).filter((d): d is DefinicaoConquista => !!d);
+  const todas = codigos.map((c) => DEFINICAO_POR_CODIGO.get(c)).filter((d): d is DefinicaoConquista => !!d);
+  // Selo de fato passado não é "conquista desbloqueada": é a história entrando
+  // no plano. Só o Fim do Santander, quando chegar, é anunciado como vitória.
+  const passado = todas.filter((d) => d.trilha === "historia" && d.codigo !== "historia_fim_santander");
+  const defs = todas.filter((d) => !passado.includes(d));
+  const blocos: string[] = [];
+  if (passado.length > 0) {
+    blocos.push(
+      `🧭 A história de vocês agora está no plano.\n` + passado.map((d) => `${d.emoji} ${d.nome} — ${d.descricao}`).join("\n"),
+    );
+  }
+  const vitorias = textoVitorias(defs);
+  if (vitorias) blocos.push(vitorias);
+  return blocos.join("\n\n");
+}
+
+function textoVitorias(defs: DefinicaoConquista[]): string {
   if (defs.length === 0) return "";
   if (defs.length === 1) {
     const d = defs[0];

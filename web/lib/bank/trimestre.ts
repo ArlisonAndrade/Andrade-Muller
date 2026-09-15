@@ -43,11 +43,12 @@ export type DadosTrimestre = {
   fechado: boolean;
   carteiraInicio: number | null;
   carteiraFim: number;
-  aportes: Array<{ mes: number; planejado: number | null; realizado: number | null }>;
+  aportes: Array<{ mes: number; planejado: number | null; realizado: number | null; reorganizacao: boolean }>;
   aportadoTotal: number;
   planejadoTotal: number;
   conquistasDoTrimestre: EstadoConquista[];
   colecaoAnterior: EstadoConquista[]; // só na primeira reunião
+  historia: EstadoConquista[]; // selos "De onde viemos", abrem toda reunião
   primeiraReuniao: boolean;
   plano: PlanoCompleto;
   divida: {
@@ -116,20 +117,25 @@ export async function montarTrimestre(supabase: SupabaseClient, trimestre: strin
   const mercadoDe = (mes: number) =>
     mes === hoje ? carteira.patrimonio : porMes.has(mes) ? Number(porMes.get(mes)!.valor_mercado) : null;
 
+  // Mesma leitura do plano (aporte informado vence o calculado); fora do
+  // período do plano, cai no crescimento do aplicado.
   const aportes = meses.map((mes) => {
+    const doPlano = plano.aportes.find((a) => a.mes === mes);
     const atual = aplicadoDe(mes);
     const antes = aplicadoDe(somarMeses(mes, -1));
     return {
       mes,
       planejado: mes >= plano.parametros.inicio ? aporteDoMes(plano.parametros, mes) : null,
-      realizado: mes > hoje || atual == null || antes == null ? null : atual - antes,
+      realizado: doPlano ? doPlano.realizado : mes > hoje || atual == null || antes == null ? null : atual - antes,
+      reorganizacao: mes < plano.parametros.inicioPlacar,
     };
   });
 
   // Conquistas: pela data do fato. Na primeira reunião, o que veio antes vira
   // "a coleção até aqui" — ninguém começa o jogo do zero.
   const dataPorCodigo = new Map((gravadas ?? []).map((g) => [g.codigo, String(g.referencia_data)]));
-  const comData = estados.filter((e) => e.conquistada && dataPorCodigo.has(e.codigo));
+  // Selos da história têm slide próprio ("De onde viemos") em toda reunião.
+  const comData = estados.filter((e) => e.trilha !== "historia" && e.conquistada && dataPorCodigo.has(e.codigo));
   const doTrimestre = comData.filter((e) => {
     const d = dataPorCodigo.get(e.codigo)!;
     return d >= inicioISO && d <= fimISO;
@@ -158,9 +164,11 @@ export async function montarTrimestre(supabase: SupabaseClient, trimestre: strin
     carteiraFim: fechado ? (mercadoDe(meses[2]) ?? carteira.patrimonio) : carteira.patrimonio,
     aportes,
     aportadoTotal: aportes.reduce((s, a) => s + Math.max(0, a.realizado ?? 0), 0),
-    planejadoTotal: aportes.reduce((s, a) => s + (a.planejado ?? 0), 0),
+    // Reorganização não entra na régua: o trimestre só "deve" o que já é placar.
+    planejadoTotal: aportes.reduce((s, a) => s + (a.reorganizacao ? 0 : (a.planejado ?? 0)), 0),
     conquistasDoTrimestre: doTrimestre,
     colecaoAnterior,
+    historia: estados.filter((e) => e.trilha === "historia"),
     primeiraReuniao,
     plano,
     divida: {

@@ -14,6 +14,7 @@ import { TvSlideshow, type SlideTv } from "@/components/bank/tv/tv-slideshow";
 import { RevelacaoConquistas } from "@/components/bank/tv/revelacao-conquistas";
 import { CompromissosReuniao } from "@/components/bank/tv/compromissos-reuniao";
 import { Medalha } from "@/components/bank/conquistas/medalha";
+import { LinhaHistoria } from "@/components/bank/conquistas/linha-historia";
 
 export const metadata = { title: "Reunião trimestral" };
 
@@ -52,6 +53,17 @@ export default async function PaginaReuniaoTrimestral({
   const cumpriuAportes = d.planejadoTotal > 0 && d.aportadoTotal >= d.planejadoTotal - 1;
 
   const slides: SlideTv[] = [
+    // Toda reunião abre lembrando o caminho — decisão do Arlison.
+    ...(d.historia.length > 0
+      ? [
+          {
+            titulo: "De onde viemos",
+            emoji: "🧭",
+            fundo: "linear-gradient(135deg, #18181b 0%, #000000 100%)",
+            conteudo: <LinhaHistoria selos={d.historia} escuro tamanho={132} />,
+          } satisfies SlideTv,
+        ]
+      : []),
     {
       titulo: rotuloTrimestre(trimestre),
       emoji: "📅",
@@ -91,8 +103,11 @@ export default async function PaginaReuniaoTrimestral({
                     {a.realizado != null ? brl0(Math.max(0, a.realizado)) : "—"}
                   </p>
                   <p className="mt-1 text-sm text-white/70">
-                    {a.planejado != null ? `plano: ${brl0(a.planejado)}` : "antes do plano"}
-                    {a.planejado != null && a.realizado != null && (cumpriu ? " · ✓" : " · abaixo")}
+                    {a.reorganizacao
+                      ? a.planejado != null
+                        ? "reorganização · depois da negociação com o BB"
+                        : "antes do marco zero"
+                      : `plano: ${brl0(a.planejado ?? 0)}${a.realizado != null ? (cumpriu ? " · ✓" : " · abaixo") : ""}`}
                   </p>
                 </div>
               );

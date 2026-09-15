@@ -19,8 +19,9 @@ import { hojeSP } from "@/lib/bank/agente/datas";
 // `carregarPlano`, que lê o banco.
 
 export type ParametrosPlano = {
-  inicio: number; // AAAAMM do mês 1 do plano
-  valorInicial: number; // carteira no início do plano (linha de base do "real vs plano")
+  inicio: number; // AAAAMM do marco zero (jun/2026: a negociação com o BB)
+  valorInicial: number; // carteira no marco zero (linha de base do "real vs plano")
+  inicioPlacar: number; // AAAAMM em que o placar do aporte passa a valer (e a rampa começa)
   aporteInicial: number;
   aporteAlvo: number;
   rampaFim: number; // AAAAMM em que o aporte chega no alvo
@@ -31,8 +32,9 @@ export type ParametrosPlano = {
 };
 
 export const PARAMETROS_PADRAO: ParametrosPlano = {
-  inicio: 202610,
-  valorInicial: 61736.6,
+  inicio: 202606, // negociação com o BB em 22/06/2026
+  valorInicial: 56248.39, // foto de jun/2026
+  inicioPlacar: 202610,
   aporteInicial: 1000,
   aporteAlvo: 5000,
   rampaFim: 202909,
@@ -46,6 +48,7 @@ export const PARAMETROS_PADRAO: ParametrosPlano = {
 export const CHAVES_PLANO: Record<keyof ParametrosPlano, string> = {
   inicio: "plano_inicio",
   valorInicial: "plano_valor_inicial",
+  inicioPlacar: "plano_inicio_placar",
   aporteInicial: "plano_aporte_inicial",
   aporteAlvo: "plano_aporte_alvo",
   rampaFim: "plano_rampa_fim",
@@ -65,10 +68,14 @@ export const mesAtual = () => aaaammDe(hojeSP());
 const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 export const rotuloMes = (aaaamm: number) => `${MESES[(aaaamm % 100) - 1]}/${Math.floor(aaaamm / 100)}`;
 
-/** Aporte que o plano pede num mês: rampa linear até o alvo, depois reajuste anual. */
+/**
+ * Aporte que o plano pede num mês: o inicial até o placar começar, rampa
+ * linear até o alvo, depois reajuste anual. A rampa parte do placar (out/2026)
+ * e não do marco zero: os meses de reorganização não podem encarecer outubro.
+ */
 export function aporteDoMes(p: ParametrosPlano, aaaamm: number): number {
   const i = indiceMes(aaaamm);
-  const ini = indiceMes(p.inicio);
+  const ini = indiceMes(Math.max(p.inicio, p.inicioPlacar));
   const fim = indiceMes(p.rampaFim);
   if (i <= ini) return p.aporteInicial;
   if (i < fim) return p.aporteInicial + ((p.aporteAlvo - p.aporteInicial) * (i - ini)) / (fim - ini);
@@ -161,7 +168,14 @@ export function lerParametros(linhas: Array<{ chave: string; valor: number | str
   return p;
 }
 
-export type AporteMensal = { mes: number; planejado: number; realizado: number | null; cumprido: boolean | null };
+export type AporteMensal = {
+  mes: number;
+  planejado: number;
+  realizado: number | null;
+  informado: boolean; // veio de aportes_mensais, não do cálculo
+  reorganizacao: boolean; // antes do placar: mostra, não pontua
+  cumprido: boolean | null;
+};
 
 export type PlanoCompleto = {
   parametros: ParametrosPlano;
@@ -179,7 +193,9 @@ export type PlanoCompleto = {
   proximoMarco: { valor: number; mesPrevisto: number | null; progresso: number } | null;
   marcos: Array<{ valor: number; atingido: boolean; mesPlano: number | null; mesRitmo: number | null }>;
   aportes: AporteMensal[]; // meses do plano até hoje
-  aporteDoMesAtual: { planejado: number; realizado: number };
+  aporteDoMesAtual: { planejado: number; realizado: number; informado: boolean };
+  antesDoPlacar: boolean; // ainda nos meses de reorganização
+  construidoDesdeMarcoZero: number; // carteira hoje − carteira no marco zero
   sequencia: number; // meses seguidos com aporte cumprido
   mesDaMeta: number | null; // no ritmo atual
 };
@@ -201,13 +217,14 @@ export async function carregarPlano(
   supabase: SupabaseClient,
   carteira: { patrimonio: number; aplicado: number },
 ): Promise<PlanoCompleto> {
-  const [{ data: linhas }, { data: fotos }] = await Promise.all([
+  const [{ data: linhas }, { data: fotos }, { data: informados }] = await Promise.all([
     supabase.from("parametros_plano").select("chave, valor").eq("entidade_id", ENTIDADE_FAMILIA),
     supabase
       .from("snapshots_patrimonio")
       .select("competencia, valor_aplicado")
       .eq("entidade_id", ENTIDADE_FAMILIA)
       .order("competencia"),
+    supabase.from("aportes_mensais").select("mes, valor").eq("entidade_id", ENTIDADE_FAMILIA),
   ]);
   const p = lerParametros(linhas);
   const hoje = mesAtual();
@@ -220,10 +237,13 @@ export async function carregarPlano(
   const desvio = carteira.patrimonio - planejadoHoje;
   const desvioPct = planejadoHoje > 0 ? (desvio / planejadoHoje) * 100 : 0;
 
-  // Aporte realizado por mês: aplicado da foto do mês − aplicado da foto anterior.
+  // Aporte realizado por mês: o informado pela família, se houver; senão o
+  // aplicado da foto do mês − aplicado da foto anterior. O informado vence
+  // porque o aplicado mente quando o aporte sai da reserva (ver migration 21).
   const aplicadoPorMes = new Map<number, number>();
   for (const f of fotos ?? []) aplicadoPorMes.set(aaaammDe(String(f.competencia)), Number(f.valor_aplicado));
   aplicadoPorMes.set(hoje, carteira.aplicado); // o mês corrente usa o número vivo
+  const informadoPorMes = new Map((informados ?? []).map((a) => [aaaammDe(String(a.mes)), Number(a.valor)]));
 
   const aportes: AporteMensal[] = [];
   for (let i = indiceMes(p.inicio); i <= indiceMes(hoje); i++) {
@@ -231,8 +251,19 @@ export async function carregarPlano(
     const planejado = aporteDoMes(p, mes);
     const atual = aplicadoPorMes.get(mes);
     const anterior = aplicadoPorMes.get(mesDoIndice(i - 1));
-    const realizado = atual != null && anterior != null ? atual - anterior : null;
-    aportes.push({ mes, planejado, realizado, cumprido: realizado == null ? null : realizado >= planejado - 1 });
+    const informado = informadoPorMes.get(mes);
+    const realizado = informado ?? (atual != null && anterior != null ? atual - anterior : null);
+    // Antes do placar é reorganização: mostra o que entrou, mas não conta
+    // como cumprido nem como falha (sequência e medalhas ignoram).
+    const reorganizacao = mes < p.inicioPlacar;
+    aportes.push({
+      mes,
+      planejado,
+      realizado,
+      informado: informado != null,
+      reorganizacao,
+      cumprido: reorganizacao || realizado == null ? null : realizado >= planejado - 1,
+    });
   }
 
   // Sequência: meses fechados seguidos com aporte cumprido. O mês corrente só
@@ -291,7 +322,13 @@ export async function carregarPlano(
       : null,
     marcos,
     aportes,
-    aporteDoMesAtual: { planejado: aporteDoMes(p, Math.max(hoje, p.inicio)), realizado: Math.max(0, doMes?.realizado ?? 0) },
+    aporteDoMesAtual: {
+      planejado: aporteDoMes(p, Math.max(hoje, p.inicio)),
+      realizado: Math.max(0, doMes?.realizado ?? 0),
+      informado: doMes?.informado ?? false,
+    },
+    antesDoPlacar: hoje < p.inicioPlacar,
+    construidoDesdeMarcoZero: carteira.patrimonio - p.valorInicial,
     sequencia,
     mesDaMeta: mesQueAlcanca(ritmoAtual, p.metaFinal),
   };

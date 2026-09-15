@@ -3,9 +3,19 @@
 // avaliador puxa leitura de banco que não pode ir pro browser.
 
 export type Nivel = "bronze" | "prata" | "ouro" | "diamante";
-export type Trilha = "degraus" | "aporte" | "divida" | "semana" | "arthur" | "fases";
+export type Trilha = "historia" | "degraus" | "aporte" | "divida" | "semana" | "arthur" | "fases";
+
+/**
+ * Selos da história (decisão do Arlison, 15/set/2026): marcos de vida, não
+ * pontuação — por isso têm desenho próprio em vez do metal bronze/prata/ouro.
+ */
+export type SeloHistoria = "fundo_do_poco" | "negociacao_bb" | "fim_santander";
+
+/** Como a conquista é comemorada: memória pede sobriedade, vitória pede confete. */
+export type TomComemoracao = "festa" | "sobrio";
 
 export const ROTULO_TRILHA: Record<Trilha, string> = {
+  historia: "🧭 De onde viemos",
   degraus: "🪜 Degraus do patrimônio",
   aporte: "💵 Aporte",
   divida: "🏦 Dívida",

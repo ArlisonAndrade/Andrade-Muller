@@ -1,6 +1,7 @@
 import type { EstadoConquista } from "@/lib/bank/conquistas";
 import { ROTULO_TRILHA, type Trilha } from "@/lib/bank/conquistas-visual";
 import { Medalha } from "@/components/bank/conquistas/medalha";
+import { LinhaHistoria } from "@/components/bank/conquistas/linha-historia";
 
 const ORDEM: Trilha[] = ["degraus", "aporte", "semana", "divida", "arthur", "fases"];
 const NIVEL_ROTULO = { bronze: "Bronze", prata: "Prata", ouro: "Ouro", diamante: "Diamante" } as const;
@@ -13,12 +14,22 @@ const dataBR = (iso: string) => {
 // Vitrine de medalhas da família. Conquistadas em cor, com a data do fato;
 // bloqueadas em cinza, com a barra do quanto falta. As "ao alcance" ganham
 // destaque no topo — é o que a família pode buscar este mês.
-export function VitrineConquistas({ estados, alcance }: { estados: EstadoConquista[]; alcance: EstadoConquista[] }) {
+export function VitrineConquistas({ estados: todos, alcance }: { estados: EstadoConquista[]; alcance: EstadoConquista[] }) {
+  // Selos da história ficam fora da contagem: não são pontuação, são a vida.
+  const historia = todos.filter((e) => e.trilha === "historia");
+  const estados = todos.filter((e) => e.trilha !== "historia");
   const total = estados.length;
   const ganhas = estados.filter((e) => e.conquistada).length;
 
   return (
     <div className="flex flex-col gap-5">
+      {historia.length > 0 && (
+        <div className="rounded-[14px] bg-gradient-to-br from-zinc-900 to-zinc-800 p-4 sm:p-5">
+          <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-zinc-400">{ROTULO_TRILHA.historia}</p>
+          <LinhaHistoria selos={historia} escuro />
+        </div>
+      )}
+
       <div className="flex flex-wrap items-end justify-between gap-2">
         <p className="text-sm text-text-secondary">
           <strong className="text-2xl font-semibold text-text-primary numeros-tabulares">{ganhas}</strong> de {total}{" "}

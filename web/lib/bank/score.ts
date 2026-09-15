@@ -148,10 +148,20 @@ export async function calcularScoreSaude(
   const [fotoDoMes, fotoAnterior] = (fotosAplicado ?? []).filter(
     (f) => String(f.competencia).slice(0, 10) <= inicioMes,
   );
+  // Aporte informado pela família vale mais que o calculado: quando o aporte
+  // sai da reserva, o aplicado não cresce (migration 21).
+  const { data: informado } = await supabase
+    .from("aportes_mensais")
+    .select("valor")
+    .eq("entidade_id", ENTIDADE_FAMILIA)
+    .eq("mes", inicioMes)
+    .maybeSingle();
   const aporteMes =
-    fotoDoMes && fotoAnterior && String(fotoDoMes.competencia).slice(0, 10) === inicioMes
-      ? Math.max(0, Number(fotoDoMes.valor_aplicado) - Number(fotoAnterior.valor_aplicado))
-      : 0;
+    informado != null
+      ? Number(informado.valor)
+      : fotoDoMes && fotoAnterior && String(fotoDoMes.competencia).slice(0, 10) === inicioMes
+        ? Math.max(0, Number(fotoDoMes.valor_aplicado) - Number(fotoAnterior.valor_aplicado))
+        : 0;
   const alvoMensal = await aporteDoMesPlanejado(supabase, hoje);
   let pontosAporte: number;
   let dicaAporte: string;
