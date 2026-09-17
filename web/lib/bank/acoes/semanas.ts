@@ -21,6 +21,8 @@ export async function salvarMetaSemana(formData: FormData) {
 
   revalidatePath("/bank/semanas");
   revalidatePath("/bank");
+  // "Gastos Variáveis Semanais" do Planejamento é calculado desta meta.
+  revalidatePath("/bank/norte");
 }
 
 // Fatia planejada de uma categoria dentro da meta. Percentual, não valor:

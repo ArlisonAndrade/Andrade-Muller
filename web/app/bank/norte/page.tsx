@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ProgressBar } from "@/components/bank/ui/progress-bar";
 import { RendaFamilia } from "@/components/bank/norte/renda-familia";
 import { montarRendaDoMes } from "@/lib/bank/renda";
+import { metaSemanalDoMes } from "@/lib/bank/meta-semanal-mes";
 import { DivisaoPresets } from "@/components/bank/norte/divisao-presets";
 import { CardsResponsavel } from "@/components/bank/norte/cards-responsavel";
 import { CartoesVisual } from "@/components/bank/norte/cartoes-visual";
@@ -38,6 +39,7 @@ type ItemRow = {
   transferencia: boolean;
   obs: string | null;
   logo_dominio: string | null;
+  vinculo: string | null;
   categoria: { nome: string } | null;
   cartao: { nome: string } | null;
   responsavel: { nome: string } | null;
@@ -67,7 +69,7 @@ export default async function PaginaNorte({
     supabase
       .from("orcamento_planejado")
       .select(
-        "id, item, valor, categoria_id, grupo_orcamento, metodo, cartao_id, responsavel_id, transferencia, obs, logo_dominio, categoria:categorias(nome), cartao:cartoes(nome), responsavel:pessoas(nome)",
+        "id, item, valor, categoria_id, grupo_orcamento, metodo, cartao_id, responsavel_id, transferencia, obs, logo_dominio, vinculo, categoria:categorias(nome), cartao:cartoes(nome), responsavel:pessoas(nome)",
       )
       .eq("entidade_id", ENTIDADE_FAMILIA)
       .eq("ativo", true)
@@ -93,7 +95,12 @@ export default async function PaginaNorte({
   // Mesma leitura que a home e o score usam — ver lib/bank/renda.ts.
   const renda = await montarRendaDoMes(supabase, competencia);
   const pessoas = renda.pessoas;
-  const itens = (itensRaw ?? []) as unknown as ItemRow[];
+  // "Gastos Variáveis Semanais" = soma das metas semanais do mês (migration 24):
+  // edita-se a meta em /bank/semanas e este valor acompanha sozinho.
+  const metaMes = await metaSemanalDoMes(supabase, ENTIDADE_FAMILIA, competencia);
+  const itens = ((itensRaw ?? []) as unknown as ItemRow[]).map((i) =>
+    i.vinculo === "meta_semanal" ? { ...i, valor: metaMes.total } : i,
+  );
   const cartoes = (cartoesRaw ?? []) as Cartao[];
   const config: DivisaoConfig = configRaw ?? {
     entidade_id: ENTIDADE_FAMILIA,
@@ -129,6 +136,12 @@ export default async function PaginaNorte({
     transferencia: i.transferencia,
     obs: i.obs,
     logoDominio: i.logo_dominio,
+    calculado:
+      i.vinculo === "meta_semanal"
+        ? `${metaMes.semanas.length} semanas × meta semanal${
+            metaMes.metaAtual != null ? ` (${metaMes.metaAtual.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 })})` : ""
+          }`
+        : null,
   }));
 
   const gruposBarra: { chave: GrupoOrcamento; pct: number }[] = [

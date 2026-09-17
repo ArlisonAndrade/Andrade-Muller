@@ -35,6 +35,8 @@ export type ItemView = {
   transferencia: boolean;
   obs: string | null;
   logoDominio?: string | null;
+  /** Valor calculado de outro lugar (ex.: meta semanal) — só leitura aqui. */
+  calculado?: string | null;
 };
 
 type Opcao = { id: string; nome: string };
@@ -90,9 +92,18 @@ function CamposItem({
             min="0"
             defaultValue={defaults.valor ?? ""}
             required
+            readOnly={!!defaults.calculado}
             placeholder="0,00"
-            className={campo}
+            className={`${campo} ${defaults.calculado ? "cursor-not-allowed bg-surface-3 text-text-secondary" : ""}`}
           />
+          {defaults.calculado && (
+            <span className="text-[11px] text-text-faint">
+              Calculado: {defaults.calculado}.{" "}
+              <a href="/bank/semanas" className="text-bank-primaria underline">
+                Mudar a meta em Semanas
+              </a>
+            </span>
+          )}
         </label>
         <label className={rotulo}>
           Categoria
@@ -278,7 +289,13 @@ export function LinhaItem({
             >
               {item.transferencia ? `⇄ ${item.responsavelNome ?? ""} transfere` : (item.responsavelNome ?? "Sem responsável")}
             </span>
-            {item.categoriaNome && <span className="truncate text-text-faint">{item.categoriaNome}</span>}
+            {item.calculado ? (
+              <span className="truncate text-text-faint" title={item.calculado}>
+                ↻ da meta semanal
+              </span>
+            ) : (
+              item.categoriaNome && <span className="truncate text-text-faint">{item.categoriaNome}</span>
+            )}
           </span>
         </button>
       ) : (
