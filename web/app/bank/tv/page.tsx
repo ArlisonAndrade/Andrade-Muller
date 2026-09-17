@@ -17,7 +17,6 @@ import { Apresentacao, type SlideTv } from "@/components/bank/tv/apresentacao";
 import { RevelacaoConquistas } from "@/components/bank/tv/revelacao-conquistas";
 import { CompromissosReuniao } from "@/components/bank/tv/compromissos-reuniao";
 import { Medalha } from "@/components/bank/conquistas/medalha";
-import { LinhaHistoria } from "@/components/bank/conquistas/linha-historia";
 import { SeloHistoriaDesenho } from "@/components/bank/conquistas/selo-historia";
 import { JornadaPatrimonio } from "@/components/bank/home/jornada-patrimonio";
 import { ConfeteAoEntrar } from "@/components/bank/tv/confete-ao-entrar";
@@ -27,7 +26,6 @@ export const metadata = { title: "Modo TV" };
 const FUNDO = {
   capa: "radial-gradient(circle at 20% 20%, #1e3a5f 0%, #0b1220 60%, #000 100%)",
   jornada: "linear-gradient(135deg, #0f172a 0%, #020617 100%)",
-  historia: "linear-gradient(135deg, #18181b 0%, #000000 100%)",
   numeros: "linear-gradient(135deg, #1e3a5f 0%, #0f1f33 100%)",
   aportes: "linear-gradient(135deg, #15803d 0%, #052e16 100%)",
   carteira: "linear-gradient(135deg, #0e7490 0%, #083344 100%)",
@@ -130,16 +128,6 @@ export default async function PaginaModoTv({ searchParams }: { searchParams: Pro
         </div>
       ),
     },
-    ...(d.historia.length > 0
-      ? [
-          {
-            titulo: "De onde viemos",
-            emoji: "🧭",
-            fundo: FUNDO.historia,
-            conteudo: <LinhaHistoria selos={d.historia} escuro tamanho={150} />,
-          } satisfies SlideTv,
-        ]
-      : []),
     {
       titulo: "O trimestre em números",
       emoji: "📅",
