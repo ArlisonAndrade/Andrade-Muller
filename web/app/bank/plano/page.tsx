@@ -108,12 +108,6 @@ export default async function PaginaPlano() {
           </p>
         </div>
         <div className="flex flex-col items-end gap-1">
-        <Link
-          href="/bank/tv"
-          className="rounded-[8px] border border-border bg-surface-1 px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary"
-        >
-          📺 Modo TV
-        </Link>
         <p className="text-xs text-text-faint">
           Carteira do Investidor10
           {ultimaSync

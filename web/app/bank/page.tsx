@@ -101,18 +101,9 @@ export default async function Home() {
       <section className="card-bank p-4 sm:p-5">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-sm font-semibold">A jornada do patrimônio</h2>
-          <div className="flex items-center gap-3">
-            <Link href="/bank/plano" className="text-xs text-bank-primaria underline">
-              plano completo
-            </Link>
-            {/* Modo TV único: a apresentação da reunião trimestral (17/set/2026) */}
-            <Link
-              href="/bank/tv"
-              className="rounded-[8px] border border-border bg-surface-1 px-3 py-1.5 text-xs font-medium text-text-secondary hover:text-text-primary"
-            >
-              📺 Modo TV
-            </Link>
-          </div>
+          <Link href="/bank/plano" className="text-xs text-bank-primaria underline">
+            plano completo
+          </Link>
         </div>
         <JornadaPatrimonio jornada={jornada} />
       </section>
