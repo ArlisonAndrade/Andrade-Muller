@@ -37,6 +37,7 @@ type ItemRow = {
   responsavel_id: string | null;
   transferencia: boolean;
   obs: string | null;
+  logo_dominio: string | null;
   categoria: { nome: string } | null;
   cartao: { nome: string } | null;
   responsavel: { nome: string } | null;
@@ -66,7 +67,7 @@ export default async function PaginaNorte({
     supabase
       .from("orcamento_planejado")
       .select(
-        "id, item, valor, categoria_id, grupo_orcamento, metodo, cartao_id, responsavel_id, transferencia, obs, categoria:categorias(nome), cartao:cartoes(nome), responsavel:pessoas(nome)",
+        "id, item, valor, categoria_id, grupo_orcamento, metodo, cartao_id, responsavel_id, transferencia, obs, logo_dominio, categoria:categorias(nome), cartao:cartoes(nome), responsavel:pessoas(nome)",
       )
       .eq("entidade_id", ENTIDADE_FAMILIA)
       .eq("ativo", true)
@@ -127,6 +128,7 @@ export default async function PaginaNorte({
     responsavelNome: i.responsavel?.nome ?? null,
     transferencia: i.transferencia,
     obs: i.obs,
+    logoDominio: i.logo_dominio,
   }));
 
   const gruposBarra: { chave: GrupoOrcamento; pct: number }[] = [
@@ -206,6 +208,7 @@ export default async function PaginaNorte({
         itens={itensView}
         categorias={categorias ?? []}
         cartoes={cartoes.map((c) => ({ id: c.id, nome: c.nome }))}
+        rendaPorPessoa={Object.fromEntries(pessoas.map((p) => [p.id, rendaPorPessoa.get(p.id)?.valor ?? Number(p.renda_base)]))}
       />
 
       <CartoesVisual

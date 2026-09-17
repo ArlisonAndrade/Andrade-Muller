@@ -8,7 +8,7 @@ import {
   editarOrcamentoItem,
   excluirOrcamentoItem,
 } from "@/lib/bank/acoes/norte";
-import { IconeCategoria } from "@/lib/bank/icone-categoria";
+import { IconeDespesa } from "@/lib/bank/icone-despesa";
 import { ValorMoeda } from "@/components/bank/norte/privacidade";
 import { Modal } from "@/components/bank/ui/modal";
 
@@ -34,6 +34,7 @@ export type ItemView = {
   responsavelNome: string | null;
   transferencia: boolean;
   obs: string | null;
+  logoDominio?: string | null;
 };
 
 type Opcao = { id: string; nome: string };
@@ -168,20 +169,38 @@ function CamposItem({
           className={campo}
         />
       </label>
+      <label className={rotulo}>
+        Site da empresa, pra mostrar a logo (opcional)
+        <input
+          name="logo_dominio"
+          defaultValue={defaults.logoDominio ?? ""}
+          placeholder="netflix.com"
+          className={campo}
+        />
+      </label>
     </div>
   );
 }
+
+/** Aparência de caixinha na divisão por grupo (17/set/2026). */
+export type CaixinhaVisual = {
+  cor: string; // cor de quem paga
+  apagada: boolean; // outra pessoa está selecionada
+  destacada: boolean; // a pessoa dona está selecionada
+};
 
 export function LinhaItem({
   item,
   pessoas,
   categorias,
   cartoes,
+  caixinha,
 }: {
   item: ItemView;
   pessoas: Opcao[];
   categorias: Opcao[];
   cartoes: Opcao[];
+  caixinha?: CaixinhaVisual;
 }) {
   const router = useRouter();
   const [editando, setEditando] = useState(false);
@@ -204,14 +223,59 @@ export function LinhaItem({
 
   return (
     <>
+      {caixinha ? (
+        // Caixinha: faixa na cor de quem paga; transferência com borda
+        // tracejada e etiqueta própria, pra ficar nítido o que passa pela mão
+        // do outro. Clicar abre a mesma edição de sempre.
+        <button
+          type="button"
+          onClick={() => setEditando(true)}
+          title="Editar"
+          className={`relative flex h-full w-full flex-col gap-2 rounded-[12px] bg-surface-1 p-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md ${
+            caixinha.apagada ? "opacity-30" : "opacity-100"
+          }`}
+          style={{
+            border: item.transferencia ? `2px dashed ${caixinha.cor}` : "1px solid var(--color-border)",
+            boxShadow: `inset 4px 0 0 ${caixinha.cor}${caixinha.destacada ? `, 0 0 0 3px ${caixinha.cor}33` : ""}`,
+          }}
+        >
+          <span className="flex items-center gap-2">
+            <span
+              className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full"
+              style={{ background: `${caixinha.cor}1f`, color: caixinha.cor }}
+            >
+              <IconeDespesa
+                item={item.item}
+                categoria={item.categoriaNome}
+                logoDominio={item.logoDominio}
+                size={18}
+                tamanhoLogo={36}
+              />
+            </span>
+            <span className="min-w-0 flex-1 truncate text-sm font-medium text-text-primary">{item.item}</span>
+          </span>
+          <span className="text-lg font-semibold text-text-primary numeros-tabulares">
+            <ValorMoeda valor={Number(item.valor)} />
+          </span>
+          <span className="flex flex-wrap items-center gap-1.5 text-[11px]">
+            <span
+              className="rounded-full px-2 py-0.5 font-medium"
+              style={{ background: `${caixinha.cor}1f`, color: caixinha.cor }}
+            >
+              {item.transferencia ? `⇄ ${item.responsavelNome ?? ""} transfere` : (item.responsavelNome ?? "Sem responsável")}
+            </span>
+            {item.categoriaNome && <span className="truncate text-text-faint">{item.categoriaNome}</span>}
+          </span>
+        </button>
+      ) : (
       <button
         type="button"
         onClick={() => setEditando(true)}
         className="flex w-full items-center gap-3 rounded-[10px] px-2 py-2.5 text-left hover:bg-surface-2"
         title="Editar"
       >
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-3 text-text-secondary">
-          <IconeCategoria categoria={item.categoriaNome} />
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-3 text-text-secondary">
+          <IconeDespesa item={item.item} categoria={item.categoriaNome} logoDominio={item.logoDominio} tamanhoLogo={36} />
         </span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-sm text-text-primary">{item.item}</span>
@@ -225,6 +289,7 @@ export function LinhaItem({
           <ValorMoeda valor={Number(item.valor)} />
         </span>
       </button>
+      )}
 
       {editando && (
         <Modal titulo="Editar item" subtitulo={item.item} onFechar={() => setEditando(false)}>
@@ -267,12 +332,15 @@ export function FormAdicionarItem({
   categorias,
   cartoes,
   defaultsIniciais,
+  comoCaixinha = false,
 }: {
   entidadeId: string;
   pessoas: Opcao[];
   categorias: Opcao[];
   cartoes: Opcao[];
   defaultsIniciais?: Partial<ItemView>;
+  /** Na grade de caixinhas, o botão vira uma caixinha tracejada "+ item". */
+  comoCaixinha?: boolean;
 }) {
   const router = useRouter();
   const [adicionando, setAdicionando] = useState(false);
@@ -295,9 +363,13 @@ export function FormAdicionarItem({
       <button
         type="button"
         onClick={() => setAdicionando(true)}
-        className="mt-1 w-full rounded-[8px] border border-dashed border-border px-3 py-2 text-left text-sm text-text-secondary hover:text-text-primary"
+        className={
+          comoCaixinha
+            ? "flex h-full min-h-[112px] w-full items-center justify-center rounded-[12px] border-2 border-dashed border-border text-sm text-text-faint transition-colors hover:border-bank-primaria hover:text-bank-primaria"
+            : "mt-1 w-full rounded-[8px] border border-dashed border-border px-3 py-2 text-left text-sm text-text-secondary hover:text-text-primary"
+        }
       >
-        + Adicionar item
+        {comoCaixinha ? "+ item" : "+ Adicionar item"}
       </button>
 
       {adicionando && (

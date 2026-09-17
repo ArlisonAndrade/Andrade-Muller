@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { PRESETS_DIVISAO } from "@/lib/bank/tipos";
+import { normalizarDominio } from "@/lib/bank/dominio";
 
 function revalidar() {
   revalidatePath("/bank/norte");
@@ -160,6 +161,7 @@ function lerItem(formData: FormData) {
     responsavel_id: String(formData.get("responsavel_id") || "") || null,
     transferencia: formData.get("transferencia") === "on",
     obs: String(formData.get("obs") || "").trim() || null,
+    logo_dominio: normalizarDominio(String(formData.get("logo_dominio") || "")),
   };
 }
 
