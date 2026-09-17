@@ -1,290 +1,481 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import {
-  ENTIDADE_FAMILIA,
-  PRESETS_DIVISAO,
-  type DivisaoConfig,
-  type Pessoa,
-  type Transacao,
-} from "@/lib/bank/tipos";
 import { moedaBRL } from "@/lib/bank/formato";
-import { patrimonio, valorInvestido } from "@/lib/bank/calculos";
-import { calcularScoreSaude } from "@/lib/bank/score";
-import { montarPanoramaSemanal } from "@/lib/bank/semanas";
-import {
-  agregarPorClasse,
-  agruparPorFinalidade,
-  type Cotacao,
-  type PosicaoDetalhada,
-} from "@/lib/bank/calculos-investimentos";
+import { rotuloMes, rotuloValor } from "@/lib/bank/plano";
 import { ROTULO_FINALIDADE, COR_FINALIDADE } from "@/lib/bank/classes-ativos";
-import { obterPatrimonioArthur, obterMetaArthur } from "@/lib/bank/arthur";
-import { carregarPlano, rotuloMes, rotuloValor } from "@/lib/bank/plano";
-import { faseAtual, statusDaFase, ROTULO_STATUS_FASE, EMOJI_STATUS_FASE } from "@/lib/bank/plano-arthur";
+import {
+  balancoDoTrimestre,
+  montarTrimestre,
+  rotuloTrimestre,
+  trimestrePadrao,
+  trimestreVizinho,
+  type ItemBalanco,
+} from "@/lib/bank/trimestre";
+import type { EstadoConquista } from "@/lib/bank/conquistas";
 import { BigStat } from "@/components/bank/tv/big-stat";
-import { TvSlideshow, type SlideTv } from "@/components/bank/tv/tv-slideshow";
+import { Apresentacao, type SlideTv } from "@/components/bank/tv/apresentacao";
+import { RevelacaoConquistas } from "@/components/bank/tv/revelacao-conquistas";
+import { CompromissosReuniao } from "@/components/bank/tv/compromissos-reuniao";
+import { Medalha } from "@/components/bank/conquistas/medalha";
+import { LinhaHistoria } from "@/components/bank/conquistas/linha-historia";
+import { SeloHistoriaDesenho } from "@/components/bank/conquistas/selo-historia";
+import { JornadaPatrimonio } from "@/components/bank/home/jornada-patrimonio";
+import { ConfeteAoEntrar } from "@/components/bank/tv/confete-ao-entrar";
 
 export const metadata = { title: "Modo TV" };
 
-// Gradientes por slide — só decoração, não tokens do design system (o
-// Modo TV é uma exceção: precisa ser vistoso de longe, os cards normais
-// do Bank continuam planos/brancos).
 const FUNDO = {
-  inicio: "linear-gradient(135deg, #1e3a5f 0%, #0f1f33 100%)",
-  planejamento: "linear-gradient(135deg, #0f6e56 0%, #073d31 100%)",
-  semanas: "linear-gradient(135deg, #4338ca 0%, #1e1b4b 100%)",
-  investimentos: "linear-gradient(135deg, #15803d 0%, #052e16 100%)",
-  dividas: "linear-gradient(135deg, #b91c1c 0%, #450a0a 100%)",
-  planoUsd: "linear-gradient(135deg, #b45309 0%, #451a03 100%)",
+  capa: "radial-gradient(circle at 20% 20%, #1e3a5f 0%, #0b1220 60%, #000 100%)",
+  jornada: "linear-gradient(135deg, #0f172a 0%, #020617 100%)",
+  historia: "linear-gradient(135deg, #18181b 0%, #000000 100%)",
+  numeros: "linear-gradient(135deg, #1e3a5f 0%, #0f1f33 100%)",
+  aportes: "linear-gradient(135deg, #15803d 0%, #052e16 100%)",
+  carteira: "linear-gradient(135deg, #0e7490 0%, #083344 100%)",
+  divida: "linear-gradient(135deg, #b91c1c 0%, #450a0a 100%)",
+  semanas: "linear-gradient(135deg, #0f6e56 0%, #073d31 100%)",
   arthur: "linear-gradient(135deg, #3b5b74 0%, #14232e 100%)",
+  conquistas: "linear-gradient(135deg, #b45309 0%, #451a03 100%)",
+  escada: "linear-gradient(135deg, #4338ca 0%, #1e1b4b 100%)",
+  proximo: "linear-gradient(135deg, #7c3aed 0%, #2e1065 100%)",
+  compromissos: "linear-gradient(135deg, #1f2937 0%, #030712 100%)",
+  certos: "linear-gradient(135deg, #16a34a 0%, #064e3b 100%)",
+  ajustes: "linear-gradient(135deg, #334155 0%, #0f172a 100%)",
+  futuro: "radial-gradient(circle at 80% 20%, #f59e0b 0%, #7c2d12 45%, #0c0a09 100%)",
 };
 
-// Modo TV — slideshow com o resumo de cada aba, pra deixar ligado numa
-// TV/monitor. Avanço é só manual (seta do teclado, clique nos botões ou
-// nos pontinhos) — decisão do Arlison, sem troca automática. Cada slide
-// busca só o essencial das mesmas fontes das páginas reais, então nunca
-// diverge dos números de lá.
-export default async function PaginaTv() {
-  const supabase = await createClient();
-  const hoje = new Date();
-  const anoAtual = hoje.getFullYear();
-  const inicioMes = `${anoAtual}-${String(hoje.getMonth() + 1).padStart(2, "0")}-01`;
-
-  const [
-    { data: contas },
-    { data: transacoesTodas },
-    { data: transacoesMes },
-    { data: posicoes },
-    { data: cotacoesRaw },
-    { data: pessoas },
-    { data: itensOrcamento },
-    { data: configRaw },
-    { data: dividas },
-  ] = await Promise.all([
-    supabase.from("contas").select("id, saldo_inicial").eq("entidade_id", ENTIDADE_FAMILIA),
-    // Histórico completo — o cálculo de patrimônio (saldo + fluxo de caixa)
-    // precisa de todas as transações, não só do mês, senão o patrimônio
-    // sai errado (bug encontrado em 14/ago/2026: mostrava só o fluxo do
-    // mês como se fosse o patrimônio inteiro).
-    supabase
-      .from("transacoes")
-      .select("valor, data, categoria:categorias(tipo)")
-      .eq("entidade_id", ENTIDADE_FAMILIA),
-    supabase
-      .from("transacoes")
-      .select("valor, data, categoria:categorias(tipo)")
-      .eq("entidade_id", ENTIDADE_FAMILIA)
-      .gte("data", inicioMes),
-    supabase.from("posicao_ativos").select("*").eq("entidade_id", ENTIDADE_FAMILIA),
-    supabase.from("cotacoes_atuais").select("ativo_id, preco_atual, variacao_dia_pct"),
-    supabase
-      .from("pessoas")
-      .select("id, entidade_id, nome, cor, renda_base, ordem, ativo")
-      .eq("entidade_id", ENTIDADE_FAMILIA)
-      .eq("ativo", true)
-      .order("ordem"),
-    supabase
-      .from("orcamento_planejado")
-      .select("valor, responsavel_id")
-      .eq("entidade_id", ENTIDADE_FAMILIA)
-      .eq("ativo", true),
-    supabase.from("divisao_orcamento_config").select("*").eq("entidade_id", ENTIDADE_FAMILIA).maybeSingle(),
-    supabase.from("dividas").select("valor_total, valor_pago, quitada").eq("quitada", false),
-  ]);
-
-  const score = await calcularScoreSaude(supabase);
-  const panorama = await montarPanoramaSemanal(supabase, ENTIDADE_FAMILIA);
-
-  const cotacoesMap = new Map((cotacoesRaw ?? []).map((c) => [c.ativo_id, Number(c.preco_atual)]));
-  const cotacoesDetalhe = new Map<string, Cotacao>(
-    (cotacoesRaw ?? []).map((c) => [c.ativo_id, { preco_atual: c.preco_atual, variacao_dia_pct: c.variacao_dia_pct }]),
+function ListaBalanco({ itens, vazio }: { itens: ItemBalanco[]; vazio: string }) {
+  if (itens.length === 0) return <p className="text-2xl text-white/80">{vazio}</p>;
+  return (
+    <ul className="flex flex-col gap-4">
+      {itens.map((i, n) => (
+        <li
+          key={n}
+          className="flex gap-4 rounded-[18px] bg-white/10 px-5 py-4"
+          style={{ animation: "fade-slide-in 0.4s ease-out both", animationDelay: `${n * 120}ms` }}
+        >
+          <span className="text-3xl" aria-hidden>
+            {i.emoji}
+          </span>
+          <div>
+            <p className="text-2xl">{i.texto}</p>
+            {i.proximoPasso && <p className="mt-1 text-lg text-white/70">→ {i.proximoPasso}</p>}
+          </div>
+        </li>
+      ))}
+    </ul>
   );
+}
 
-  // ---------- Início ----------
-  const patrimonioFamilia = patrimonio(contas ?? [], (transacoesTodas ?? []) as unknown as Transacao[], posicoes ?? [], cotacoesMap);
-  const investidoFamilia = valorInvestido(posicoes ?? [], cotacoesMap);
-  const transacoesTipadas = (transacoesMes ?? []) as unknown as { valor: number; categoria: { tipo: string } | null }[];
-  const receitasMes = transacoesTipadas.filter((t) => t.categoria?.tipo === "receita").reduce((s, t) => s + Number(t.valor), 0);
-  const despesasMes = transacoesTipadas.filter((t) => t.categoria?.tipo === "despesa").reduce((s, t) => s + Number(t.valor), 0);
+const brl0 = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+const pct = (v: number) => `${v >= 0 ? "+" : ""}${v.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
+const mesDeISO = (iso: string) => Number(iso.slice(0, 4)) * 100 + Number(iso.slice(5, 7));
+const paraCelebrar = (lista: EstadoConquista[]) =>
+  lista.map(({ codigo, emoji, nivel, nome, frase, selo, tom }) => ({ codigo, emoji, nivel, nome, frase, selo, tom }));
 
-  // ---------- Planejamento ----------
-  const listaPessoas = (pessoas ?? []) as Pessoa[];
-  const rendaTotal = listaPessoas.reduce((s, p) => s + Number(p.renda_base), 0);
-  const config: DivisaoConfig = configRaw ?? {
-    entidade_id: ENTIDADE_FAMILIA,
-    preset: "50_30_20",
-    pct_essencial: 50,
-    pct_liberdade: 30,
-    pct_investimento: 20,
-    pct_extra: 0,
-    extra_nome: null,
-  };
-  const presetAtivo = PRESETS_DIVISAO.find((p) => p.valor === config.preset);
-  const nomeDivisao = presetAtivo?.nome ?? "Personalizada";
-  const itensPorPessoa = new Map<string, number>();
-  for (const i of itensOrcamento ?? []) {
-    if (!i.responsavel_id) continue;
-    itensPorPessoa.set(i.responsavel_id, (itensPorPessoa.get(i.responsavel_id) ?? 0) + Number(i.valor));
-  }
+// Modo TV único (decisão do Arlison, 17/set/2026): a apresentação da reunião
+// trimestral pra família, em tela cheia, conduzida com passador. Substitui o
+// Modo TV antigo (resumo das abas, com o patrimônio de fluxo de caixa) e o
+// /bank/tv/trimestre, que agora redireciona pra cá.
+//
+// Roteiro: de onde viemos → o trimestre → pra onde vamos → o que combinamos.
+// Jornada e conquistas são um slide cada (sem revelar por partes).
+export default async function PaginaModoTv({ searchParams }: { searchParams: Promise<{ t?: string }> }) {
+  const { t } = await searchParams;
+  const trimestre = t && /^\d{4}-T[1-4]$/.test(t) ? t : trimestrePadrao();
+  const supabase = await createClient();
+  const d = await montarTrimestre(supabase, trimestre);
+  const { plano } = d;
 
-  // ---------- Investimentos ----------
-  const classes = agregarPorClasse((posicoes ?? []) as PosicaoDetalhada[], cotacoesDetalhe, new Map());
-  const valorAplicado = classes.reduce((s, c) => s + c.valorAplicado, 0);
-  const valorMercado = classes.reduce((s, c) => s + c.valorMercado, 0);
-  const gruposFinalidade = agruparPorFinalidade(classes);
-
-  // ---------- Dívidas ----------
-  const dividasAbertas = dividas ?? [];
-  const totalEmAberto = dividasAbertas.reduce((s, d) => s + (Number(d.valor_total) - Number(d.valor_pago)), 0);
-  const totalJaPago = dividasAbertas.reduce((s, d) => s + Number(d.valor_pago), 0);
-
-  // ---------- Plano ----------
-  // Mesma leitura da página /bank/plano: carteira real (espelho do Investidor10)
-  // contra a curva calculada dos parâmetros — não o saldo de fluxo de caixa.
-  const plano = await carregarPlano(supabase, { patrimonio: valorMercado, aplicado: valorAplicado });
-
-  // ---------- Arthur ----------
-  const { atual: patrimonioArthur } = await obterPatrimonioArthur(supabase, cotacoesMap);
-  const metaArthur = obterMetaArthur();
-  const nascimentoArthur = new Date("2022-10-30");
-  const idadeArthurExata = (hoje.getTime() - nascimentoArthur.getTime()) / (365.25 * 24 * 3600 * 1000);
-  const idadeArthurAnos = Math.floor(idadeArthurExata);
-  const faseArthurAtual = faseAtual(idadeArthurExata);
-  const statusFaseArthur = statusDaFase(faseArthurAtual, idadeArthurExata, patrimonioArthur);
+  const crescimento = d.carteiraInicio != null ? d.carteiraFim - d.carteiraInicio : null;
+  const crescimentoPct = d.carteiraInicio ? (crescimento! / d.carteiraInicio) * 100 : null;
+  const cumpriuAportes = d.planejadoTotal > 0 && d.aportadoTotal >= d.planejadoTotal - 1;
+  const fimSantander = d.historia.find((h) => h.codigo === "historia_fim_santander");
+  const conquistasSlide = [...d.conquistasDoTrimestre, ...d.colecaoAnterior];
+  const balanco = balancoDoTrimestre(d);
+  const selosConquistados = d.historia.filter((h) => h.conquistada).length;
+  const degrausAlcancados = plano.marcos.filter((m) => m.atingido).length;
 
   const slides: SlideTv[] = [
     {
-      titulo: "Início",
-      emoji: "🏠",
-      fundo: FUNDO.inicio,
+      titulo: "Capa",
+      emoji: "📺",
+      fundo: FUNDO.capa,
+      capa: true,
       conteudo: (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-          <BigStat rotulo="Patrimônio da família" valor={moedaBRL(patrimonioFamilia)} />
-          <BigStat rotulo="Investimentos" valor={moedaBRL(investidoFamilia)} />
-          <BigStat rotulo="Receitas do mês" valor={moedaBRL(receitasMes)} cor="#86efac" />
-          <BigStat rotulo="Despesas do mês" valor={moedaBRL(despesasMes)} cor="#fca5a5" />
+        <div className="flex flex-col gap-4">
+          <p className="text-lg uppercase tracking-[0.3em] text-white/60">Andrade Muller</p>
+          <h1 className="text-5xl font-semibold leading-tight sm:text-7xl">{rotuloTrimestre(trimestre)}</h1>
+          <p className="text-xl text-white/70">
+            Reunião de alinhamento financeiro da família
+            {d.fechado ? "" : " · trimestre ainda em andamento"}
+          </p>
+          <div className="flex items-center gap-3 text-base text-white/70">
+            <Link href={`/bank/tv?t=${trimestreVizinho(trimestre, -1)}`} className="rounded-full border border-white/25 px-3 py-1 hover:text-white">
+              ‹ {rotuloTrimestre(trimestreVizinho(trimestre, -1))}
+            </Link>
+            <Link href={`/bank/tv?t=${trimestreVizinho(trimestre, 1)}`} className="rounded-full border border-white/25 px-3 py-1 hover:text-white">
+              {rotuloTrimestre(trimestreVizinho(trimestre, 1))} ›
+            </Link>
+          </div>
+        </div>
+      ),
+    },
+    {
+      titulo: "A jornada",
+      emoji: "📈",
+      fundo: FUNDO.jornada,
+      conteudo: (
+        <div className="rounded-[20px] bg-white p-4 text-text-primary sm:p-6">
+          <JornadaPatrimonio jornada={d.jornada} />
+        </div>
+      ),
+    },
+    ...(d.historia.length > 0
+      ? [
+          {
+            titulo: "De onde viemos",
+            emoji: "🧭",
+            fundo: FUNDO.historia,
+            conteudo: <LinhaHistoria selos={d.historia} escuro tamanho={150} />,
+          } satisfies SlideTv,
+        ]
+      : []),
+    {
+      titulo: "O trimestre em números",
+      emoji: "📅",
+      fundo: FUNDO.numeros,
+      conteudo: (
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
+          <BigStat rotulo="Carteira no início" valor={d.carteiraInicio != null ? moedaBRL(d.carteiraInicio) : "—"} />
+          <BigStat rotulo={d.fechado ? "Carteira no fim" : "Carteira hoje"} valor={moedaBRL(d.carteiraFim)} />
           <BigStat
-            rotulo="Score de saúde"
-            valor={`${score.total}/100`}
-            apoio={`maior alavanca: ${score.maiorAlavanca.rotulo}`}
+            rotulo="No trimestre"
+            valor={crescimento != null ? `${crescimento >= 0 ? "+" : ""}${brl0(crescimento)}` : "—"}
+            apoio={crescimentoPct != null ? pct(crescimentoPct) : undefined}
+            cor={crescimento != null && crescimento >= 0 ? "#86efac" : "#fca5a5"}
           />
         </div>
       ),
     },
     {
-      titulo: "Planejamento",
-      emoji: "📋",
-      fundo: FUNDO.planejamento,
+      titulo: "O que deu certo",
+      emoji: "✅",
+      fundo: FUNDO.certos,
+      conteudo: <ListaBalanco itens={balanco.certos} vazio="Vocês estão aqui, olhando os números juntos. Isso já é o começo." />,
+    },
+    {
+      titulo: "Os aportes",
+      emoji: "💵",
+      fundo: FUNDO.aportes,
       conteudo: (
-        <div className="flex flex-col gap-6">
-          <BigStat rotulo="Renda total da família" valor={moedaBRL(rendaTotal)} apoio={`divisão: ${nomeDivisao}`} />
+        <div className="flex flex-col gap-8">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {d.aportes.map((a) => {
+              const cumpriu = a.planejado != null && a.realizado != null && a.realizado >= a.planejado - 1;
+              return (
+                <div key={a.mes} className="rounded-[18px] bg-white/10 p-5">
+                  <p className="text-base uppercase tracking-wide text-white/70">{rotuloMes(a.mes)}</p>
+                  <p className="mt-1 text-4xl font-bold numeros-tabulares">
+                    {a.realizado != null ? brl0(Math.max(0, a.realizado)) : "—"}
+                  </p>
+                  <p className="mt-1 text-base text-white/70">
+                    {a.reorganizacao
+                      ? a.planejado != null
+                        ? "reorganização"
+                        : "antes do marco zero"
+                      : `plano: ${brl0(a.planejado ?? 0)}${a.realizado != null ? (cumpriu ? " · ✓" : " · abaixo") : ""}`}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
+            <BigStat
+              rotulo="Aportado no trimestre"
+              valor={brl0(d.aportadoTotal)}
+              apoio={d.planejadoTotal > 0 ? `plano: ${brl0(d.planejadoTotal)}` : "trimestre de reorganização"}
+              cor={cumpriuAportes ? "#86efac" : "#ffffff"}
+            />
+            <BigStat
+              rotulo="Sequência"
+              valor={plano.sequencia > 0 ? `🔥 ${plano.sequencia} ${plano.sequencia === 1 ? "mês" : "meses"}` : "—"}
+              apoio={plano.antesDoPlacar ? `o placar começa em ${rotuloMes(plano.parametros.inicioPlacar)}` : "meses seguidos com o aporte cumprido"}
+            />
+          </div>
+        </div>
+      ),
+    },
+    {
+      titulo: "A carteira",
+      emoji: "🧺",
+      fundo: FUNDO.carteira,
+      conteudo: (
+        <div className="flex flex-col gap-8">
+          <div>
+            <BigStat rotulo="Carteira hoje" valor={moedaBRL(d.carteira.total)} />
+            <div className="mt-4 flex h-5 w-full overflow-hidden rounded-full bg-white/10">
+              {d.carteira.porFinalidade.map((f) => (
+                <div key={f.finalidade} style={{ width: `${f.percentual}%`, background: COR_FINALIDADE[f.finalidade] }} />
+              ))}
+            </div>
+            <div className="mt-3 flex flex-wrap gap-x-8 gap-y-2 text-lg">
+              {d.carteira.porFinalidade.map((f) => (
+                <span key={f.finalidade} className="flex items-center gap-2">
+                  <span className="h-3 w-3 rounded-full" style={{ background: COR_FINALIDADE[f.finalidade] }} />
+                  {ROTULO_FINALIDADE[f.finalidade]} · {brl0(f.valor)}{" "}
+                  <span className="text-white/60">({f.percentual.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}%)</span>
+                </span>
+              ))}
+            </div>
+          </div>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            {listaPessoas.map((p) => (
-              <BigStat key={p.id} rotulo={p.nome} valor={moedaBRL(itensPorPessoa.get(p.id) ?? 0)} apoio="paga por mês" />
+            {[
+              { titulo: "Maiores altas", lista: d.carteira.maioresAltas, cor: "text-emerald-300" },
+              { titulo: "Maiores quedas", lista: d.carteira.maioresQuedas, cor: "text-red-300" },
+            ].map((bloco) => (
+              <div key={bloco.titulo} className="rounded-[18px] bg-white/10 p-5">
+                <p className="mb-3 text-sm uppercase tracking-wide text-white/60">{bloco.titulo} · desde a compra</p>
+                {bloco.lista.length === 0 && <p className="text-white/60">—</p>}
+                {bloco.lista.map((a) => (
+                  <p key={a.ativo_id} className="flex justify-between gap-4 py-1 text-xl">
+                    <span className="truncate">{a.ticker}</span>
+                    <span className={`numeros-tabulares ${bloco.cor}`}>{pct(a.rentabilidadePct ?? 0)}</span>
+                  </p>
+                ))}
+              </div>
             ))}
           </div>
         </div>
       ),
     },
     {
-      titulo: "Semanas",
-      emoji: "🗓️",
+      titulo: "A dívida",
+      emoji: "🏦",
+      fundo: FUNDO.divida,
+      conteudo: (
+        <div className="flex flex-col items-center gap-10 sm:flex-row sm:items-center">
+          {fimSantander?.selo && (
+            <div className="flex flex-col items-center gap-2">
+              <SeloHistoriaDesenho
+                selo={fimSantander.selo}
+                tamanho={200}
+                bloqueado={!fimSantander.conquistada}
+                progresso={fimSantander.progresso}
+              />
+              <p className="text-lg font-semibold">Fim do Santander</p>
+            </div>
+          )}
+          <div className="grid flex-1 grid-cols-1 gap-8 sm:grid-cols-2">
+            <BigStat rotulo="Parcelas pagas no trimestre" valor={String(d.divida.parcelasPagas)} />
+            <BigStat
+              rotulo="Adiantadas"
+              valor={String(d.divida.adiantadas)}
+              apoio={d.divida.jurosEconomizados > 0 ? `${brl0(d.divida.jurosEconomizados)} de juros cortados` : undefined}
+              cor={d.divida.adiantadas > 0 ? "#86efac" : "#ffffff"}
+            />
+            <BigStat rotulo="Principal em aberto" valor={brl0(d.divida.saldoPrincipal)} />
+            <BigStat
+              rotulo="Quitação prevista"
+              valor={d.divida.quitacaoPrevista ? rotuloMes(mesDeISO(d.divida.quitacaoPrevista)) : "✓ quitada"}
+              apoio="cada parcela adiantada puxa essa data pra perto"
+            />
+          </div>
+        </div>
+      ),
+    },
+    {
+      titulo: "As semanas",
+      emoji: "🧾",
       fundo: FUNDO.semanas,
       conteudo: (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
           <BigStat
-            rotulo={panorama.atual.rotulo}
-            valor={moedaBRL(panorama.atual.gasto)}
-            apoio={panorama.atual.meta != null ? `de ${moedaBRL(panorama.atual.meta)}` : "sem meta"}
+            rotulo="Semanas dentro da meta"
+            valor={d.semanas.total > 0 ? `${d.semanas.dentro} de ${d.semanas.total}` : "—"}
+            cor={d.semanas.total > 0 && d.semanas.dentro / d.semanas.total >= 0.5 ? "#86efac" : "#ffffff"}
           />
           <BigStat
-            rotulo="Projeção da semana"
-            valor={panorama.atual.projecao != null ? moedaBRL(panorama.atual.projecao) : "—"}
-          />
-          <BigStat rotulo="Sequência dentro da meta" valor={`${panorama.streak} semana(s)`} />
-          <BigStat
-            rotulo="Normal das semanas fechadas"
-            valor={panorama.mediaHistorica != null ? moedaBRL(panorama.mediaHistorica) : "—"}
-          />
-        </div>
-      ),
-    },
-    {
-      titulo: "Investimentos",
-      emoji: "📈",
-      fundo: FUNDO.investimentos,
-      conteudo: (
-        <div className="flex flex-col gap-6">
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <BigStat rotulo="Patrimônio investido" valor={moedaBRL(valorMercado)} />
-            <BigStat rotulo="Lucro (ganho de capital)" valor={moedaBRL(valorMercado - valorAplicado)} cor="#86efac" />
-          </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {gruposFinalidade.map((g) => (
-              <BigStat
-                key={g.finalidade}
-                rotulo={ROTULO_FINALIDADE[g.finalidade]}
-                valor={moedaBRL(g.valorMercado)}
-                cor={COR_FINALIDADE[g.finalidade]}
-              />
-            ))}
-          </div>
-        </div>
-      ),
-    },
-    {
-      titulo: "Dívidas",
-      emoji: "💳",
-      fundo: FUNDO.dividas,
-      conteudo:
-        dividasAbertas.length === 0 ? (
-          <BigStat rotulo="Dívidas em aberto" valor="Nenhuma 🎉" />
-        ) : (
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <BigStat rotulo="Falta pagar" valor={moedaBRL(totalEmAberto)} />
-            <BigStat rotulo="Já pago" valor={moedaBRL(totalJaPago)} cor="#86efac" />
-            <BigStat rotulo="Dívidas em aberto" valor={String(dividasAbertas.length)} />
-          </div>
-        ),
-    },
-    {
-      titulo: "Plano",
-      emoji: "🚀",
-      fundo: FUNDO.planoUsd,
-      conteudo: (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-          <BigStat rotulo="Carteira hoje" valor={moedaBRL(plano.patrimonioHoje)} />
-          <BigStat
-            rotulo={`Fase ${plano.faseAtual.numero} · ${plano.faseAtual.nome}`}
-            valor={`${Math.round(plano.progressoFase)}%`}
+            rotulo="Gasto médio por semana"
+            valor={d.semanas.media != null ? brl0(d.semanas.media) : "—"}
+            apoio={d.semanas.meta != null ? `meta: ${brl0(d.semanas.meta)}` : undefined}
           />
           <BigStat
-            rotulo={plano.proximoMarco ? `Próximo marco · ${rotuloValor(plano.proximoMarco.valor)}` : "Meta"}
-            valor={plano.proximoMarco ? `${Math.round(plano.proximoMarco.progresso)}%` : "✓"}
-            cor="#86efac"
-          />
-          <BigStat
-            rotulo={`${rotuloValor(plano.parametros.metaFinal)} chegam em`}
-            valor={plano.mesDaMeta ? rotuloMes(plano.mesDaMeta) : "—"}
+            rotulo="Categoria que mais pesou"
+            valor={d.semanas.categoriaMaisPesou?.nome ?? "—"}
+            apoio={d.semanas.categoriaMaisPesou ? `${brl0(d.semanas.categoriaMaisPesou.gasto)} no trimestre` : undefined}
           />
         </div>
       ),
     },
     {
       titulo: "Arthur",
-      emoji: "🧒",
+      emoji: "👦",
       fundo: FUNDO.arthur,
       conteudo: (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-          <BigStat rotulo="Patrimônio hoje" valor={moedaBRL(patrimonioArthur)} apoio={`${idadeArthurAnos} anos`} />
-          <BigStat rotulo="Meta aos 20 anos" valor={moedaBRL(metaArthur)} />
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-2">
+          <BigStat rotulo="Carteira do Arthur" valor={moedaBRL(d.arthur.atual)} />
           <BigStat
-            rotulo={`Fase ${faseArthurAtual.numero} · ${faseArthurAtual.nome}`}
-            valor={`${EMOJI_STATUS_FASE[statusFaseArthur]} ${ROTULO_STATUS_FASE[statusFaseArthur]}`}
+            rotulo="Da meta dele"
+            valor={`${Math.round((d.arthur.atual / Math.max(1, d.arthur.meta)) * 100)}%`}
+            apoio={`meta: ${brl0(d.arthur.meta)}`}
           />
+        </div>
+      ),
+    },
+    {
+      titulo: "O que ajustar",
+      emoji: "🔧",
+      fundo: FUNDO.ajustes,
+      conteudo: (
+        <div className="flex flex-col gap-4">
+          <p className="text-lg text-white/70">Não é sentença: cada ponto já vem com o próximo passo.</p>
+          <ListaBalanco itens={balanco.ajustes} vazio="Nada ficou pra trás neste trimestre. 👏" />
+        </div>
+      ),
+    },
+    {
+      titulo: "Conquistas do trimestre",
+      emoji: "🏅",
+      fundo: FUNDO.conquistas,
+      conteudo: (
+        <div className="flex flex-col gap-4">
+          {d.primeiraReuniao && d.colecaoAnterior.length > 0 && (
+            <p className="text-lg text-white/80">
+              Primeira reunião: entram também as que vocês já tinham antes de o jogo começar.
+            </p>
+          )}
+          <RevelacaoConquistas
+            conquistas={paraCelebrar(conquistasSlide)}
+            vazio="Nenhuma medalha nova neste trimestre — as que estão ao alcance aparecem logo adiante."
+          />
+        </div>
+      ),
+    },
+    {
+      titulo: "A escada",
+      emoji: "🪜",
+      fundo: FUNDO.escada,
+      conteudo: (
+        <div className="flex flex-col gap-8">
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
+            <BigStat
+              rotulo={`Fase ${plano.faseAtual.numero} · ${plano.faseAtual.nome}`}
+              valor={`${plano.progressoFase.toLocaleString("pt-BR", { maximumFractionDigits: plano.progressoFase < 10 ? 1 : 0 })}%`}
+              apoio={plano.faseAtual.numero === 1 ? `${brl0(plano.construidoDesdeMarcoZero)} desde o marco zero` : undefined}
+            />
+            <BigStat
+              rotulo={plano.proximoMarco ? `Próximo degrau · ${rotuloValor(plano.proximoMarco.valor)}` : "Degraus"}
+              valor={plano.proximoMarco ? `${Math.round(plano.proximoMarco.progresso)}%` : "✓ todos"}
+              apoio={plano.proximoMarco?.mesPrevisto ? `no ritmo de hoje: ${rotuloMes(plano.proximoMarco.mesPrevisto)}` : undefined}
+              cor="#c7d2fe"
+            />
+            <BigStat
+              rotulo={`Meta · ${rotuloValor(plano.parametros.metaFinal)}`}
+              valor={plano.mesDaMeta ? rotuloMes(plano.mesDaMeta) : "—"}
+              apoio={`prazo: ${plano.parametros.anoMeta}`}
+              cor={plano.mesDaMeta && plano.mesDaMeta <= plano.parametros.anoMeta * 100 + 12 ? "#86efac" : "#ffffff"}
+            />
+          </div>
+          <div className="flex flex-wrap gap-3">
+            {plano.marcos.map((m) => (
+              <div key={m.valor} className={`rounded-[14px] px-4 py-3 text-center ${m.atingido ? "bg-emerald-400/25" : "bg-white/10"}`}>
+                <p className="text-lg font-semibold">{rotuloValor(m.valor)}</p>
+                <p className="text-sm text-white/70">{m.atingido ? "✓" : m.mesRitmo ? rotuloMes(m.mesRitmo) : "—"}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ),
+    },
+    {
+      titulo: `O ${rotuloTrimestre(d.proximo.trimestre)}`,
+      emoji: "🧭",
+      fundo: FUNDO.proximo,
+      conteudo: (
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-2">
+          <div className="flex flex-col gap-3">
+            <BigStat rotulo="O plano pede de aporte" valor={brl0(d.proximo.aporteTotal)} />
+            <p className="text-lg text-white/70">
+              {d.proximo.aportePorMes.map((a) => `${rotuloMes(a.mes)}: ${brl0(a.valor)}`).join(" · ")}
+            </p>
+          </div>
+          <div>
+            <p className="mb-3 text-sm font-medium uppercase tracking-wide text-white/70">Medalhas ao alcance</p>
+            <div className="flex flex-col gap-3">
+              {d.proximo.alcance.length === 0 && <p className="text-white/70">—</p>}
+              {d.proximo.alcance.map((e) => (
+                <div key={e.codigo} className="flex items-center gap-4 rounded-[14px] bg-white/10 p-3">
+                  <Medalha emoji={e.emoji} nivel={e.nivel} bloqueada tamanho={52} />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-lg font-medium">{e.nome}</p>
+                    <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-white/15">
+                      <div className="h-full rounded-full bg-white" style={{ width: `${e.progresso}%` }} />
+                    </div>
+                  </div>
+                  <span className="text-lg text-white/80 numeros-tabulares">{Math.round(e.progresso)}%</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      titulo: "O que combinamos",
+      emoji: "🤝",
+      fundo: FUNDO.compromissos,
+      conteudo: (
+        <CompromissosReuniao
+          trimestre={trimestre}
+          trimestreAnterior={trimestreVizinho(trimestre, -1)}
+          rotuloProximo={rotuloTrimestre(d.proximo.trimestre)}
+          anteriores={d.compromissosAnteriores}
+          iniciais={d.reuniao?.compromissos ?? []}
+          notasIniciais={d.reuniao?.notas ?? ""}
+          sugestoes={[
+            `Aportar ${brl0(d.proximo.aportePorMes[0]?.valor ?? 0)} todo mês, logo que o salário cair`,
+            "Adiantar 1 parcela do Santander",
+            "Fechar as semanas dentro da meta",
+          ]}
+        />
+      ),
+    },
+    {
+      titulo: "O que está por vir",
+      emoji: "🚀",
+      fundo: FUNDO.futuro,
+      conteudo: (
+        <div className="relative flex flex-col gap-10">
+          <ConfeteAoEntrar />
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+            <div className="rounded-[20px] bg-black/30 p-6">
+              <p className="mb-4 text-sm uppercase tracking-[0.25em] text-white/60">Já conquistamos</p>
+              <ul className="flex flex-col gap-3 text-2xl">
+                <li>🧱 {brl0(plano.construidoDesdeMarcoZero)} construídos desde o marco zero</li>
+                <li>💼 {moedaBRL(plano.patrimonioHoje)} de carteira</li>
+                {degrausAlcancados > 0 && <li>🪜 {degrausAlcancados} {degrausAlcancados === 1 ? "degrau" : "degraus"} da escada</li>}
+                {selosConquistados > 0 && <li>🧭 {selosConquistados} marcos da história</li>}
+              </ul>
+            </div>
+            <div className="rounded-[20px] bg-black/30 p-6">
+              <p className="mb-4 text-sm uppercase tracking-[0.25em] text-white/60">O que está por vir</p>
+              <ul className="flex flex-col gap-3 text-2xl">
+                {plano.proximoMarco?.mesPrevisto && (
+                  <li>🌱 {rotuloValor(plano.proximoMarco.valor)} em {rotuloMes(plano.proximoMarco.mesPrevisto)}</li>
+                )}
+                {d.divida.quitacaoPrevista && <li>⛓️‍💥 Fim do Santander em {rotuloMes(mesDeISO(d.divida.quitacaoPrevista))}</li>}
+                {plano.fases[1]?.ateMes && <li>🏡 R$ 1 milhão em {rotuloMes(plano.fases[1].ateMes)}</li>}
+                {plano.mesDaMeta && (
+                  <li>🏆 {rotuloValor(plano.parametros.metaFinal)} em {rotuloMes(plano.mesDaMeta)}</li>
+                )}
+              </ul>
+            </div>
+          </div>
+          <p className="text-center text-4xl font-semibold sm:text-5xl">Um degrau de cada vez.</p>
         </div>
       ),
     },
   ];
 
-  return <TvSlideshow slides={slides} />;
+  return <Apresentacao slides={slides} rodape={<span>{rotuloTrimestre(trimestre)}</span>} />;
 }

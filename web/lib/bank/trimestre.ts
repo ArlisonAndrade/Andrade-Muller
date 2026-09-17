@@ -2,6 +2,15 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { ENTIDADE_FAMILIA } from "@/lib/bank/tipos";
 import { montarPanoramaSemanal } from "@/lib/bank/semanas";
 import { obterPatrimonioArthur, obterMetaArthur } from "@/lib/bank/arthur";
+import { montarJornada, type Jornada } from "@/lib/bank/jornada";
+import {
+  agregarPorClasse,
+  agruparPorFinalidade,
+  type AtivoResumo,
+  type Cotacao,
+  type PosicaoDetalhada,
+} from "@/lib/bank/calculos-investimentos";
+import type { FinalidadeCarteira } from "@/lib/bank/classes-ativos";
 import { aaaammDe, aporteDoMes, carregarPlano, mesAtual, somarMeses, type PlanoCompleto } from "@/lib/bank/plano";
 import {
   aoAlcance,
@@ -58,7 +67,20 @@ export type DadosTrimestre = {
     saldoPrincipal: number;
     quitacaoPrevista: string | null;
   };
-  semanas: { dentro: number; total: number; media: number | null; meta: number | null };
+  semanas: {
+    dentro: number;
+    total: number;
+    media: number | null;
+    meta: number | null;
+    categoriaMaisPesou: { nome: string; gasto: number } | null;
+  };
+  jornada: Jornada;
+  carteira: {
+    total: number;
+    porFinalidade: Array<{ finalidade: FinalidadeCarteira; valor: number; percentual: number }>;
+    maioresAltas: AtivoResumo[]; // rentabilidade desde a compra
+    maioresQuedas: AtivoResumo[];
+  };
   arthur: { atual: number; meta: number };
   proximo: {
     trimestre: string;
@@ -80,6 +102,26 @@ export async function montarTrimestre(supabase: SupabaseClient, trimestre: strin
   const proximo = trimestreVizinho(trimestre, 1);
 
   const carteira = await lerCarteiraFamilia(supabase);
+  const [{ data: posicoesDetalhe }, { data: cotacoesDetalhe }, jornada] = await Promise.all([
+    supabase
+      .from("posicao_ativos")
+      .select("ativo_id, ticker, tipo, quantidade_atual, preco_medio")
+      .eq("entidade_id", ENTIDADE_FAMILIA),
+    supabase.from("cotacoes_atuais").select("ativo_id, preco_atual, variacao_dia_pct"),
+    montarJornada(supabase, carteira.patrimonio),
+  ]);
+  const classes = agregarPorClasse(
+    ((posicoesDetalhe ?? []) as PosicaoDetalhada[]).filter((p) => Number(p.quantidade_atual) > 0),
+    new Map<string, Cotacao>((cotacoesDetalhe ?? []).map((c) => [c.ativo_id, c])),
+    new Map(),
+  );
+  const totalCarteira = classes.reduce((s, c) => s + c.valorMercado, 0);
+  // Destaques pela rentabilidade desde a compra: o espelho do Investidor10 não
+  // guarda preço por ativo mês a mês, então "do trimestre" não existe por ativo.
+  const ativosOrdenados = classes
+    .flatMap((c) => c.ativos)
+    .filter((a) => a.rentabilidadePct != null)
+    .sort((a, b) => (b.rentabilidadePct as number) - (a.rentabilidadePct as number));
   const [
     plano,
     estados,
@@ -149,6 +191,11 @@ export async function montarTrimestre(supabase: SupabaseClient, trimestre: strin
   const abertas = listaParcelas.filter((p) => !p.paga).sort((a, b) => String(a.data_vencimento).localeCompare(String(b.data_vencimento)));
 
   const semanasDoTri = panorama.anteriores.filter((s) => s.fim >= inicioISO && s.fim <= fimISO && s.meta != null);
+  const gastoPorCategoria = new Map<string, number>();
+  for (const semana of semanasDoTri) {
+    for (const c of semana.porCategoria) gastoPorCategoria.set(c.nome, (gastoPorCategoria.get(c.nome) ?? 0) + c.gasto);
+  }
+  const [categoriaTopo] = [...gastoPorCategoria.entries()].sort((a, b) => b[1] - a[1]);
 
   const mesesProximo = mesesDoTrimestre(proximo);
   const aportePorMes = mesesProximo.map((mes) => ({ mes, valor: aporteDoMes(plano.parametros, Math.max(mes, plano.parametros.inicio)) }));
@@ -183,8 +230,20 @@ export async function montarTrimestre(supabase: SupabaseClient, trimestre: strin
       total: semanasDoTri.length,
       media: semanasDoTri.length ? semanasDoTri.reduce((s, x) => s + x.gasto, 0) / semanasDoTri.length : null,
       meta: semanasDoTri.length ? (semanasDoTri[semanasDoTri.length - 1].meta as number) : null,
+      categoriaMaisPesou: categoriaTopo && categoriaTopo[1] > 0 ? { nome: categoriaTopo[0], gasto: categoriaTopo[1] } : null,
     },
     arthur: { atual: arthur.atual, meta: obterMetaArthur() },
+    jornada,
+    carteira: {
+      total: totalCarteira,
+      porFinalidade: agruparPorFinalidade(classes).map((g) => ({
+        finalidade: g.finalidade,
+        valor: g.valorMercado,
+        percentual: totalCarteira > 0 ? (g.valorMercado / totalCarteira) * 100 : 0,
+      })),
+      maioresAltas: ativosOrdenados.filter((a) => (a.rentabilidadePct as number) > 0).slice(0, 3),
+      maioresQuedas: ativosOrdenados.filter((a) => (a.rentabilidadePct as number) < 0).slice(-3).reverse(),
+    },
     proximo: {
       trimestre: proximo,
       aporteTotal: aportePorMes.reduce((s, a) => s + a.valor, 0),
@@ -196,4 +255,84 @@ export async function montarTrimestre(supabase: SupabaseClient, trimestre: strin
       ? { compromissos: (doTrimestreRow.compromissos as Compromisso[]) ?? [], notas: doTrimestreRow.notas }
       : null,
   };
+}
+
+// ---------- Balanço: o que deu certo, o que ajustar ----------
+// Decisão do Arlison (17/set/2026): a reunião tem que sair com entusiasmo,
+// mesmo num trimestre em que nada deu certo — a mensagem é sempre de longo
+// prazo. Por isso "deu certo" sempre tem o que mostrar (a parcela consignada
+// sai todo mês, o construído desde o marco zero, a coleção), e "o que não deu"
+// nunca é sentença: cada item vem com o próximo passo.
+
+export type ItemBalanco = { emoji: string; texto: string; proximoPasso?: string };
+
+const reais = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
+
+export function balancoDoTrimestre(d: DadosTrimestre): { certos: ItemBalanco[]; ajustes: ItemBalanco[] } {
+  const certos: ItemBalanco[] = [];
+  const ajustes: ItemBalanco[] = [];
+  const crescimento = d.carteiraInicio != null ? d.carteiraFim - d.carteiraInicio : null;
+  const cumpriuAportes = d.planejadoTotal > 0 && d.aportadoTotal >= d.planejadoTotal - 1;
+
+  if (crescimento != null && crescimento > 0) {
+    certos.push({ emoji: "📈", texto: `A carteira cresceu ${reais(crescimento)} no trimestre.` });
+  }
+  if (d.aportadoTotal > 0) {
+    certos.push({
+      emoji: "💵",
+      texto: cumpriuAportes
+        ? `${reais(d.aportadoTotal)} aportados — o plano do trimestre foi cumprido.`
+        : `${reais(d.aportadoTotal)} aportados no trimestre.`,
+    });
+  }
+  if (d.plano.sequencia > 0) {
+    certos.push({ emoji: "🔥", texto: `${d.plano.sequencia} ${d.plano.sequencia === 1 ? "mês" : "meses"} seguidos com o aporte cumprido.` });
+  }
+  if (d.divida.parcelasPagas > 0) {
+    certos.push({
+      emoji: "🏦",
+      texto: `${d.divida.parcelasPagas} ${d.divida.parcelasPagas === 1 ? "parcela paga" : "parcelas pagas"} do Santander — a dívida encolhe todo mês.`,
+    });
+  }
+  if (d.divida.adiantadas > 0) {
+    certos.push({ emoji: "✂️", texto: `${d.divida.adiantadas} adiantada(s): ${reais(d.divida.jurosEconomizados)} de juros que nunca vão ser pagos.` });
+  }
+  if (d.semanas.dentro > 0) {
+    certos.push({ emoji: "✅", texto: `${d.semanas.dentro} ${d.semanas.dentro === 1 ? "semana" : "semanas"} dentro da meta.` });
+  }
+  if (d.conquistasDoTrimestre.length > 0) {
+    certos.push({ emoji: "🏅", texto: `${d.conquistasDoTrimestre.length} ${d.conquistasDoTrimestre.length === 1 ? "conquista nova" : "conquistas novas"} na coleção.` });
+  }
+  if (d.plano.construidoDesdeMarcoZero > 0) {
+    certos.push({ emoji: "🧱", texto: `${reais(d.plano.construidoDesdeMarcoZero)} construídos desde o marco zero.` });
+  }
+  if (d.arthur.atual > 0) {
+    certos.push({ emoji: "👦", texto: `O Arthur já tem ${reais(d.arthur.atual)} trabalhando por ele.` });
+  }
+
+  if (d.planejadoTotal > 0 && !cumpriuAportes) {
+    ajustes.push({
+      emoji: "💵",
+      texto: `O aporte ficou ${reais(d.planejadoTotal - d.aportadoTotal)} abaixo do plano.`,
+      proximoPasso: "Combinar o dia do aporte: logo que o salário cair, antes de qualquer gasto.",
+    });
+  }
+  if (crescimento != null && crescimento < 0) {
+    ajustes.push({
+      emoji: "📉",
+      texto: `A carteira oscilou ${reais(crescimento)} — é o mercado, não a decisão de vocês.`,
+      proximoPasso: "Manter o aporte. Quem aporta na queda compra mais barato.",
+    });
+  }
+  if (d.semanas.total > 0 && d.semanas.dentro / d.semanas.total < 0.5) {
+    ajustes.push({
+      emoji: "🧾",
+      texto: `${d.semanas.total - d.semanas.dentro} de ${d.semanas.total} semanas passaram da meta.`,
+      proximoPasso: d.semanas.categoriaMaisPesou
+        ? `Olhar juntos a categoria que mais pesou: ${d.semanas.categoriaMaisPesou.nome}.`
+        : "Rever a meta semanal: meta que nunca é batida precisa ser realista.",
+    });
+  }
+
+  return { certos, ajustes };
 }

@@ -52,5 +52,5 @@ export async function salvarReuniaoTrimestral(dados: {
     if (erroAnterior) throw new Error(`Falha ao conferir os compromissos: ${erroAnterior.message}`);
   }
 
-  revalidatePath("/bank/tv/trimestre");
+  revalidatePath("/bank/tv");
 }
