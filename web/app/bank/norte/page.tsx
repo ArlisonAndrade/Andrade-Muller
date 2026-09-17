@@ -75,7 +75,7 @@ export default async function PaginaNorte({
       .order("valor", { ascending: false }),
     supabase
       .from("categorias")
-      .select("id, nome")
+      .select("id, nome, grupo_orcamento")
       .eq("entidade_id", ENTIDADE_FAMILIA)
       .order("nome"),
     supabase

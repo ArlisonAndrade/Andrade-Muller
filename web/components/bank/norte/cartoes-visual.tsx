@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { LinhaItem, FormAdicionarItem, type ItemView } from "@/components/bank/norte/tabela-divisao";
 import { ValorMoeda } from "@/components/bank/norte/privacidade";
-import type { Cartao } from "@/lib/bank/tipos";
+import type { Cartao, GrupoOrcamento } from "@/lib/bank/tipos";
 
 type Opcao = { id: string; nome: string };
 
@@ -23,7 +23,7 @@ export function CartoesVisual({
   cartoes: Cartao[];
   itens: ItemView[];
   pessoas: Opcao[];
-  categorias: Opcao[];
+  categorias: Array<Opcao & { grupo_orcamento?: GrupoOrcamento | null }>;
 }) {
   const [aberto, setAberto] = useState<string | null>(null);
   const cartoesComItens = cartoes.filter((c) => itens.some((i) => i.cartao_id === c.id));

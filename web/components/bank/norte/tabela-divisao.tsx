@@ -38,6 +38,8 @@ export type ItemView = {
 };
 
 type Opcao = { id: string; nome: string };
+/** Categoria traz o grupo padrão dela, pra a despesa seguir quando a categoria muda. */
+type OpcaoCategoria = Opcao & { grupo_orcamento?: GrupoOrcamento | null };
 
 function valorMetodo(item: { cartao_id: string | null; metodo: string | null }) {
   if (item.cartao_id) return `cartao:${item.cartao_id}`;
@@ -58,9 +60,13 @@ function CamposItem({
 }: {
   defaults: Partial<ItemView>;
   pessoas: Opcao[];
-  categorias: Opcao[];
+  categorias: OpcaoCategoria[];
   cartoes: Opcao[];
 }) {
+  // O grupo acompanha a categoria (pedido do Arlison, 17/set/2026: mudar a
+  // categoria tem que atualizar tudo). Continua editável — se ele escolher
+  // outro grupo à mão depois, vale o que ele escolheu.
+  const [grupo, setGrupo] = useState<string>(defaults.grupo_orcamento ?? "");
   return (
     <div className="flex flex-col gap-3">
       <label className={rotulo}>
@@ -90,7 +96,15 @@ function CamposItem({
         </label>
         <label className={rotulo}>
           Categoria
-          <select name="categoria_id" defaultValue={defaults.categoria_id ?? ""} className={campo}>
+          <select
+            name="categoria_id"
+            defaultValue={defaults.categoria_id ?? ""}
+            className={campo}
+            onChange={(e) => {
+              const g = categorias.find((c) => c.id === e.target.value)?.grupo_orcamento;
+              if (g && g !== "nao_aplica") setGrupo(g);
+            }}
+          >
             <option value="">—</option>
             {categorias.map((c) => (
               <option key={c.id} value={c.id}>
@@ -104,7 +118,7 @@ function CamposItem({
       <div className="grid grid-cols-2 gap-3">
         <label className={rotulo}>
           Grupo
-          <select name="grupo_orcamento" defaultValue={defaults.grupo_orcamento ?? ""} className={campo}>
+          <select name="grupo_orcamento" value={grupo} onChange={(e) => setGrupo(e.target.value)} className={campo}>
             <option value="">—</option>
             {GRUPOS.map((g) => (
               <option key={g} value={g}>
@@ -198,7 +212,7 @@ export function LinhaItem({
 }: {
   item: ItemView;
   pessoas: Opcao[];
-  categorias: Opcao[];
+  categorias: OpcaoCategoria[];
   cartoes: Opcao[];
   caixinha?: CaixinhaVisual;
 }) {
@@ -336,7 +350,7 @@ export function FormAdicionarItem({
 }: {
   entidadeId: string;
   pessoas: Opcao[];
-  categorias: Opcao[];
+  categorias: OpcaoCategoria[];
   cartoes: Opcao[];
   defaultsIniciais?: Partial<ItemView>;
   /** Na grade de caixinhas, o botão vira uma caixinha tracejada "+ item". */

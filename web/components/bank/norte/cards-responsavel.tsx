@@ -44,7 +44,7 @@ export function CardsResponsavel({
   entidadeId: string;
   pessoas: Pessoa[];
   itens: ItemView[];
-  categorias: Opcao[];
+  categorias: Array<Opcao & { grupo_orcamento?: GrupoOrcamento | null }>;
   cartoes: Opcao[];
   /** Renda do mês salva no Planejamento (a mesma do resto do Bank), por pessoa. */
   rendaPorPessoa: Record<string, number>;
