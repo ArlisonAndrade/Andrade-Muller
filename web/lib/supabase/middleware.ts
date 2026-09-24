@@ -12,6 +12,27 @@ function autenticaPorSegredo(pathname: string) {
   return pathname.startsWith("/api/bank/agente") || pathname === "/api/bank/investidor10";
 }
 
+// Carregamento de documento que não veio de uma página do próprio site.
+// Navegação client-side do Next (header `rsc`) nunca conta como entrada.
+function entrouDeFora(request: NextRequest) {
+  const h = request.headers;
+  if (h.get("rsc")) return false;
+  const dest = h.get("sec-fetch-dest");
+  if (dest && dest !== "document") return false;
+
+  const site = h.get("sec-fetch-site");
+  if (site) return site === "none" || site === "cross-site";
+
+  // Navegador sem Sec-Fetch-*: cai no Referer.
+  const referer = h.get("referer");
+  if (!referer) return true;
+  try {
+    return new URL(referer).origin !== request.nextUrl.origin;
+  } catch {
+    return true;
+  }
+}
+
 export async function updateSession(request: NextRequest) {
   if (autenticaPorSegredo(request.nextUrl.pathname)) {
     return NextResponse.next({ request });
@@ -57,15 +78,15 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // "/" é o FM Gestão, mas com sessão já ativa (o caso comum no dia a dia —
-  // ninguém passa pelo /entrar toda vez) o middleware nunca tocava nessa
-  // rota, então abrir o site direto sempre caía no FM sem nunca mostrar o
-  // /hub (decisão do Arlison, 12/ago/2026 — fecha a "opção aberta" do
-  // CLAUDE.md). Mostra o /hub na primeira vez da sessão do navegador; o
-  // cookie `ambiente_escolhido` (setado por /hub/ir ao clicar no card do FM)
-  // libera a partir daí, senão clicar "FM Gestão" no hub voltaria pro hub
-  // de novo (loop).
-  if (user && pathname === "/" && !request.cookies.get("ambiente_escolhido")) {
+  // "/" é o FM Gestão, mas quem abre o site (URL digitada, favorito, atalho
+  // no celular, aba restaurada) tem que ver o /hub primeiro (decisão do
+  // Arlison, 12/ago/2026). Antes isso dependia de um cookie de sessão
+  // `ambiente_escolhido`, que falhava: navegador com "continuar de onde
+  // parou" (e o do celular) nunca apaga cookie de sessão, e o prefetch do
+  // <Link> do hub setava o cookie sem ninguém clicar — daí em diante tudo
+  // caía direto no FM. Agora decide pela origem do request: entrada de fora
+  // → /hub; navegação dentro do app (hub → FM, menu do FM) passa.
+  if (user && pathname === "/" && entrouDeFora(request)) {
     const url = request.nextUrl.clone();
     url.pathname = "/hub";
     return NextResponse.redirect(url);
