@@ -77,6 +77,9 @@ export type DadosTrimestre = {
     categoriaMaisPesou: { nome: string; gasto: number } | null;
   };
   jornada: Jornada;
+  // Carteira a mercado mês a mês, da primeira foto até o fim do trimestre
+  // (slide "O que construímos"). O mês corrente usa a carteira de hoje.
+  evolucaoCarteira: Array<{ mes: number; valor: number }>;
   carteira: {
     total: number;
     porFinalidade: Array<{ finalidade: FinalidadeCarteira; valor: number; percentual: number }>;
@@ -247,6 +250,10 @@ export async function montarTrimestre(supabase: SupabaseClient, trimestre: strin
     },
     arthur: { atual: arthur.atual, meta: obterMetaArthur() },
     jornada,
+    evolucaoCarteira: [...porMes.keys()]
+      .filter((mes) => mes <= meses[2] && mes <= hoje)
+      .sort((a, b) => a - b)
+      .map((mes) => ({ mes, valor: mercadoDe(mes) as number })),
     carteira: {
       total: totalCarteira,
       porFinalidade: agruparPorFinalidade(classes).map((g) => ({

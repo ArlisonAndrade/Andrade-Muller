@@ -20,6 +20,8 @@ import { Medalha } from "@/components/bank/conquistas/medalha";
 import { SeloHistoriaDesenho } from "@/components/bank/conquistas/selo-historia";
 import { JornadaPatrimonio } from "@/components/bank/home/jornada-patrimonio";
 import { ConfeteAoEntrar } from "@/components/bank/tv/confete-ao-entrar";
+import { SlideArQueVem, SlideConstruimos, SlideEscolhas, SlideRegua } from "@/components/bank/tv/slides-reuniao";
+import { CONTEUDO_REUNIAO } from "@/lib/bank/tv/conteudo-reuniao";
 
 export const metadata = { title: "Modo TV" };
 
@@ -38,6 +40,10 @@ const FUNDO = {
   compromissos: "linear-gradient(135deg, #1f2937 0%, #030712 100%)",
   certos: "linear-gradient(135deg, #16a34a 0%, #064e3b 100%)",
   ajustes: "linear-gradient(135deg, #334155 0%, #0f172a 100%)",
+  construimos: "linear-gradient(135deg, #065f46 0%, #022c22 100%)",
+  regua: "linear-gradient(135deg, #1e40af 0%, #0b1a3d 100%)",
+  escolhas: "linear-gradient(135deg, #3f3f46 0%, #09090b 100%)",
+  ar: "linear-gradient(160deg, #0284c7 0%, #0c4a6e 55%, #082f49 100%)",
   futuro: "radial-gradient(circle at 80% 20%, #f59e0b 0%, #7c2d12 45%, #0c0a09 100%)",
 };
 
@@ -188,6 +194,9 @@ export default async function PaginaModoTv({ searchParams }: { searchParams: Pro
   const balanco = balancoDoTrimestre(d);
   const selosConquistados = d.historia.filter((h) => h.conquistada).length;
   const degrausAlcancados = plano.marcos.filter((m) => m.atingido).length;
+  // Conteúdo escrito da reunião (fatos de fora do banco); slide sem bloco no
+  // trimestre não entra. "O que construímos" sempre entra — o gráfico é do banco.
+  const conteudo = CONTEUDO_REUNIAO[trimestre] ?? {};
 
   const slides: SlideTv[] = [
     {
@@ -225,6 +234,22 @@ export default async function PaginaModoTv({ searchParams }: { searchParams: Pro
       ),
     },
     {
+      titulo: "O que construímos",
+      emoji: "🧱",
+      fundo: FUNDO.construimos,
+      conteudo: <SlideConstruimos evolucao={d.evolucaoCarteira} cards={conteudo.construimos?.cards} />,
+    },
+    ...(conteudo.regua
+      ? [
+          {
+            titulo: "Onde estamos na régua do Brasil",
+            emoji: "🇧🇷",
+            fundo: FUNDO.regua,
+            conteudo: <SlideRegua regua={conteudo.regua} />,
+          },
+        ]
+      : []),
+    {
       titulo: "O trimestre em números",
       emoji: "📅",
       fundo: FUNDO.numeros,
@@ -247,6 +272,16 @@ export default async function PaginaModoTv({ searchParams }: { searchParams: Pro
       fundo: FUNDO.certos,
       conteudo: <ListaBalanco itens={balanco.certos} vazio="Vocês estão aqui, olhando os números juntos. Isso já é o começo." />,
     },
+    ...(conteudo.escolhas
+      ? [
+          {
+            titulo: "O que aconteceu e o que a gente escolheu fazer",
+            emoji: "🧭",
+            fundo: FUNDO.escolhas,
+            conteudo: <SlideEscolhas escolhas={conteudo.escolhas} />,
+          },
+        ]
+      : []),
     {
       titulo: "Os aportes",
       emoji: "💵",
@@ -520,6 +555,16 @@ export default async function PaginaModoTv({ searchParams }: { searchParams: Pro
         </div>
       ),
     },
+    ...(conteudo.arQueVem
+      ? [
+          {
+            titulo: "O ar que vem",
+            emoji: "🌤️",
+            fundo: FUNDO.ar,
+            conteudo: <SlideArQueVem ar={conteudo.arQueVem} />,
+          },
+        ]
+      : []),
     {
       titulo: "O que combinamos",
       emoji: "🤝",
