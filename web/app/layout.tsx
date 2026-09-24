@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Fraunces, Inter, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
+import { RegistrarSW } from "@/components/registrar-sw";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -25,6 +26,10 @@ export const metadata: Metadata = {
     template: "%s · Andrade Muller",
   },
   description: "Portal do ecossistema Andrade Muller — FM Gestão e Bank",
+  // App instalado na tela inicial (o manifest vem de app/manifest.ts). O
+  // iPhone ignora o manifest pro ícone e o nome — por isso as apple-*.
+  icons: { apple: "/app/apple-touch-icon.png" },
+  appleWebApp: { capable: true, title: "Andrade Muller", statusBarStyle: "default" },
 };
 
 // Sem isto o celular renderiza numa "tela virtual" de ~980px e encolhe tudo.
@@ -43,7 +48,10 @@ export default function RootLayout({
       lang="pt-BR"
       className={`${inter.variable} ${fraunces.variable} ${sourceSerif.variable} h-full antialiased`}
     >
-      <body className="min-h-full">{children}</body>
+      <body className="min-h-full">
+        {children}
+        <RegistrarSW />
+      </body>
     </html>
   );
 }

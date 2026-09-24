@@ -296,6 +296,39 @@
   .envCard { width: 100%; max-width: 300px; padding: 28px 18px 22px; }
 }
 
+/* ---------- atalhos (só no celular) ---------- */
+.atalhos { display: none; }
+
+@media (max-width: 640px) {
+  .atalhos { display: block; width: 100%; max-width: 324px; margin: 36px auto 24px; }
+  .atalhosTitulo {
+    margin: 0 0 12px;
+    font-family: var(--font-cinzel), serif;
+    font-size: 11px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: rgba(227, 196, 118, 0.7);
+    text-align: center;
+  }
+  .atalhosGrade { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 12px; }
+  .atalho {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 14px 14px 12px;
+    background: linear-gradient(180deg, var(--card-bg), var(--wood-mid));
+    border: 1px solid var(--gold-dim);
+    border-radius: 4px;
+    text-decoration: none;
+    color: var(--ink);
+  }
+  .atalho:active { border-color: var(--gold); }
+  .atalhoIcone { font-size: 20px; line-height: 1; color: var(--gold-soft); margin-bottom: 6px; }
+  .atalhoNome { font-family: var(--font-cinzel), serif; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; }
+  .atalhoOnde { font-size: 12px; color: rgba(239, 230, 211, 0.4); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .crestImg, .eyebrow, .googleBtn, .fineprint {
     animation-duration: 0.01ms !important;
