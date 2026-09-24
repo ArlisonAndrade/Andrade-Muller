@@ -41,6 +41,102 @@ const FUNDO = {
   futuro: "radial-gradient(circle at 80% 20%, #f59e0b 0%, #7c2d12 45%, #0c0a09 100%)",
 };
 
+// Trilha do gasto semanal: da média do trimestre anterior até a meta, com o
+// trimestre atual marcado no meio. Mostra tendência, não só o número do tri.
+function CaminhoMetaSemanal({
+  anterior,
+  atual,
+  meta,
+  rotuloAnterior,
+  rotuloAtual,
+}: {
+  anterior: number;
+  atual: number;
+  meta: number;
+  rotuloAnterior: string;
+  rotuloAtual: string;
+}) {
+  const queda = anterior - atual;
+  const chegou = atual <= meta;
+  const pct = anterior > meta ? Math.min(100, Math.max(0, (queda / (anterior - meta)) * 100)) : chegou ? 100 : 0;
+  const falta = atual - meta;
+
+  let frase: string;
+  if (chegou) frase = `Meta alcançada: ${brl0(atual)} por semana, abaixo dos ${brl0(meta)}. 🎉`;
+  else if (queda > 0)
+    frase = `Já andamos ${Math.round(pct)}% do caminho: faltam ${brl0(falta)} por semana pra chegar na média de ${brl0(meta)}.`;
+  else frase = `A média subiu ${brl0(-queda)} por semana. Faltam ${brl0(falta)} pra chegar na média de ${brl0(meta)}.`;
+
+  return (
+    <div className="rounded-[20px] bg-white/10 p-6 sm:p-8" style={{ animation: "fade-slide-in 0.5s ease-out both" }}>
+      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+        <p className="text-sm font-medium uppercase tracking-wide text-white/70 sm:text-base">Rumo aos {brl0(meta)} por semana</p>
+        {queda > 0 && (
+          <p className="text-2xl font-bold text-emerald-300 numeros-tabulares sm:text-3xl">
+            ↓ {brl0(queda)} por semana
+            <span className="ml-2 text-base font-medium text-white/70">
+              ({Math.round((queda / anterior) * 100)}% a menos que no {rotuloAnterior})
+            </span>
+          </p>
+        )}
+      </div>
+
+      <div className="relative mt-12 mb-14 h-3 rounded-full bg-white/15">
+        <div
+          className="absolute inset-y-0 left-0 rounded-full bg-emerald-400"
+          style={{ width: `${pct}%`, transition: "width 1.2s ease-out" }}
+        />
+        <Marco posicao={0} titulo={rotuloAnterior} valor={brl0(anterior)} />
+        <Marco posicao={pct} titulo={rotuloAtual} valor={brl0(atual)} destaque />
+        <Marco posicao={100} titulo="Meta" valor={brl0(meta)} alvo />
+      </div>
+
+      <p className="text-xl text-white/90 sm:text-2xl">{frase}</p>
+    </div>
+  );
+}
+
+function Marco({
+  posicao,
+  titulo,
+  valor,
+  destaque = false,
+  alvo = false,
+}: {
+  posicao: number;
+  titulo: string;
+  valor: string;
+  destaque?: boolean;
+  alvo?: boolean;
+}) {
+  const alinhamento = posicao <= 5 ? "items-start" : posicao >= 95 ? "items-end" : "items-center";
+  const deslocamento = posicao <= 5 ? "0%" : posicao >= 95 ? "-100%" : "-50%";
+  return (
+    <div
+      className={`absolute top-1/2 flex flex-col ${alinhamento}`}
+      style={{ left: `${posicao}%`, transform: `translate(${deslocamento}, -50%)` }}
+    >
+      <p className={`absolute bottom-full mb-3 whitespace-nowrap text-sm ${destaque ? "font-semibold text-white" : "text-white/70"}`}>
+        {titulo}
+      </p>
+      <span
+        className={`block rounded-full border-2 ${
+          destaque ? "h-7 w-7 border-white bg-emerald-400 shadow-lg" : alvo ? "h-5 w-5 border-white bg-white/20" : "h-5 w-5 border-white/60 bg-white/30"
+        }`}
+      >
+        {alvo && <span className="flex h-full items-center justify-center text-[10px]">🎯</span>}
+      </span>
+      <p
+        className={`absolute top-full mt-3 whitespace-nowrap numeros-tabulares ${
+          destaque ? "text-xl font-bold text-white" : "text-base text-white/80"
+        }`}
+      >
+        {valor}
+      </p>
+    </div>
+  );
+}
+
 function ListaBalanco({ itens, vazio }: { itens: ItemBalanco[]; vazio: string }) {
   if (itens.length === 0) return <p className="text-2xl text-white/80">{vazio}</p>;
   return (
@@ -276,22 +372,38 @@ export default async function PaginaModoTv({ searchParams }: { searchParams: Pro
       emoji: "🧾",
       fundo: FUNDO.semanas,
       conteudo: (
-        <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
-          <BigStat
-            rotulo="Semanas dentro da meta"
-            valor={d.semanas.total > 0 ? `${d.semanas.dentro} de ${d.semanas.total}` : "—"}
-            cor={d.semanas.total > 0 && d.semanas.dentro / d.semanas.total >= 0.5 ? "#86efac" : "#ffffff"}
-          />
-          <BigStat
-            rotulo="Gasto médio por semana"
-            valor={d.semanas.media != null ? brl0(d.semanas.media) : "—"}
-            apoio={d.semanas.meta != null ? `meta: ${brl0(d.semanas.meta)}` : undefined}
-          />
-          <BigStat
-            rotulo="Categoria que mais pesou"
-            valor={d.semanas.categoriaMaisPesou?.nome ?? "—"}
-            apoio={d.semanas.categoriaMaisPesou ? `${brl0(d.semanas.categoriaMaisPesou.gasto)} no trimestre` : undefined}
-          />
+        <div className="flex flex-col gap-8">
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-3">
+            <BigStat
+              rotulo="Semanas dentro da meta"
+              valor={d.semanas.total > 0 ? `${d.semanas.dentro} de ${d.semanas.total}` : "—"}
+              cor={d.semanas.total > 0 && d.semanas.dentro / d.semanas.total >= 0.5 ? "#86efac" : "#ffffff"}
+            />
+            <BigStat
+              rotulo="Gasto médio por semana"
+              valor={d.semanas.media != null ? brl0(d.semanas.media) : "—"}
+              apoio={d.semanas.meta != null ? `meta: ${brl0(d.semanas.meta)}` : undefined}
+              cor={
+                d.semanas.media != null && d.semanas.mediaAnterior != null && d.semanas.media < d.semanas.mediaAnterior
+                  ? "#86efac"
+                  : undefined
+              }
+            />
+            <BigStat
+              rotulo="Categoria que mais pesou"
+              valor={d.semanas.categoriaMaisPesou?.nome ?? "—"}
+              apoio={d.semanas.categoriaMaisPesou ? `${brl0(d.semanas.categoriaMaisPesou.gasto)} no trimestre` : undefined}
+            />
+          </div>
+          {d.semanas.media != null && d.semanas.mediaAnterior != null && d.semanas.meta != null && (
+            <CaminhoMetaSemanal
+              anterior={d.semanas.mediaAnterior}
+              atual={d.semanas.media}
+              meta={d.semanas.meta}
+              rotuloAnterior={`${trimestreVizinho(d.trimestre, -1).slice(-1)}º tri`}
+              rotuloAtual={`${d.trimestre.slice(-1)}º tri`}
+            />
+          )}
         </div>
       ),
     },

@@ -72,6 +72,8 @@ export type DadosTrimestre = {
     total: number;
     media: number | null;
     meta: number | null;
+    // Mesma régua no trimestre anterior, pra mostrar a tendência até a meta.
+    mediaAnterior: number | null;
     categoriaMaisPesou: { nome: string; gasto: number } | null;
   };
   jornada: Jornada;
@@ -190,7 +192,17 @@ export async function montarTrimestre(supabase: SupabaseClient, trimestre: strin
   const pagasNoTri = listaParcelas.filter((p) => p.paga && noTrimestre(p.paga_em));
   const abertas = listaParcelas.filter((p) => !p.paga).sort((a, b) => String(a.data_vencimento).localeCompare(String(b.data_vencimento)));
 
-  const semanasDoTri = panorama.anteriores.filter((s) => s.fim >= inicioISO && s.fim <= fimISO && s.meta != null);
+  // Semana conta no trimestre em que termina (domingo); só semanas fechadas.
+  const semanasEntre = (ini: string, fim: string) =>
+    panorama.anteriores.filter((s) => s.fim >= ini && s.fim <= fim && s.meta != null);
+  const mediaDe = (lista: typeof panorama.anteriores) =>
+    lista.length ? lista.reduce((s, x) => s + x.gasto, 0) / lista.length : null;
+  const semanasDoTri = semanasEntre(inicioISO, fimISO);
+  const mesesAnterior = mesesDoTrimestre(anterior);
+  const semanasDoAnterior = semanasEntre(
+    `${String(mesesAnterior[0]).slice(0, 4)}-${String(mesesAnterior[0]).slice(4)}-01`,
+    `${String(mesesAnterior[2]).slice(0, 4)}-${String(mesesAnterior[2]).slice(4)}-31`,
+  );
   const gastoPorCategoria = new Map<string, number>();
   for (const semana of semanasDoTri) {
     for (const c of semana.porCategoria) gastoPorCategoria.set(c.nome, (gastoPorCategoria.get(c.nome) ?? 0) + c.gasto);
@@ -228,8 +240,9 @@ export async function montarTrimestre(supabase: SupabaseClient, trimestre: strin
     semanas: {
       dentro: semanasDoTri.filter((s) => s.gasto <= (s.meta as number)).length,
       total: semanasDoTri.length,
-      media: semanasDoTri.length ? semanasDoTri.reduce((s, x) => s + x.gasto, 0) / semanasDoTri.length : null,
+      media: mediaDe(semanasDoTri),
       meta: semanasDoTri.length ? (semanasDoTri[semanasDoTri.length - 1].meta as number) : null,
+      mediaAnterior: mediaDe(semanasDoAnterior),
       categoriaMaisPesou: categoriaTopo && categoriaTopo[1] > 0 ? { nome: categoriaTopo[0], gasto: categoriaTopo[1] } : null,
     },
     arthur: { atual: arthur.atual, meta: obterMetaArthur() },
@@ -299,6 +312,13 @@ export function balancoDoTrimestre(d: DadosTrimestre): { certos: ItemBalanco[]; 
   }
   if (d.semanas.dentro > 0) {
     certos.push({ emoji: "✅", texto: `${d.semanas.dentro} ${d.semanas.dentro === 1 ? "semana" : "semanas"} dentro da meta.` });
+  }
+  const { media, mediaAnterior } = d.semanas;
+  if (media != null && mediaAnterior != null && media < mediaAnterior) {
+    certos.push({
+      emoji: "📉",
+      texto: `O gasto médio por semana caiu ${reais(mediaAnterior - media)} em relação ao trimestre anterior (${reais(mediaAnterior)} → ${reais(media)}).`,
+    });
   }
   if (d.conquistasDoTrimestre.length > 0) {
     certos.push({ emoji: "🏅", texto: `${d.conquistasDoTrimestre.length} ${d.conquistasDoTrimestre.length === 1 ? "conquista nova" : "conquistas novas"} na coleção.` });
