@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { confirmarSugestao, excluirFaturamento } from "@/lib/acoes/faturamento";
+import { gerarRecorrenciasPendentes } from "@/lib/bank/acoes/recorrencias";
 import { BotaoExcluir } from "@/components/crm/botao-excluir";
 import { ENTIDADE_ID, nomeCliente, type Cliente, type Transacao } from "@/lib/tipos";
 import { moedaBRL, dataBR, mesBR, mesCurto, rotuloTrimestre } from "@/lib/formato";
@@ -44,6 +45,9 @@ export default async function PaginaFinanceiro({
   searchParams: Promise<{ tri?: string }>;
 }) {
   const { tri } = await searchParams;
+  // Despesas fixas da consultoria (pró-labore, contabilidade, ferramentas)
+  // nascem sozinhas no mês, como na planilha — migration 10. Idempotente.
+  await gerarRecorrenciasPendentes();
   const supabase = await createClient();
   const hoje = new Date().toISOString().slice(0, 10);
   const triAtual = inicioDoTrimestre(hoje);
@@ -88,8 +92,12 @@ export default async function PaginaFinanceiro({
     todasNotas
       .filter((n) => n.competencia === m)
       .reduce((s, n) => s + Number(n.valor), 0);
+  // DRE por competência, como a planilha: o extrato OFX é CAIXA (o DAS do mês
+  // M sai em M+1, o pró-labore pago num mês é do anterior) e serve só de
+  // conferência — não entra no DRE nem no Fator R, senão conta em dobro.
+  const doDre = todasTrans.filter((t) => !t.ofx_fitid);
   const grupoDoMes = (m: string, grupo: string) =>
-    todasTrans
+    doDre
       .filter(
         (t) =>
           t.data.slice(0, 7) === m.slice(0, 7) &&
@@ -97,7 +105,7 @@ export default async function PaginaFinanceiro({
       )
       .reduce((s, t) => s + Number(t.valor), 0);
   const categoriaDoMes = (m: string, trecho: string) =>
-    todasTrans
+    doDre
       .filter(
         (t) =>
           t.data.slice(0, 7) === m.slice(0, 7) &&
@@ -117,15 +125,40 @@ export default async function PaginaFinanceiro({
   const mesesTri = [triSel, addMeses(triSel, 1), addMeses(triSel, 2)];
   const fimTri = addMeses(triSel, 3);
 
+  // ---------- Fator R e DAS do mês ----------
+  // Folha ÷ faturamento dos 12 meses ANTERIORES; ≥ 28% = Anexo III (~6%).
+  const fatorDoMes = (m: string) => {
+    const doze = Array.from({ length: 12 }, (_, i) => addMeses(m, -(i + 1)));
+    const rbt12 = doze.reduce((s, x) => s + fatDoMes(x), 0);
+    const fs12 = doze.reduce((s, x) => s + grupoDoMes(x, "folha"), 0);
+    const fator = rbt12 > 0 ? fs12 / rbt12 : null;
+    const anexoIII = fator !== null && fator >= 0.28;
+    const aliquota = fator === null ? null : anexoIII ? 0.06 : 0.155;
+    return { rbt12, fs12, fator, anexoIII, aliquota };
+  };
+  // Imposto do mês como a planilha faz: DAS = alíquota do Fator R × notas.
+  // Mês com imposto LANÇADO usa o lançado (é o real e preserva o histórico);
+  // só mês sem lançamento usa o calculado, marcado como tal na tela.
+  const impostoLancado = (m: string) => grupoDoMes(m, "imposto");
+  const dasCalculado = (m: string) => {
+    const { aliquota } = fatorDoMes(m);
+    return aliquota === null ? null : aliquota * fatDoMes(m);
+  };
+  const impostoEhCalculado = (m: string) =>
+    impostoLancado(m) === 0 && fatDoMes(m) > 0 && dasCalculado(m) !== null;
+  const impostoDoMes = (m: string) =>
+    impostoEhCalculado(m) ? (dasCalculado(m) as number) : impostoLancado(m);
+
   // ---------- DRE (linhas exatas da planilha) ----------
   type Linha = {
     rotulo: string;
     tipo: "valor" | "deducao" | "total" | "pct";
     porMes: (m: string) => number;
+    calculado?: (m: string) => boolean; // valor estimado, não lançado
   };
   const dreDoMes = (m: string) => {
     const fat = fatDoMes(m);
-    const impostos = grupoDoMes(m, "imposto");
+    const impostos = impostoDoMes(m);
     const cps = grupoDoMes(m, "cps");
     const fixas = grupoDoMes(m, "folha") + grupoDoMes(m, "fixa");
     const variaveis = grupoDoMes(m, "variavel");
@@ -134,7 +167,7 @@ export default async function PaginaFinanceiro({
   };
   const linhasDre: Linha[] = [
     { rotulo: "Faturamento Bruto", tipo: "valor", porMes: (m) => dreDoMes(m).fat },
-    { rotulo: "(−) Impostos sobre o faturamento", tipo: "deducao", porMes: (m) => dreDoMes(m).impostos },
+    { rotulo: "(−) Impostos sobre o faturamento", tipo: "deducao", porMes: (m) => dreDoMes(m).impostos, calculado: impostoEhCalculado },
     { rotulo: "(=) Faturamento Líquido", tipo: "total", porMes: (m) => dreDoMes(m).fat - dreDoMes(m).impostos },
     { rotulo: "(−) Custo do serviço prestado", tipo: "deducao", porMes: (m) => dreDoMes(m).cps },
     { rotulo: "(−) Despesas fixas (inclui pró-labore)", tipo: "deducao", porMes: (m) => dreDoMes(m).fixas },
@@ -167,24 +200,50 @@ export default async function PaginaFinanceiro({
     .filter((m) => m <= competenciaAtual)
     .sort();
   const fatorR = mesesComDado.map((m) => {
-    const doze = Array.from({ length: 12 }, (_, i) => addMeses(m, -(i + 1)));
-    const rbt12 = doze.reduce((s, x) => s + fatDoMes(x), 0);
-    const fs12 = doze.reduce((s, x) => s + grupoDoMes(x, "folha"), 0);
-    const fator = rbt12 > 0 ? fs12 / rbt12 : null;
-    const anexoIII = fator !== null && fator >= 0.28;
-    const aliquota = fator === null ? null : anexoIII ? 0.06 : 0.155;
+    const f = fatorDoMes(m);
     return {
       mes: m,
       fat: fatDoMes(m),
       folha: grupoDoMes(m, "folha"),
-      rbt12,
-      fs12,
-      fator,
-      anexoIII,
-      aliquota,
-      das: aliquota === null ? null : aliquota * fatDoMes(m),
+      ...f,
+      das: f.aliquota === null ? null : f.aliquota * fatDoMes(m),
     };
   });
+
+  // ---------- situação de cada mês do trimestre ----------
+  // Diz o que falta antes de o número ser lido como certo: sem isto, mês sem
+  // pró-labore lançado aparecia com lucro inflado, sem aviso nenhum.
+  type Item = { rotulo: string; texto: string; estado: "ok" | "estimado" | "falta" | "neutro" };
+  const situacaoDoMes = (m: string) => {
+    const notas = todasNotas.filter((n) => n.competencia === m);
+    const extrato = todasTrans.some((t) => t.data.slice(0, 7) === m.slice(0, 7) && t.ofx_fitid);
+    const itens: Item[] = [
+      notas.length > 0
+        ? { rotulo: "Notas", texto: `${notas.length} · ${moedaBRL(fatDoMes(m))}`, estado: "ok" }
+        : { rotulo: "Notas", texto: "nenhuma lançada", estado: "falta" },
+      impostoLancado(m) > 0
+        ? { rotulo: "Imposto", texto: `lançado ${moedaBRL(impostoLancado(m))}`, estado: "ok" }
+        : impostoEhCalculado(m)
+          ? { rotulo: "Imposto", texto: `DAS calculado ${moedaBRL(dasCalculado(m) as number)}`, estado: "estimado" }
+          : { rotulo: "Imposto", texto: "—", estado: "neutro" },
+      grupoDoMes(m, "folha") > 0
+        ? { rotulo: "Pró-labore", texto: moedaBRL(grupoDoMes(m, "folha")), estado: "ok" }
+        : { rotulo: "Pró-labore", texto: "falta lançar", estado: "falta" },
+      grupoDoMes(m, "fixa") > 0
+        ? { rotulo: "Despesas fixas", texto: moedaBRL(grupoDoMes(m, "fixa")), estado: "ok" }
+        : { rotulo: "Despesas fixas", texto: "falta lançar", estado: "falta" },
+      extrato
+        ? { rotulo: "Extrato", texto: "importado (conferência)", estado: "ok" }
+        : { rotulo: "Extrato", texto: "não importado", estado: "neutro" },
+    ];
+    const resumo = itens.some((i) => i.estado === "falta")
+      ? { texto: "Incompleto", cor: "text-terracota" }
+      : itens.some((i) => i.estado === "estimado")
+        ? { texto: "Com estimativa", cor: "text-bronze" }
+        : { texto: "Completo", cor: "text-salvia" };
+    return { itens, resumo };
+  };
+  const mesesComSituacao = mesesTri.filter((m) => m <= competenciaAtual);
 
   // ---------- dados dos cards de detalhe ----------
   const transTri = todasTrans.filter((t) => t.data >= triSel && t.data < fimTri);
@@ -358,6 +417,59 @@ export default async function PaginaFinanceiro({
         </Card>
       )}
 
+      {mesesComSituacao.length > 0 && (
+        <Card title="Situação do mês" className="mb-6">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            {mesesComSituacao.map((m) => {
+              const { itens, resumo } = situacaoDoMes(m);
+              return (
+                <div key={m} className="rounded-lg bg-parchment/60 px-4 py-3">
+                  <div className="mb-2 flex items-baseline justify-between">
+                    <h3 className="font-display text-sm font-medium capitalize text-ink">{mesBR(m)}</h3>
+                    <span className={`text-xs font-semibold ${resumo.cor}`}>{resumo.texto}</span>
+                  </div>
+                  <ul className="flex flex-col gap-1 text-xs">
+                    {itens.map((i) => (
+                      <li key={i.rotulo} className="flex items-baseline justify-between gap-2">
+                        <span className="flex items-baseline gap-1.5 text-ink-soft">
+                          <span
+                            aria-hidden
+                            className={
+                              i.estado === "ok"
+                                ? "text-salvia"
+                                : i.estado === "estimado"
+                                  ? "text-bronze"
+                                  : i.estado === "falta"
+                                    ? "text-terracota"
+                                    : "text-ink-faint"
+                            }
+                          >
+                            {i.estado === "ok" ? "✓" : i.estado === "estimado" ? "≈" : i.estado === "falta" ? "✕" : "·"}
+                          </span>
+                          {i.rotulo}
+                        </span>
+                        <span
+                          className={`text-right font-display ${
+                            i.estado === "falta" ? "text-terracota" : i.estado === "estimado" ? "text-bronze" : "text-ink"
+                          }`}
+                        >
+                          {i.texto}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
+          <p className="mt-3 text-xs text-ink-faint">
+            Por competência, como a planilha: ≈ DAS calculado pela alíquota do Fator R × notas do mês (o pagamento sai no
+            mês seguinte). Pró-labore, contabilidade e ferramentas são gerados todo dia 15. O extrato importado é
+            conferência de caixa e não entra no DRE.
+          </p>
+        </Card>
+      )}
+
       <Card title={`DRE — ${rotuloTrimestre(triSel)}`} className="mb-6">
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] text-sm">
@@ -387,9 +499,20 @@ export default async function PaginaFinanceiro({
                   >
                     {l.rotulo}
                   </td>
-                  {mesesTri.map((m) => (
-                    <FragmentoCelula key={m} valor={l.porMes(m)} tipo={l.tipo} celula={celula} />
-                  ))}
+                  {mesesTri.map((m) =>
+                    l.calculado?.(m) ? (
+                      <td
+                        key={m}
+                        title="DAS calculado: alíquota do Fator R × notas do mês. Some quando o DAS pago for lançado."
+                        className="whitespace-nowrap px-2 py-1.5 text-right font-display text-sm italic text-terracota/60"
+                      >
+                        {moedaBRL(l.porMes(m))}
+                        <sup className="ml-0.5 not-italic text-[10px] text-ink-faint">calc.</sup>
+                      </td>
+                    ) : (
+                      <FragmentoCelula key={m} valor={l.porMes(m)} tipo={l.tipo} celula={celula} />
+                    ),
+                  )}
                   <FragmentoCelula
                     valor={mesesTri.reduce((s, m) => s + l.porMes(m), 0)}
                     tipo={l.tipo}
@@ -572,7 +695,9 @@ export default async function PaginaFinanceiro({
                           ? `${t.descricao.slice(0, 42)}…`
                           : t.descricao}
                       </Link>
-                      <p className="text-xs text-ink-faint">{t.categoria?.nome}</p>
+                      <p className="text-xs text-ink-faint">
+                        {t.ofx_fitid ? "Extrato · conferência, fora do DRE" : t.categoria?.nome}
+                      </p>
                     </td>
                     <td
                       className={`whitespace-nowrap py-2 text-right font-display font-semibold ${
