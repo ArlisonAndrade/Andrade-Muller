@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { importarExtrato, type ItemExtrato } from "@/lib/acoes/financeiro";
+import { importarExtrato, registrarExtrato, type ItemExtrato } from "@/lib/acoes/financeiro";
+import { createClient } from "@/lib/supabase/client";
 import { moedaBRL, dataBR } from "@/lib/formato";
 import type { Categoria } from "@/lib/tipos";
 
@@ -88,6 +89,7 @@ export function ImportadorExtrato({
   fitidsImportados: string[];
 }) {
   const [linhas, setLinhas] = useState<Linha[]>([]);
+  const [arquivoOfx, setArquivoOfx] = useState<File | null>(null);
   const [resultado, setResultado] = useState<string | null>(null);
   const [gravando, startTransition] = useTransition();
   const router = useRouter();
@@ -96,6 +98,7 @@ export function ImportadorExtrato({
     const arquivo = e.target.files?.[0];
     if (!arquivo) return;
     setResultado(null);
+    setArquivoOfx(arquivo);
     const conteudo = await arquivo.text();
     setLinhas(analisarOfx(conteudo, categorias, new Set(fitidsImportados)));
   }
@@ -120,13 +123,39 @@ export function ImportadorExtrato({
     }));
     startTransition(async () => {
       const r = await importarExtrato(itens);
+      const guardado = await guardarArquivo();
       setResultado(
         `${r.inseridos} lançamento(s) importado(s)` +
           (r.pulados > 0 ? `, ${r.pulados} já existia(m)` : "") +
-          ".",
+          "." +
+          guardado,
       );
       router.refresh();
     });
+  }
+
+  // Guarda o .ofx original no bucket privado `fiscal` (extratos/AAAA/MM/),
+  // no mês que mais aparece nas transações do arquivo.
+  async function guardarArquivo() {
+    if (!arquivoOfx || linhas.length === 0) return "";
+    try {
+      const contagem = new Map<string, number>();
+      for (const l of linhas) contagem.set(l.data.slice(0, 7), (contagem.get(l.data.slice(0, 7)) ?? 0) + 1);
+      const mes = [...contagem.entries()].sort((a, b) => b[1] - a[1])[0][0];
+      const caminho = `extratos/${mes.slice(0, 4)}/${mes.slice(5, 7)}/${arquivoOfx.name}`;
+      const bytes = new Uint8Array(await arquivoOfx.arrayBuffer());
+      const hash = [...new Uint8Array(await crypto.subtle.digest("SHA-256", bytes))]
+        .map((b) => b.toString(16).padStart(2, "0"))
+        .join("");
+      const { error } = await createClient()
+        .storage.from("fiscal")
+        .upload(caminho, arquivoOfx, { upsert: true, contentType: "application/x-ofx" });
+      if (error) throw new Error(error.message);
+      await registrarExtrato({ competencia: `${mes}-01`, caminho, nome: arquivoOfx.name, sha256: hash, linhas: linhas.length });
+      return ` Arquivo do extrato guardado em ${mes.slice(5, 7)}/${mes.slice(0, 4)}.`;
+    } catch (err) {
+      return ` (O arquivo do extrato não foi guardado: ${err instanceof Error ? err.message : err})`;
+    }
   }
 
   const totalEntradas = linhas
@@ -241,6 +270,16 @@ export function ImportadorExtrato({
                 ? "Importando…"
                 : `Importar ${selecionadas.length} selecionada(s)`}
             </button>
+            {selecionadas.length === 0 && (
+              <button
+                type="button"
+                onClick={() => startTransition(async () => setResultado((await guardarArquivo()).trim() || "Nada pra guardar."))}
+                disabled={gravando}
+                className="rounded-lg border border-divider bg-card px-4 py-2 text-sm font-medium text-ink-soft hover:text-ink disabled:opacity-40"
+              >
+                Só guardar o arquivo
+              </button>
+            )}
             {resultado && (
               <p className="text-sm font-medium text-salvia">{resultado}</p>
             )}

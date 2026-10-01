@@ -16,6 +16,8 @@ interface Nota {
   status: "pendente" | "concluido" | "atrasado";
   data_emissao: string | null;
   arquivo_origem: string | null;
+  enviada_em?: string | null;
+  enviada_para?: string | null;
   cliente?: Pick<Cliente, "empresa" | "nome_contato"> | null;
 }
 
@@ -53,7 +55,7 @@ export default async function PaginaFinanceiro({
   const triAtual = inicioDoTrimestre(hoje);
   const competenciaAtual = `${hoje.slice(0, 7)}-01`;
 
-  const [{ data: notas }, { data: transacoes }, { data: contratos }] =
+  const [{ data: notas }, { data: transacoes }, { data: contratos }, { data: extratos }] =
     await Promise.all([
       supabase
         .from("fm_faturamento")
@@ -70,7 +72,9 @@ export default async function PaginaFinanceiro({
         .select("id, cliente_id, valor_mensal, cliente:fm_clientes(empresa, nome_contato)")
         .eq("ativo", true)
         .eq("tipo", "mensal_recorrente"),
+      supabase.from("fm_extratos").select("competencia, arquivo_path").eq("entidade_id", ENTIDADE_ID),
     ]);
+  const extratoDoMes = new Map((extratos ?? []).map((e) => [String(e.competencia).slice(0, 7), e.arquivo_path as string]));
 
   const todasNotas = (notas ?? []) as Nota[];
   const todasTrans = (transacoes ?? []) as Transacao[];
@@ -213,7 +217,7 @@ export default async function PaginaFinanceiro({
   // ---------- situação de cada mês do trimestre ----------
   // Diz o que falta antes de o número ser lido como certo: sem isto, mês sem
   // pró-labore lançado aparecia com lucro inflado, sem aviso nenhum.
-  type Item = { rotulo: string; texto: string; estado: "ok" | "estimado" | "falta" | "neutro" };
+  type Item = { rotulo: string; texto: string; estado: "ok" | "estimado" | "falta" | "neutro"; link?: string };
   const situacaoDoMes = (m: string) => {
     const notas = todasNotas.filter((n) => n.competencia === m);
     const extrato = todasTrans.some((t) => t.data.slice(0, 7) === m.slice(0, 7) && t.ofx_fitid);
@@ -233,7 +237,14 @@ export default async function PaginaFinanceiro({
         ? { rotulo: "Despesas fixas", texto: moedaBRL(grupoDoMes(m, "fixa")), estado: "ok" }
         : { rotulo: "Despesas fixas", texto: "falta lançar", estado: "falta" },
       extrato
-        ? { rotulo: "Extrato", texto: "importado (conferência)", estado: "ok" }
+        ? {
+            rotulo: "Extrato",
+            texto: "importado (conferência)",
+            estado: "ok",
+            link: extratoDoMes.has(m.slice(0, 7))
+              ? `/financeiro/arquivo?caminho=${encodeURIComponent(extratoDoMes.get(m.slice(0, 7))!)}`
+              : undefined,
+          }
         : { rotulo: "Extrato", texto: "não importado", estado: "neutro" },
     ];
     const resumo = itens.some((i) => i.estado === "falta")
@@ -307,9 +318,15 @@ export default async function PaginaFinanceiro({
           </Link>
           <Link
             href="/financeiro/lancar"
+            className="rounded-lg border border-divider bg-card px-4 py-2 text-sm font-medium text-ink-soft hover:text-ink"
+          >
+            Lançar NFS-e à mão
+          </Link>
+          <Link
+            href="/financeiro/notas"
             className="rounded-lg bg-marinho px-4 py-2 text-sm font-medium text-card hover:opacity-90"
           >
-            + Lançar NFS-e
+            Subir NFS-e
           </Link>
         </div>
       </div>
@@ -453,7 +470,13 @@ export default async function PaginaFinanceiro({
                             i.estado === "falta" ? "text-terracota" : i.estado === "estimado" ? "text-bronze" : "text-ink"
                           }`}
                         >
-                          {i.texto}
+                          {i.link ? (
+                            <a href={i.link} target="_blank" rel="noreferrer" className="underline decoration-divider underline-offset-2 hover:text-marinho">
+                              {i.texto}
+                            </a>
+                          ) : (
+                            i.texto
+                          )}
                         </span>
                       </li>
                     ))}
@@ -744,7 +767,27 @@ export default async function PaginaFinanceiro({
                             {n.cliente ? nomeCliente(n.cliente) : "—"}
                           </td>
                           <td className="py-1.5 pr-2 text-xs text-ink-faint">
-                            {n.numero_nfse ?? "—"}
+                            {n.arquivo_origem?.startsWith("notas/") ? (
+                              <a
+                                href={`/financeiro/arquivo?caminho=${encodeURIComponent(n.arquivo_origem)}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="underline decoration-divider underline-offset-2 hover:text-marinho"
+                                title="Abrir o PDF original"
+                              >
+                                {n.numero_nfse ?? "PDF"}
+                              </a>
+                            ) : (
+                              (n.numero_nfse ?? "—")
+                            )}
+                            {n.enviada_em && (
+                              <span
+                                className="ml-1.5 text-salvia"
+                                title={`Enviada pra ${n.enviada_para ?? "—"}`}
+                              >
+                                ✉ {dataBR(n.enviada_em.slice(0, 10))?.slice(0, 5)}
+                              </span>
+                            )}
                           </td>
                           <td className="whitespace-nowrap py-1.5 pr-2 text-right font-display font-semibold text-ink">
                             {moedaBRL(Number(n.valor))}

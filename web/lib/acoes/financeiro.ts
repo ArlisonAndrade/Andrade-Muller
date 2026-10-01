@@ -81,3 +81,29 @@ export async function importarExtrato(itens: ItemExtrato[]) {
   revalidatePath("/financeiro");
   return { inseridos: novos.length, pulados: itens.length - novos.length };
 }
+
+// Guarda o registro do arquivo OFX do mês (o arquivo em si o navegador já
+// subiu pro bucket privado `fiscal`, em extratos/AAAA/MM/). Um por mês: subir
+// de novo o mesmo mês troca pelo arquivo mais novo.
+export async function registrarExtrato(dados: {
+  competencia: string;
+  caminho: string;
+  nome: string;
+  sha256: string;
+  linhas: number;
+}) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("fm_extratos").upsert(
+    {
+      entidade_id: ENTIDADE_ID,
+      competencia: dados.competencia,
+      arquivo_path: dados.caminho,
+      arquivo_nome: dados.nome,
+      arquivo_sha256: dados.sha256,
+      linhas_importadas: dados.linhas,
+    },
+    { onConflict: "entidade_id,competencia" },
+  );
+  if (error) throw new Error(`Erro ao registrar o extrato: ${error.message}`);
+  revalidatePath("/financeiro");
+}
