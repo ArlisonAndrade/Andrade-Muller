@@ -1,26 +1,7 @@
-import { Card } from "@/components/ui/card";
-import { FormTransacao } from "@/components/financeiro/form-transacao";
-import { createClient } from "@/lib/supabase/server";
-import type { Categoria, Conta } from "@/lib/tipos";
+import { redirect } from "next/navigation";
 
-export default async function NovoLancamento() {
-  const supabase = await createClient();
-  const [{ data: categorias }, { data: contas }] = await Promise.all([
-    supabase.from("categorias").select("id, nome, tipo").order("tipo").order("nome"),
-    supabase.from("contas").select("id, nome").order("nome"),
-  ]);
-
-  return (
-    <div className="mx-auto max-w-2xl">
-      <h1 className="mb-6 font-display text-3xl font-semibold text-ink">
-        Novo lançamento de caixa
-      </h1>
-      <Card>
-        <FormTransacao
-          categorias={(categorias ?? []) as Categoria[]}
-          contas={(contas ?? []) as Conta[]}
-        />
-      </Card>
-    </div>
-  );
+// Lançamento manual saiu (decisão do Arlison, 01/out/2026): despesa/caixa entra pelo extrato e pelas recorrências.
+// A rota só redireciona, pra link antigo não cair num 404.
+export default function Pagina() {
+  redirect("/financeiro");
 }

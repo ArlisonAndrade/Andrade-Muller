@@ -4,7 +4,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { IconPlus } from "@/components/bank/ui/icones";
 
 const ITENS_MENU = [
   { rotulo: "Início", href: "/bank" },
@@ -57,13 +56,6 @@ export function Nav() {
               {item.rotulo}
             </Link>
           ))}
-          <Link
-            href="/bank/lancar"
-            className="flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-bank-primaria px-4 py-2 text-sm font-medium text-white transition-opacity hover:opacity-90"
-          >
-            <IconPlus size={16} stroke={2} />
-            Lançar
-          </Link>
         </nav>
 
         {/* Botão hambúrguer no mobile */}

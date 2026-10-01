@@ -4,6 +4,7 @@ import { classeDe, finalidadeDaClasse } from "@/lib/bank/classes-ativos";
 import { valorInvestido } from "@/lib/bank/calculos";
 import { montarRendaDoMes, competenciaDe } from "@/lib/bank/renda";
 import { aporteDoMesPlanejado } from "@/lib/bank/plano";
+import { aporteRealizado, movimentosPorMes } from "@/lib/bank/aporte";
 
 // Score de saúde financeira 0–100: 4 pilares × 25 pts.
 // orçamento (aderência 50/30/20 do mês) + dívida (em dia, progresso,
@@ -156,12 +157,21 @@ export async function calcularScoreSaude(
     .eq("entidade_id", ENTIDADE_FAMILIA)
     .eq("mes", inicioMes)
     .maybeSingle();
-  const aporteMes =
-    informado != null
-      ? Number(informado.valor)
-      : fotoDoMes && fotoAnterior && String(fotoDoMes.competencia).slice(0, 10) === inicioMes
-        ? Math.max(0, Number(fotoDoMes.valor_aplicado) - Number(fotoAnterior.valor_aplicado))
-        : 0;
+  // Regra única do aporte (lib/bank/aporte.ts): informado → entradas do mês
+  // (de out/2026 em diante; retirada não desconta) → crescimento do aplicado.
+  const mesNum = Number(inicioMes.slice(0, 4)) * 100 + Number(inicioMes.slice(5, 7));
+  const movimentosMes = (await movimentosPorMes(supabase, mesNum)).get(mesNum);
+  const fotoEhDoMes = fotoDoMes && String(fotoDoMes.competencia).slice(0, 10) === inicioMes;
+  const aporteMes = Math.max(
+    0,
+    aporteRealizado({
+      mes: mesNum,
+      informado: informado != null ? Number(informado.valor) : null,
+      movimentos: movimentosMes,
+      aplicadoMes: fotoEhDoMes ? Number(fotoDoMes.valor_aplicado) : null,
+      aplicadoAnterior: fotoEhDoMes && fotoAnterior ? Number(fotoAnterior.valor_aplicado) : null,
+    }) ?? 0,
+  );
   const alvoMensal = await aporteDoMesPlanejado(supabase, hoje);
   let pontosAporte: number;
   let dicaAporte: string;

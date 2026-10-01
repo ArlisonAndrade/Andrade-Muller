@@ -1,3 +1,4 @@
+import { aporteRealizado, movimentosPorMes } from "@/lib/bank/aporte";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ENTIDADE_FAMILIA } from "@/lib/bank/tipos";
 import { hojeSP } from "@/lib/bank/agente/datas";
@@ -217,7 +218,7 @@ export async function carregarPlano(
   supabase: SupabaseClient,
   carteira: { patrimonio: number; aplicado: number },
 ): Promise<PlanoCompleto> {
-  const [{ data: linhas }, { data: fotos }, { data: informados }] = await Promise.all([
+  const [{ data: linhas }, { data: fotos }, { data: informados }, movimentos] = await Promise.all([
     supabase.from("parametros_plano").select("chave, valor").eq("entidade_id", ENTIDADE_FAMILIA),
     supabase
       .from("snapshots_patrimonio")
@@ -225,6 +226,7 @@ export async function carregarPlano(
       .eq("entidade_id", ENTIDADE_FAMILIA)
       .order("competencia"),
     supabase.from("aportes_mensais").select("mes, valor").eq("entidade_id", ENTIDADE_FAMILIA),
+    movimentosPorMes(supabase, 202601),
   ]);
   const p = lerParametros(linhas);
   const hoje = mesAtual();
@@ -237,9 +239,8 @@ export async function carregarPlano(
   const desvio = carteira.patrimonio - planejadoHoje;
   const desvioPct = planejadoHoje > 0 ? (desvio / planejadoHoje) * 100 : 0;
 
-  // Aporte realizado por mês: o informado pela família, se houver; senão o
-  // aplicado da foto do mês − aplicado da foto anterior. O informado vence
-  // porque o aplicado mente quando o aporte sai da reserva (ver migration 21).
+  // Aporte realizado por mês: regra única de lib/bank/aporte.ts (informado →
+  // entradas registradas a partir de out/2026 → crescimento do aplicado).
   const aplicadoPorMes = new Map<number, number>();
   for (const f of fotos ?? []) aplicadoPorMes.set(aaaammDe(String(f.competencia)), Number(f.valor_aplicado));
   aplicadoPorMes.set(hoje, carteira.aplicado); // o mês corrente usa o número vivo
@@ -252,7 +253,7 @@ export async function carregarPlano(
     const atual = aplicadoPorMes.get(mes);
     const anterior = aplicadoPorMes.get(mesDoIndice(i - 1));
     const informado = informadoPorMes.get(mes);
-    const realizado = informado ?? (atual != null && anterior != null ? atual - anterior : null);
+    const realizado = aporteRealizado({ mes, informado, movimentos: movimentos.get(mes), aplicadoMes: atual, aplicadoAnterior: anterior });
     // Antes do placar é reorganização: mostra o que entrou, mas não conta
     // como cumprido nem como falha (sequência e medalhas ignoram).
     const reorganizacao = mes < p.inicioPlacar;

@@ -166,7 +166,20 @@ export async function salvarNotas(
       ids.set(c.caminho, c.existente.id);
       mensagens.push(`Nota ${c.nota.numero} (${c.cliente!.nome}) atualizada.`);
     } else {
-      const { data, error } = await supabase.from("fm_faturamento").insert(dados).select("id").single();
+      // Nota nova: liga ao contrato ativo do cliente, se houver (antes isso
+      // vinha da "sugestão do mês", que saiu junto com o lançamento manual).
+      const { data: contrato } = await supabase
+        .from("fm_contratos")
+        .select("id")
+        .eq("cliente_id", c.cliente!.id)
+        .eq("ativo", true)
+        .limit(1)
+        .maybeSingle();
+      const { data, error } = await supabase
+        .from("fm_faturamento")
+        .insert({ ...dados, contrato_id: contrato?.id ?? null })
+        .select("id")
+        .single();
       if (error) return { ok: false, mensagens: [...mensagens, `Erro ao lançar a nota ${c.nota.numero}: ${error.message}`] };
       ids.set(c.caminho, data.id);
       mensagens.push(`Nota ${c.nota.numero} (${c.cliente!.nome}) lançada.`);

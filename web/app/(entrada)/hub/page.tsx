@@ -7,7 +7,7 @@ import styles from "../entrada.module.css";
 // da família + ambientes do ecossistema. FM Gestão em / e Bank em /bank —
 // mesmo app, mesmo login (não há mais domínio/SSO separado).
 const ATALHOS = [
-  { href: "/bank/lancar", icone: "＋", nome: "Lançar gasto", onde: "Bank" },
+  { href: "/financeiro/notas", icone: "⇪", nome: "Subir NFS-e", onde: "FM Gestão" },
   { href: "/bank/semanas", icone: "🗓", nome: "Semana", onde: "Bank" },
   { href: "/bank/lancamentos", icone: "☰", nome: "Extrato", onde: "Bank" },
   { href: "/reunioes", icone: "💬", nome: "Reuniões", onde: "FM Gestão" },

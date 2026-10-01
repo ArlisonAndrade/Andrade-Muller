@@ -219,6 +219,15 @@ export async function sincronizarInvestidor10(
   const agora = new Date().toISOString();
   const hoje = hojeSP();
 
+  // Entradas e retiradas que esta rodada percebeu (migration 25). Aporte do
+  // mês = soma das ENTRADAS; retirada não desconta (decisão do Arlison,
+  // 01/out/2026 — em set/2026 a retirada foi a manobra da reserva).
+  const movimentosCarteira: Array<{ ativo_ref: string | null; ticker: string; tipo: "entrada" | "retirada"; valor: number }> = [];
+  const registrarMovimento = (ref: string | null, ticker: string, delta: number) => {
+    if (Math.abs(delta) < 1) return; // arredondamento/câmbio miúdo não é movimento
+    movimentosCarteira.push({ ativo_ref: ref, ticker, tipo: delta > 0 ? "entrada" : "retirada", valor: round2(Math.abs(delta)) });
+  };
+
   try {
     for (const p of carteira.posicoes) {
       // 1. o ativo
@@ -264,9 +273,27 @@ export async function sincronizarInvestidor10(
           origem_ref: p.ref,
         });
         if (error) throw new Error(`Posição de ${p.ticker}: ${error.message}`);
+        // Posição que não existia (ativo novo, ou recomprado depois de zerado): tudo que está nela entrou.
+        registrarMovimento(p.ref, p.ticker, p.aplicado);
       } else {
         const qtdAntes = Number(espelho.quantidade);
         const aplicadoAntes = qtdAntes * Number(espelho.preco_unitario);
+        const tipoAtivo = TIPO_POR_CLASSE[p.classe] ?? "outro";
+        const deltaQtd = p.quantidade - qtdAntes;
+        if (Math.abs(deltaQtd) > 1e-6) {
+          if (deltaQtd > 0) {
+            // ETF: o custo em R$ oscila com o dólar, então o que entrou é a
+            // quantidade nova × preço médio; nos outros, o custo total cresce
+            // exatamente o valor da compra.
+            const custo = p.aplicado - aplicadoAntes;
+            registrarMovimento(p.ref, p.ticker, tipoAtivo === "etf_internacional" || custo <= 0 ? deltaQtd * precoMedio : custo);
+          } else {
+            registrarMovimento(p.ref, p.ticker, deltaQtd * Number(espelho.preco_unitario)); // negativo = retirada
+          }
+        } else if (tipoAtivo === "renda_fixa" || tipoAtivo === "tesouro") {
+          // Renda fixa não muda de quantidade: aplicar/resgatar mexe no aplicado.
+          registrarMovimento(p.ref, p.ticker, p.aplicado - aplicadoAntes);
+        }
         const mudouQtd = !quase(qtdAntes, p.quantidade, 1e-6);
         const mudouAplicado = !quase(aplicadoAntes, p.aplicado, 0.5);
         if (mudouQtd || mudouAplicado || espelho.tipo !== "compra") {
@@ -301,9 +328,18 @@ export async function sincronizarInvestidor10(
       if (!espelho) continue;
       await supabase.from("movimentacoes_ativos").delete().eq("id", espelho.id);
       alteracoes.push({ ticker: a.ticker, campo: "zerado", antes: Number(espelho.quantidade), depois: 0 });
+      registrarMovimento(a.origem_ref, a.ticker, -Number(espelho.quantidade) * Number(espelho.preco_unitario));
     }
 
-    // 5. foto do mês com os números novos — é dela que sai o aporte do mês
+    // 5. entradas/retiradas desta rodada
+    if (movimentosCarteira.length > 0) {
+      const { error: erroMovs } = await supabase
+        .from("movimentos_carteira")
+        .insert(movimentosCarteira.map((m) => ({ ...m, entidade_id: entidadeId, data: hoje, origem: "investidor10" })));
+      if (erroMovs) throw new Error(`Movimentos da carteira: ${erroMovs.message}`);
+    }
+
+    // 6. foto do mês com os números novos
     await supabase.from("snapshots_patrimonio").upsert(
       {
         entidade_id: entidadeId,

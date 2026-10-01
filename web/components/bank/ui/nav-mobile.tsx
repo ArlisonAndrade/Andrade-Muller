@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { IconHome, IconPlus, IconTarget, IconCoins } from "@/components/bank/ui/icones";
+import { IconHome, IconTarget, IconCoins } from "@/components/bank/ui/icones";
 
 // Atalhos do uso diário. Investimentos saiu daqui pra Semanas entrar: a
 // carteira se olha uma vez por mês, a semana se olha todo dia. Extrato saiu
@@ -19,11 +19,11 @@ function itemAtivo(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-// Barra inferior fixa do mobile: 4 atalhos + botão central grande de lançar.
+// Barra inferior fixa do mobile. O botão central de lançar saiu (01/out/2026):
+// gasto entra pelo agente do Telegram.
 // Só aparece abaixo do breakpoint md; o layout reserva o espaço com pb.
 export function NavMobile() {
   const pathname = usePathname();
-  const [esquerda, direita] = [ITENS.slice(0, 2), ITENS.slice(2)];
 
   const renderItem = ({ rotulo, href, Icone }: (typeof ITENS)[number]) => (
     <Link
@@ -41,15 +41,7 @@ export function NavMobile() {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface-1 pb-[env(safe-area-inset-bottom)] md:hidden">
       <div className="flex items-center">
-        {esquerda.map(renderItem)}
-        <Link
-          href="/bank/lancar"
-          aria-label="Novo lançamento"
-          className="-mt-5 flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-bank-primaria text-white shadow-lg"
-        >
-          <IconPlus size={28} stroke={2.2} />
-        </Link>
-        {direita.map(renderItem)}
+        {ITENS.map(renderItem)}
       </div>
     </nav>
   );

@@ -28,7 +28,7 @@ export default function manifest(): MetadataRoute.Manifest {
       { src: "/app/icone-maskable-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
     shortcuts: [
-      { name: "Lançar gasto", short_name: "Lançar", url: "/bank/lancar", icons: [{ src: "/app/icone-192.png", sizes: "192x192" }] },
+      { name: "Subir NFS-e", short_name: "NFS-e", url: "/financeiro/notas", icons: [{ src: "/app/icone-192.png", sizes: "192x192" }] },
       { name: "Semana", short_name: "Semana", url: "/bank/semanas", icons: [{ src: "/app/icone-192.png", sizes: "192x192" }] },
       { name: "Extrato", short_name: "Extrato", url: "/bank/lancamentos", icons: [{ src: "/app/icone-192.png", sizes: "192x192" }] },
       { name: "Reuniões (FM Gestão)", short_name: "Reuniões", url: "/reunioes", icons: [{ src: "/app/icone-192.png", sizes: "192x192" }] },

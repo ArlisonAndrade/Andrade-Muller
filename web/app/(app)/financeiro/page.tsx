@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
-import { confirmarSugestao, excluirFaturamento } from "@/lib/acoes/faturamento";
+import { excluirFaturamento } from "@/lib/acoes/faturamento";
 import { gerarRecorrenciasPendentes } from "@/lib/bank/acoes/recorrencias";
 import { BotaoExcluir } from "@/components/crm/botao-excluir";
 import { ENTIDADE_ID, nomeCliente, type Cliente, type Transacao } from "@/lib/tipos";
@@ -311,18 +311,6 @@ export default async function PaginaFinanceiro({
             Importar extrato
           </Link>
           <Link
-            href="/financeiro/lancamento/novo"
-            className="rounded-lg border border-divider bg-card px-4 py-2 text-sm font-medium text-ink-soft hover:text-ink"
-          >
-            + Despesa/lançamento
-          </Link>
-          <Link
-            href="/financeiro/lancar"
-            className="rounded-lg border border-divider bg-card px-4 py-2 text-sm font-medium text-ink-soft hover:text-ink"
-          >
-            Lançar NFS-e à mão
-          </Link>
-          <Link
             href="/financeiro/notas"
             className="rounded-lg bg-marinho px-4 py-2 text-sm font-medium text-card hover:opacity-90"
           >
@@ -396,40 +384,23 @@ export default async function PaginaFinanceiro({
       </Card>
 
       {sugestoes.length > 0 && (
-        <Card title={`Sugestões de ${mesBR(competenciaAtual)}`} className="mb-6">
-          <div className="flex flex-col gap-2">
-            {sugestoes.map((s) => {
-              const cliente = s.cliente as unknown as Pick<
-                Cliente,
-                "empresa" | "nome_contato"
-              > | null;
-              return (
-                <form
-                  key={s.id}
-                  action={confirmarSugestao}
-                  className="flex items-center justify-between gap-3 rounded-lg bg-parchment/60 px-4 py-2.5"
-                >
-                  <input type="hidden" name="contrato_id" value={s.id} />
-                  <input type="hidden" name="cliente_id" value={s.cliente_id} />
-                  <input type="hidden" name="valor" value={String(s.valor_mensal ?? 0)} />
-                  <input type="hidden" name="competencia" value={competenciaAtual} />
-                  <span className="text-sm text-ink">
-                    {cliente ? nomeCliente(cliente) : "—"}
-                  </span>
-                  <span className="flex items-center gap-3">
-                    <span className="font-display text-sm font-semibold text-bronze">
-                      {moedaBRL(Number(s.valor_mensal ?? 0))}
-                    </span>
-                    <button
-                      type="submit"
-                      className="rounded-md bg-salvia px-3 py-1.5 text-xs font-medium text-card hover:opacity-90"
-                    >
-                      Confirmar lançamento
-                    </button>
-                  </span>
-                </form>
-              );
-            })}
+        <Card title={`Falta subir a NFS-e de ${mesBR(competenciaAtual)}`} className="mb-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-ink-soft">
+              Contrato ativo sem nota no mês:{" "}
+              {sugestoes
+                .map((s) => {
+                  const cliente = s.cliente as unknown as Pick<Cliente, "empresa" | "nome_contato"> | null;
+                  return `${cliente ? nomeCliente(cliente) : "—"} (${moedaBRL(Number(s.valor_mensal ?? 0))})`;
+                })
+                .join(" · ")}
+            </p>
+            <Link
+              href="/financeiro/notas"
+              className="rounded-md bg-marinho px-3 py-1.5 text-xs font-medium text-card hover:opacity-90"
+            >
+              Subir NFS-e
+            </Link>
           </div>
         </Card>
       )}
