@@ -1,11 +1,11 @@
-# Envia o relatório trimestral por e-mail via SMTP do Gmail (senha de app).
+﻿# Envia o relatório trimestral por e-mail via SMTP do Gmail (senha de app).
 # Uso:
 #   .\enviar_relatorio.ps1                          # envia o relatório mais recente da pasta
 #   .\enviar_relatorio.ps1 -Arquivo <caminho.html>  # envia um relatório específico
 #   .\enviar_relatorio.ps1 -Para outro@email.com    # muda o destinatário
 param(
     [string]$Arquivo,
-    [string]$Para = "gmgestaoestrategia@gmail.com"
+    [string]$Para = "gmgestaoestrategica@gmail.com"
 )
 
 $ErrorActionPreference = "Stop"
