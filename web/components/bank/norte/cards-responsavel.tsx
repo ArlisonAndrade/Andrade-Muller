@@ -127,7 +127,7 @@ export function CardsResponsavel({
                 </span>
               </span>
 
-              {/* barra: cheio = paga direto, listrado = transfere */}
+              {/* barra: cheio = paga direto, listrado = transfere, verde = dinheiro livre */}
               <span className="flex h-3 w-full overflow-hidden rounded-full bg-surface-3">
                 <span style={{ width: `${(direto / escala) * 100}%`, background: cor }} />
                 <span
@@ -136,6 +136,14 @@ export function CardsResponsavel({
                     background: `repeating-linear-gradient(45deg, ${cor} 0 6px, ${cor}55 6px 12px)`,
                   }}
                 />
+                {sobra > 0 && (
+                  <span
+                    style={{
+                      width: `${(sobra / escala) * 100}%`,
+                      background: "var(--color-bank-positivo)",
+                    }}
+                  />
+                )}
               </span>
 
               <span className="grid grid-cols-3 gap-2 text-sm">
