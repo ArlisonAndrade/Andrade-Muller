@@ -20,7 +20,9 @@ import { Medalha } from "@/components/bank/conquistas/medalha";
 import { SeloHistoriaDesenho } from "@/components/bank/conquistas/selo-historia";
 import { JornadaPatrimonio } from "@/components/bank/home/jornada-patrimonio";
 import { ConfeteAoEntrar } from "@/components/bank/tv/confete-ao-entrar";
-import { SlideArQueVem, SlideConstruimos, SlideEscolhas, SlideRegua } from "@/components/bank/tv/slides-reuniao";
+import { SlideArQueVem, SlideConstruimos, SlideEscolhas, SlideRegua, SlideRenda } from "@/components/bank/tv/slides-reuniao";
+import { montarDivisaoDoMes } from "@/lib/bank/divisao-mes";
+import { hojeSP } from "@/lib/bank/agente/datas";
 import { CONTEUDO_REUNIAO } from "@/lib/bank/tv/conteudo-reuniao";
 
 export const metadata = { title: "Modo TV" };
@@ -44,6 +46,7 @@ const FUNDO = {
   regua: "linear-gradient(135deg, #1e40af 0%, #0b1a3d 100%)",
   escolhas: "linear-gradient(135deg, #3f3f46 0%, #09090b 100%)",
   ar: "linear-gradient(160deg, #0284c7 0%, #0c4a6e 55%, #082f49 100%)",
+  renda: "linear-gradient(135deg, #0f766e 0%, #042f2e 100%)",
   futuro: "radial-gradient(circle at 80% 20%, #f59e0b 0%, #7c2d12 45%, #0c0a09 100%)",
 };
 
@@ -183,7 +186,13 @@ export default async function PaginaModoTv({ searchParams }: { searchParams: Pro
   const { t } = await searchParams;
   const trimestre = t && /^\d{4}-T[1-4]$/.test(t) ? t : trimestrePadrao();
   const supabase = await createClient();
-  const d = await montarTrimestre(supabase, trimestre);
+  // Divisão dos pagamentos do mês da reunião (a foto de hoje do Planejamento —
+  // ele não guarda histórico): base do slide "Pra onde vai a renda".
+  const competenciaHoje = `${hojeSP().slice(0, 7)}-01`;
+  const [d, divisao] = await Promise.all([
+    montarTrimestre(supabase, trimestre),
+    montarDivisaoDoMes(supabase, competenciaHoje),
+  ]);
   const { plano } = d;
 
   const crescimento = d.carteiraInicio != null ? d.carteiraFim - d.carteiraInicio : null;
@@ -521,6 +530,12 @@ export default async function PaginaModoTv({ searchParams }: { searchParams: Pro
           </div>
         </div>
       ),
+    },
+    {
+      titulo: "Pra onde vai a renda",
+      emoji: "🧮",
+      fundo: FUNDO.renda,
+      conteudo: <SlideRenda divisao={divisao} rotuloMes={rotuloMes(Number(competenciaHoje.slice(0, 4)) * 100 + Number(competenciaHoje.slice(5, 7)))} />,
     },
     {
       titulo: `O ${rotuloTrimestre(d.proximo.trimestre)}`,

@@ -1,5 +1,6 @@
 import { rotuloMes } from "@/lib/bank/plano";
 import type { ConteudoReuniao } from "@/lib/bank/tv/conteudo-reuniao";
+import type { DivisaoDoMes } from "@/lib/bank/divisao-mes";
 
 // Slides da reunião trimestral que misturam o banco com conteúdo escrito
 // (lib/bank/tv/conteudo-reuniao.ts). Sem estado: renderizam no servidor,
@@ -237,6 +238,73 @@ export function SlideArQueVem({ ar }: { ar: NonNullable<ConteudoReuniao["arQueVe
       <p className="text-2xl font-semibold leading-snug" style={entrada(3)}>
         “{ar.fecho}”
       </p>
+    </div>
+  );
+}
+
+// ─── Pra onde vai a renda (só fatos, do Planejamento) ───────────────────────
+
+const COR_PESSOA = ["#3b82f6", "#ec4899", "#14b8a6", "#f59e0b"];
+
+export function SlideRenda({ divisao, rotuloMes }: { divisao: DivisaoDoMes; rotuloMes: string }) {
+  return (
+    <div className="flex flex-col gap-6">
+      <p className="text-lg text-white/70" style={entrada(0)}>
+        Planejamento de {rotuloMes}: o que cada um recebe, paga e o que sobra livre.
+      </p>
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        {divisao.pessoas.map((p, i) => {
+          const cor = p.cor ?? COR_PESSOA[i % COR_PESSOA.length];
+          const escala = Math.max(p.renda, p.direto + p.transfere, 1);
+          const pct = (v: number) => `${Math.max(0, (v / escala) * 100)}%`;
+          return (
+            <div key={p.id} className="flex flex-col gap-4 rounded-[20px] bg-white/10 p-6" style={entrada(i + 1)}>
+              <div className="flex items-center gap-4">
+                <span
+                  className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full text-xl font-bold text-white"
+                  style={{ background: cor }}
+                >
+                  {p.nome.slice(0, 1).toUpperCase()}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-2xl font-semibold">{p.nome}</p>
+                  <p className="text-base text-white/70">recebe {brl0(p.renda)}</p>
+                </div>
+                <span className="rounded-full bg-white/15 px-3 py-1 text-base font-semibold">
+                  {Math.round(p.pctComprometido)}% da renda
+                </span>
+              </div>
+              {/* barra: cheio = paga direto · listrado = transfere · verde = livre */}
+              <div className="flex h-4 w-full overflow-hidden rounded-full bg-white/10">
+                <span style={{ width: pct(p.direto), background: cor }} />
+                <span
+                  style={{
+                    width: pct(p.transfere),
+                    background: `repeating-linear-gradient(45deg, ${cor} 0 8px, ${cor}66 8px 16px)`,
+                  }}
+                />
+                <span style={{ width: pct(Math.max(0, p.sobra)), background: "#4ade80" }} />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <p className="text-sm text-white/60">paga direto</p>
+                  <p className="text-xl font-semibold numeros-tabulares">{brl0(p.direto)}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-white/60">transfere</p>
+                  <p className="text-xl font-semibold numeros-tabulares">{p.transfere > 0 ? brl0(p.transfere) : "—"}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-sm text-white/60">sobra livre</p>
+                  <p className={`text-2xl font-bold numeros-tabulares ${p.sobra >= 0 ? "text-emerald-300" : "text-red-300"}`}>
+                    {brl0(p.sobra)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

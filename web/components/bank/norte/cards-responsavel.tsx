@@ -79,6 +79,11 @@ export function CardsResponsavel({
             .reduce((s, i) => s + Number(i.valor), 0);
           const renda = rendaPorPessoa[p.id] ?? Number(p.renda_base);
           const paga = direto + transfere;
+          // O que fica livre da renda depois de pagar a parte dela (direto +
+          // o que transfere). A transferência RECEBIDA não entra: ela só passa
+          // pela conta pra pagar as contas do outro que estão no cartão de quem
+          // recebe (correção do Arlison, 02/out/2026).
+          const sobra = renda - paga;
           const pct = renda > 0 ? (paga / renda) * 100 : 0;
           const escala = Math.max(renda, paga, 1);
           const ativa = selecionada === p.id;
@@ -133,7 +138,7 @@ export function CardsResponsavel({
                 />
               </span>
 
-              <span className="grid grid-cols-2 gap-2 text-sm">
+              <span className="grid grid-cols-3 gap-2 text-sm">
                 <span>
                   <span className="block text-xs text-text-faint">paga direto</span>
                   <span className="font-semibold text-text-primary">
@@ -141,8 +146,8 @@ export function CardsResponsavel({
                   </span>
                 </span>
                 {transfere > 0 ? (
-                  <span className="text-right">
-                    <span className="flex items-center justify-end gap-1 text-xs text-text-faint">
+                  <span className="text-center">
+                    <span className="flex items-center justify-center gap-1 text-xs text-text-faint">
                       <IconArrowsExchange size={13} stroke={1.8} /> transfere{destino ? ` pro ${destino.nome}` : ""}
                     </span>
                     <span className="font-semibold" style={{ color: cor }}>
@@ -150,8 +155,8 @@ export function CardsResponsavel({
                     </span>
                   </span>
                 ) : recebeDeOutros > 0 ? (
-                  <span className="text-right">
-                    <span className="flex items-center justify-end gap-1 text-xs text-text-faint">
+                  <span className="text-center">
+                    <span className="flex items-center justify-center gap-1 text-xs text-text-faint">
                       <IconArrowsExchange size={13} stroke={1.8} /> recebe de transferência
                     </span>
                     <span className="font-semibold text-bank-positivo">
@@ -161,6 +166,12 @@ export function CardsResponsavel({
                 ) : (
                   <span />
                 )}
+                <span className="text-right" title="renda − o que paga direto − o que transfere (a transferência recebida só passa pra pagar contas do outro)">
+                  <span className="block text-xs text-text-faint">sobra livre</span>
+                  <span className={`font-semibold ${sobra >= 0 ? "text-bank-positivo" : "text-bank-negativo"}`}>
+                    <ValorMoeda valor={sobra} />
+                  </span>
+                </span>
               </span>
             </button>
           );
