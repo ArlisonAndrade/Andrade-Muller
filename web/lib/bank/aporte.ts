@@ -38,6 +38,39 @@ export async function movimentosPorMes(supabase: SupabaseClient, desde: number) 
   return porMes;
 }
 
+export type MovimentoCarteira = {
+  id: string;
+  data: string;
+  ticker: string;
+  tipo: "entrada" | "retirada";
+  valor: number;
+};
+
+/**
+ * Os movimentos de um mês, um a um — é o que mostra DE ONDE veio o aporte
+ * ("07/10 · XP Horizonte CP · R$ 1.000"), em vez de um total sem história.
+ */
+export async function movimentosDoMes(
+  supabase: SupabaseClient,
+  mes: number,
+): Promise<MovimentoCarteira[]> {
+  const { data, error } = await supabase
+    .from("movimentos_carteira")
+    .select("id, data, ticker, tipo, valor")
+    .eq("entidade_id", ENTIDADE_FAMILIA)
+    .gte("data", iso(mes))
+    .lt("data", iso(mes % 100 === 12 ? mes + 89 : mes + 1))
+    .order("data", { ascending: false });
+  if (error) throw new Error(`Movimentos da carteira: ${error.message}`);
+  return (data ?? []).map((m) => ({
+    id: String(m.id),
+    data: String(m.data),
+    ticker: String(m.ticker),
+    tipo: m.tipo as "entrada" | "retirada",
+    valor: Number(m.valor),
+  }));
+}
+
 /**
  * Aporte realizado do mês pela regra acima. `aplicadoMes`/`aplicadoAnterior`
  * só são usados antes de INICIO_MOVIMENTOS.

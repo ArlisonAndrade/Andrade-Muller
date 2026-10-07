@@ -18,6 +18,8 @@ import {
 } from "@/lib/bank/classes-ativos";
 import { obterPatrimonioArthur, obterMetaArthur } from "@/lib/bank/arthur";
 import { BotaoSincronizarInvestidor10 } from "@/components/bank/investimentos/botao-sincronizar-investidor10";
+import { AportesDoMes } from "@/components/bank/investimentos/aportes-do-mes";
+import { aporteDoMesCorrente } from "@/lib/bank/aporte-mes";
 import { garantirSnapshotDoMes } from "@/lib/bank/acoes/investimentos";
 import { CardMetrica } from "@/components/bank/ui/card-metrica";
 import { BadgeVariacao } from "@/components/bank/ui/badge-variacao";
@@ -45,6 +47,8 @@ export default async function PaginaInvestimentos() {
   const dozeMesesAtras = new Date();
   dozeMesesAtras.setMonth(dozeMesesAtras.getMonth() - 12);
   const corte12M = dozeMesesAtras.toISOString().slice(0, 10);
+
+  const aporteMes = await aporteDoMesCorrente(supabase);
 
   const [
     { data: posicoes },
@@ -251,6 +255,16 @@ export default async function PaginaInvestimentos() {
           icone={<IconChartLine size={18} stroke={1.7} />}
         />
       </div>
+
+      {/* De onde veio o aporte do mês */}
+      <AportesDoMes
+        mes={aporteMes.mes}
+        movimentos={aporteMes.movimentos}
+        realizado={aporteMes.realizado}
+        planejado={aporteMes.planejado}
+        informado={aporteMes.informado}
+        comLink
+      />
 
       {/* Evolução + alocação */}
       <div className="grid gap-4 lg:grid-cols-5">

@@ -8,6 +8,7 @@ import {
   aporteDoMes,
   carregarPlano,
   indiceMes,
+  mesAtual,
   mesDoIndice,
   rotuloMes,
   rotuloValor,
@@ -16,6 +17,7 @@ import {
 import { ProgressBar } from "@/components/bank/ui/progress-bar";
 import { GraficoPlano } from "@/components/bank/plano/grafico-plano";
 import { GraficoAportes } from "@/components/bank/plano/grafico-aportes";
+import { movimentosDoMes } from "@/lib/bank/aporte";
 import { ParametrosPlanoForm } from "@/components/bank/plano/parametros-plano";
 import { VitrineConquistas } from "@/components/bank/conquistas/vitrine";
 import { CelebracaoConquistas } from "@/components/bank/conquistas/celebracao";
@@ -68,6 +70,10 @@ export default async function PaginaPlano() {
   const aplicadoHoje = abertas.reduce((s, p) => s + Number(p.quantidade_atual) * Number(p.preco_medio ?? 0), 0);
 
   const plano = await carregarPlano(supabase, { patrimonio: patrimonioHoje, aplicado: aplicadoHoje });
+  // As entradas que formaram o aporte do mês — o placar mostrava só o total.
+  const entradasDoMes = (await movimentosDoMes(supabase, mesAtual())).filter(
+    (m) => m.tipo === "entrada",
+  );
   // Avaliar antes de ler as pendentes: medalha nova já comemora nesta visita.
   const conquistas = await avaliarConquistas(supabase);
   const paraCelebrar = await conquistasParaCelebrar(supabase);
@@ -221,6 +227,22 @@ export default async function PaginaPlano() {
                 ? "✓ Aporte do mês cumprido."
                 : `Faltam ${brl0(falta)}. Registrou a compra no Investidor10, ela aparece aqui.`}
           </p>
+          {entradasDoMes.length > 0 && (
+            <ul className="mt-3 flex flex-col gap-1 border-t border-border pt-3">
+              {entradasDoMes.slice(0, 4).map((m) => (
+                <li key={m.id} className="flex items-center gap-2 text-xs">
+                  <span className="w-9 shrink-0 text-text-faint numeros-tabulares">
+                    {m.data.slice(8, 10)}/{m.data.slice(5, 7)}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate text-text-secondary">{m.ticker}</span>
+                  <span className="shrink-0 font-medium text-bank-positivo numeros-tabulares">
+                    + {brl0(m.valor)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+
           <p className="mt-3 text-sm">
             {plano.sequencia > 0 ? (
               <span className="font-medium text-text-primary">🔥 {plano.sequencia} {plano.sequencia === 1 ? "mês" : "meses"} seguidos</span>

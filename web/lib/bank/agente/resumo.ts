@@ -4,6 +4,7 @@ import { exigirLeituras, montarContextoCompleto } from "@/lib/bank/agente/contex
 import { hojeSP } from "@/lib/bank/agente/datas";
 import { baixarParcelasAutomaticas } from "@/lib/bank/dividas-automaticas";
 import { anunciarConquistasNovas } from "@/lib/bank/conquistas";
+import { anunciarAportesNovos } from "@/lib/bank/aporte-anuncio";
 import { DOUTRINA_ARKAD } from "@/lib/bank/agente/arkad";
 import { linhaVitoria } from "@/lib/bank/agente/marcos";
 import { ENTIDADE_FAMILIA } from "@/lib/bank/tipos";
@@ -94,10 +95,14 @@ export async function gerarResumo(
   // fato, não opinião do modelo, então vai mesmo quando ele decidiu calar.
   // Marca como anunciada só depois de o texto do modelo já existir: se a
   // chamada à API falhasse antes, a medalha ficaria marcada sem ter saído.
-  const anuncio = await anunciarConquistasNovas(supabase);
-  if (!anuncio) return base;
-  const textoModelo = base.enviar ? base.texto : "";
-  return { enviar: true, texto: textoModelo ? `${anuncio}\n\n${textoModelo}` : anuncio, chatId };
+  // Aporte novo vem antes da medalha: ela é consequência dele.
+  const anuncios = [
+    await anunciarAportesNovos(supabase),
+    await anunciarConquistasNovas(supabase),
+  ].filter(Boolean);
+  if (anuncios.length === 0) return base;
+  if (base.enviar) anuncios.push(base.texto);
+  return { enviar: true, texto: anuncios.join("\n\n"), chatId };
 }
 
 async function resumoDoModelo(
