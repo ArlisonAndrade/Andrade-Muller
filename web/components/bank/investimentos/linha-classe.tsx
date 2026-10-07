@@ -41,6 +41,11 @@ export function LinhaClasse({
         </span>
         <span className="min-w-0 flex-1 truncate text-sm font-semibold sm:text-base">
           {rotulo}
+          {resumo.foraDaCorretora && (
+            <span className="ml-2 rounded-full bg-surface-3 px-2 py-0.5 align-middle text-[11px] font-normal text-text-faint">
+              fora da corretora
+            </span>
+          )}
         </span>
 
         <span className="hidden text-right sm:block">
@@ -68,7 +73,9 @@ export function LinhaClasse({
           )}
         </span>
         <span className="w-20 text-right sm:w-24">
-          <span className="block text-xs text-text-faint">% na carteira</span>
+          <span className="block text-xs text-text-faint">
+            {resumo.foraDaCorretora ? "% do total" : "% na carteira"}
+          </span>
           <span className="text-sm font-medium">
             {resumo.percentualCarteira.toFixed(0)}%
             {resumo.percentualAlvo != null && (

@@ -9,7 +9,7 @@ import { calcularScoreSaude } from "@/lib/bank/score";
 import { JornadaPatrimonio } from "@/components/bank/home/jornada-patrimonio";
 import { montarJornada } from "@/lib/bank/jornada";
 import { patrimonio, valorInvestido } from "@/lib/bank/calculos";
-import { classeDe, finalidadeDaClasse } from "@/lib/bank/classes-ativos";
+import { finalidadeDe } from "@/lib/bank/classes-ativos";
 import { gerarRecorrenciasPendentes } from "@/lib/bank/acoes/recorrencias";
 import { garantirSnapshotDoMes } from "@/lib/bank/acoes/investimentos";
 import { baixarParcelasAutomaticas } from "@/lib/bank/dividas-automaticas";
@@ -73,10 +73,10 @@ export default async function Home() {
   );
 
   // Fundos + Cripto são a carteira do Arthur por decisão do Arlison (ver
-  // finalidadeDaClasse) — ainda guardados na entidade Família, sem carteira
+  // finalidadeDe) — ainda guardados na entidade Família, sem carteira
   // própria migrada, então entram aqui além do que já está em ENTIDADE_ARTHUR.
   const posicoesArthurNaFamilia = (posicoes ?? []).filter(
-    (p) => finalidadeDaClasse(classeDe(p.tipo)) === "arthur",
+    (p) => finalidadeDe(p.tipo, p.finalidade) === "arthur",
   );
   const patrimonioArthur = patrimonio(
     contasArthur ?? [],

@@ -196,6 +196,10 @@ export type PosicaoAtivo = {
   ativo_id: string;
   ticker: string;
   tipo: string | null;
+  /** `ativos.finalidade` — sobrepõe a da classe (migration 26). */
+  finalidade?: string | null;
+  /** 'manual' no que não está na corretora (ouro, cofres). */
+  origem?: string | null;
   quantidade_atual: number;
   preco_medio: number | null;
 };

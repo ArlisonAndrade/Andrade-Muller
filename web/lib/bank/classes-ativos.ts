@@ -9,6 +9,8 @@ export type ClasseAtivo =
   | "tesouro"
   | "renda_fixa"
   | "cripto"
+  | "ouro"
+  | "especie"
   | "outro";
 
 // Cores em hex (mesmos valores dos tokens --color-classe-* do globals.css)
@@ -24,6 +26,8 @@ export const CLASSES_ATIVOS: Record<
   cripto: { rotulo: "Criptomoedas", rotuloCurto: "Criptos", cor: "#f59e0b" },
   fundo: { rotulo: "Fundos de Investimento", rotuloCurto: "Fundos", cor: "#db2777" },
   tesouro: { rotulo: "Tesouro Direto", rotuloCurto: "Tesouro", cor: "#64748b" },
+  ouro: { rotulo: "Ouro físico", rotuloCurto: "Ouro", cor: "#b8860b" },
+  especie: { rotulo: "Dinheiro em espécie", rotuloCurto: "Espécie", cor: "#15803d" },
   outro: { rotulo: "Outros", rotuloCurto: "Outros", cor: "#94a3b8" },
 };
 
@@ -35,8 +39,19 @@ export const ORDEM_CLASSES: ClasseAtivo[] = [
   "cripto",
   "fundo",
   "tesouro",
+  "ouro",
+  "especie",
   "outro",
 ];
+
+// Patrimônio que não está na corretora (migration 26): ouro físico e o
+// dinheiro dos cofres. Entra somado ao resto, mas fica de fora do que só faz
+// sentido pra carteira — meta de alocação e rentabilidade (o ouro é de 2018 e
+// carregaria 8 anos de valorização pra dentro de um número que mede a
+// carteira desde que ela começou).
+const CLASSES_FORA_DA_CORRETORA = new Set<ClasseAtivo>(["ouro", "especie"]);
+
+export const foraDaCorretora = (classe: ClasseAtivo) => CLASSES_FORA_DA_CORRETORA.has(classe);
 
 export function classeDe(tipo: string | null): ClasseAtivo {
   return (tipo && tipo in CLASSES_ATIVOS ? tipo : "outro") as ClasseAtivo;
@@ -73,9 +88,24 @@ const FINALIDADE_DA_CLASSE: Record<ClasseAtivo, FinalidadeCarteira> = {
   fii: "investimentos",
   etf_internacional: "investimentos",
   tesouro: "investimentos",
+  ouro: "investimentos",
+  especie: "reserva_emergencia",
   outro: "investimentos",
 };
 
 export function finalidadeDaClasse(classe: ClasseAtivo): FinalidadeCarteira {
   return FINALIDADE_DA_CLASSE[classe];
+}
+
+// A finalidade deixou de ser só da classe (migration 26): o mesmo "dinheiro em
+// espécie" é reserva de emergência no cofre de casa e carteira do Arthur no
+// cofrinho dele. `ativos.finalidade` manda quando está preenchida; sem ela,
+// vale a da classe — que é como as 24 posições do Investidor10 seguem sendo
+// repartidas.
+export function finalidadeDe(
+  tipo: string | null,
+  finalidade?: string | null,
+): FinalidadeCarteira {
+  if (finalidade && finalidade in ROTULO_FINALIDADE) return finalidade as FinalidadeCarteira;
+  return finalidadeDaClasse(classeDe(tipo));
 }

@@ -110,16 +110,18 @@ export async function montarTrimestre(supabase: SupabaseClient, trimestre: strin
   const [{ data: posicoesDetalhe }, { data: cotacoesDetalhe }, jornada] = await Promise.all([
     supabase
       .from("posicao_ativos")
-      .select("ativo_id, ticker, tipo, quantidade_atual, preco_medio")
+      .select("ativo_id, ticker, tipo, finalidade, origem, quantidade_atual, preco_medio")
       .eq("entidade_id", ENTIDADE_FAMILIA),
     supabase.from("cotacoes_atuais").select("ativo_id, preco_atual, variacao_dia_pct"),
     montarJornada(supabase, carteira.patrimonio),
   ]);
-  const classes = agregarPorClasse(
-    ((posicoesDetalhe ?? []) as PosicaoDetalhada[]).filter((p) => Number(p.quantidade_atual) > 0),
-    new Map<string, Cotacao>((cotacoesDetalhe ?? []).map((c) => [c.ativo_id, c])),
-    new Map(),
+  const posicoesAbertas = ((posicoesDetalhe ?? []) as PosicaoDetalhada[]).filter(
+    (p) => Number(p.quantidade_atual) > 0,
   );
+  const mapaCotacoesDetalhe = new Map<string, Cotacao>(
+    (cotacoesDetalhe ?? []).map((c) => [c.ativo_id, c]),
+  );
+  const classes = agregarPorClasse(posicoesAbertas, mapaCotacoesDetalhe, new Map());
   const totalCarteira = classes.reduce((s, c) => s + c.valorMercado, 0);
   // Destaques pela rentabilidade desde a compra: o espelho do Investidor10 não
   // guarda preço por ativo mês a mês, então "do trimestre" não existe por ativo.
@@ -256,7 +258,7 @@ export async function montarTrimestre(supabase: SupabaseClient, trimestre: strin
       .map((mes) => ({ mes, valor: mercadoDe(mes) as number })),
     carteira: {
       total: totalCarteira,
-      porFinalidade: agruparPorFinalidade(classes).map((g) => ({
+      porFinalidade: agruparPorFinalidade(posicoesAbertas, mapaCotacoesDetalhe, new Map()).map((g) => ({
         finalidade: g.finalidade,
         valor: g.valorMercado,
         percentual: totalCarteira > 0 ? (g.valorMercado / totalCarteira) * 100 : 0,

@@ -9,7 +9,13 @@ import {
   type Cotacao,
   type PosicaoDetalhada,
 } from "@/lib/bank/calculos-investimentos";
-import { CLASSES_ATIVOS, classeDe, ROTULO_FINALIDADE, COR_FINALIDADE } from "@/lib/bank/classes-ativos";
+import {
+  CLASSES_ATIVOS,
+  classeDe,
+  foraDaCorretora,
+  ROTULO_FINALIDADE,
+  COR_FINALIDADE,
+} from "@/lib/bank/classes-ativos";
 import { obterPatrimonioArthur, obterMetaArthur } from "@/lib/bank/arthur";
 import { BotaoSincronizarInvestidor10 } from "@/components/bank/investimentos/botao-sincronizar-investidor10";
 import { garantirSnapshotDoMes } from "@/lib/bank/acoes/investimentos";
@@ -51,7 +57,7 @@ export default async function PaginaInvestimentos() {
   ] = await Promise.all([
     supabase
       .from("posicao_ativos")
-      .select("entidade_id, ativo_id, ticker, tipo, quantidade_atual, preco_medio")
+      .select("entidade_id, ativo_id, ticker, tipo, finalidade, origem, quantidade_atual, preco_medio")
       .eq("entidade_id", ENTIDADE_FAMILIA),
     supabase.from("cotacoes_atuais").select("ativo_id, preco_atual, variacao_dia_pct"),
     supabase
@@ -116,21 +122,31 @@ export default async function PaginaInvestimentos() {
 
   const valorAplicado = classes.reduce((s, c) => s + c.valorAplicado, 0);
   const valorMercado = classes.reduce((s, c) => s + c.valorMercado, 0);
-  const ganhoCapital = valorMercado - valorAplicado;
+
+  // Ouro e cofres entram no patrimônio, mas não na régua da carteira: o ouro é
+  // de 2018 e levaria 8 anos de valorização pra dentro de uma rentabilidade
+  // que mede a carteira desde que ela começou (decisão do Arlison,
+  // 07/out/2026). Lucro e rentabilidade seguem sendo da corretora; o ganho do
+  // ouro aparece na linha dele.
+  const naCorretora = classes.filter((c) => !c.foraDaCorretora);
+  const aplicadoCorretora = naCorretora.reduce((s, c) => s + c.valorAplicado, 0);
+  const mercadoCorretora = naCorretora.reduce((s, c) => s + c.valorMercado, 0);
+  const valorFora = valorMercado - mercadoCorretora;
+  const ganhoCapital = mercadoCorretora - aplicadoCorretora;
   const proventosTotal = (proventos ?? []).reduce((s, p) => s + Number(p.valor), 0);
   const proventos12M = (proventos ?? [])
     .filter((p) => p.data >= corte12M)
     .reduce((s, p) => s + Number(p.valor), 0);
   const lucroTotal = ganhoCapital + proventosTotal;
-  const rentabTotal = valorAplicado > 0 ? (lucroTotal / valorAplicado) * 100 : null;
+  const rentabTotal = aplicadoCorretora > 0 ? (lucroTotal / aplicadoCorretora) * 100 : null;
   const rentab12M = rentabilidade12M(
     (snapshots ?? []).map((s) => ({
       competencia: String(s.competencia),
       valor_aplicado: Number(s.valor_aplicado),
       valor_mercado: Number(s.valor_mercado),
     })),
-    valorAplicado,
-    valorMercado,
+    aplicadoCorretora,
+    mercadoCorretora,
   );
 
   // Variação do dia do patrimônio (ponderada pelas classes com cotação).
@@ -147,7 +163,11 @@ export default async function PaginaInvestimentos() {
       : undefined;
 
   const totalAtivos = classes.reduce((s, c) => s + c.quantidadeAtivos, 0);
-  const gruposFinalidade = agruparPorFinalidade(classes);
+  const gruposFinalidade = agruparPorFinalidade(
+    (posicoes ?? []) as PosicaoDetalhada[],
+    mapaCotacoes,
+    mapaMetas,
+  );
 
   // Metas por finalidade: Reserva é um valor fixo editável; Arthur vem do
   // plano fixo em fases de /bank/arthur (não duplica número).
@@ -181,7 +201,15 @@ export default async function PaginaInvestimentos() {
           label="Patrimônio total"
           valor={moedaBRL(valorMercado)}
           variacaoPct={variacaoDia}
-          apoio={<>Valor investido {moedaBRL(valorAplicado)}</>}
+          apoio={
+            valorFora > 0 ? (
+              <>
+                {moedaBRL(mercadoCorretora)} na corretora · {moedaBRL(valorFora)} fora
+              </>
+            ) : (
+              <>Valor investido {moedaBRL(valorAplicado)}</>
+            )
+          }
           icone={<IconPigMoney size={18} stroke={1.7} />}
         />
         <CardMetrica
@@ -190,7 +218,7 @@ export default async function PaginaInvestimentos() {
           corValor={lucroTotal >= 0 ? "text-bank-positivo" : "text-bank-negativo"}
           apoio={
             <>
-              Ganho de capital {moedaBRL(ganhoCapital)} · Proventos {moedaBRL(proventosTotal)}
+              Da carteira · ganho {moedaBRL(ganhoCapital)} · proventos {moedaBRL(proventosTotal)}
             </>
           }
           icone={<IconTrendingUp size={18} stroke={1.7} />}
@@ -213,11 +241,11 @@ export default async function PaginaInvestimentos() {
           apoio={
             rentab12M != null ? (
               <>
-                12 meses · Total{" "}
+                12 meses da carteira · Total{" "}
                 {rentabTotal != null ? `${rentabTotal.toFixed(2).replace(".", ",")}%` : "—"}
               </>
             ) : (
-              <>Total desde o início</>
+              <>Da carteira, desde o início</>
             )
           }
           icone={<IconChartLine size={18} stroke={1.7} />}
@@ -227,7 +255,7 @@ export default async function PaginaInvestimentos() {
       {/* Evolução + alocação */}
       <div className="grid gap-4 lg:grid-cols-5">
         <section className="card-bank p-4 sm:p-5 lg:col-span-3">
-          <h2 className="mb-3 text-sm font-semibold">Evolução do patrimônio</h2>
+          <h2 className="mb-3 text-sm font-semibold">Evolução da carteira</h2>
           <EvolucaoPatrimonio
             pontos={(snapshots ?? []).map((s) => ({
               competencia: String(s.competencia),

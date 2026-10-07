@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { sincronizarInvestidor10, type ResultadoSync } from "@/lib/bank/investidor10";
 import { ENTIDADE_FAMILIA, ENTIDADE_ARTHUR } from "@/lib/bank/tipos";
+import { classeDe, foraDaCorretora } from "@/lib/bank/classes-ativos";
 
 // Garante o ativo (ticker é global, compartilhado entre entidades) e lança a
 // movimentação de compra + a cotação atual inicial (preço da própria compra).
@@ -122,7 +123,7 @@ export async function garantirSnapshotDoMes() {
   const [{ data: posicoes }, { data: cotacoes }, { data: contas }] = await Promise.all([
     supabase
       .from("posicao_ativos")
-      .select("entidade_id, ativo_id, quantidade_atual, preco_medio")
+      .select("entidade_id, ativo_id, tipo, quantidade_atual, preco_medio")
       .in("entidade_id", [ENTIDADE_FAMILIA, ENTIDADE_ARTHUR]),
     supabase.from("cotacoes_atuais").select("ativo_id, preco_atual"),
     supabase
@@ -136,8 +137,15 @@ export async function garantirSnapshotDoMes() {
   );
 
   for (const entidade of [ENTIDADE_FAMILIA, ENTIDADE_ARTHUR]) {
+    // A foto mensal é da CARTEIRA: ouro e cofres (migration 26) ficam de fora,
+    // senão a série salta R$ 21 mil no mês em que foram cadastrados e a
+    // rentabilidade 12M, a "Evolução da carteira" e o slide "O que construímos"
+    // passam a medir um degrau que nunca aconteceu.
     const daEntidade = (posicoes ?? []).filter(
-      (p) => p.entidade_id === entidade && Number(p.quantidade_atual) > 0,
+      (p) =>
+        p.entidade_id === entidade &&
+        Number(p.quantidade_atual) > 0 &&
+        !foraDaCorretora(classeDe(p.tipo)),
     );
     const valorAplicado = daEntidade.reduce(
       (s, p) => s + Number(p.quantidade_atual) * Number(p.preco_medio ?? 0),

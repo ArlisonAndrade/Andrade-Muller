@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ENTIDADE_ARTHUR, ENTIDADE_FAMILIA, type PosicaoAtivo, type Transacao } from "@/lib/bank/tipos";
 import { patrimonio } from "@/lib/bank/calculos";
-import { classeDe, finalidadeDaClasse } from "@/lib/bank/classes-ativos";
+import { finalidadeDe } from "@/lib/bank/classes-ativos";
 import { META_FINAL_ARTHUR } from "@/lib/bank/plano-arthur";
 
 export type PatrimonioArthur = {
@@ -11,7 +11,7 @@ export type PatrimonioArthur = {
 
 // Patrimônio consolidado do Arthur = a carteira própria dele (ENTIDADE_ARTHUR,
 // hoje vazia) + o que está guardado dentro da Família mas é dele por
-// finalidade (Fundos + Cripto — ver finalidadeDaClasse). Fonte única pra
+// finalidade (Fundos + Cripto, mais o cofrinho — ver finalidadeDe). Fonte única pra
 // home, /bank/arthur e /bank/investimentos não divergirem sobre o mesmo
 // dinheiro.
 export async function obterPatrimonioArthur(
@@ -30,7 +30,7 @@ export async function obterPatrimonioArthur(
     ]);
 
   const posicoesArthurNaFamilia = ((posicoesFamilia ?? []) as PosicaoAtivo[]).filter(
-    (p) => finalidadeDaClasse(classeDe(p.tipo)) === "arthur",
+    (p) => finalidadeDe(p.tipo, p.finalidade) === "arthur",
   );
   const posicoes = [...((posicoesArthur ?? []) as PosicaoAtivo[]), ...posicoesArthurNaFamilia];
 

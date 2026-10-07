@@ -1,4 +1,10 @@
-import { classeDe, finalidadeDaClasse, type ClasseAtivo, type FinalidadeCarteira } from "@/lib/bank/classes-ativos";
+import {
+  classeDe,
+  finalidadeDe,
+  foraDaCorretora,
+  type ClasseAtivo,
+  type FinalidadeCarteira,
+} from "@/lib/bank/classes-ativos";
 
 export type PosicaoDetalhada = {
   ativo_id: string;
@@ -7,6 +13,10 @@ export type PosicaoDetalhada = {
   nome?: string | null;
   quantidade_atual: number;
   preco_medio: number | null;
+  /** `ativos.finalidade` — sobrepõe a finalidade da classe (migration 26). */
+  finalidade?: string | null;
+  /** 'manual' nos itens que não estão na corretora (ouro, cofres). */
+  origem?: string | null;
 };
 
 export type Cotacao = { preco_atual: number | null; variacao_dia_pct: number | null };
@@ -32,6 +42,8 @@ export type ClasseResumo = {
   rentabilidadePct: number | null;
   percentualCarteira: number;
   percentualAlvo: number | null;
+  /** Ouro e espécie: entram no patrimônio, ficam fora da régua da carteira. */
+  foraDaCorretora: boolean;
   ativos: AtivoResumo[];
 };
 
@@ -55,10 +67,18 @@ export function resumirAtivo(p: PosicaoDetalhada, cotacoes: Map<string, Cotacao>
   };
 }
 
+/**
+ * Resume as posições por classe. `totais` permite calcular o "% na carteira"
+ * contra o patrimônio inteiro mesmo quando só um pedaço das posições é passado
+ * (as caixas por finalidade) — e separa os dois denominadores: classe da
+ * corretora se compara com a carteira da corretora, porque é sobre ela que as
+ * metas de alocação foram definidas; ouro e espécie se comparam com o total.
+ */
 export function agregarPorClasse(
   posicoes: PosicaoDetalhada[],
   cotacoes: Map<string, Cotacao>,
   metasAlvo: Map<string, number>,
+  totais?: { geral: number; corretora: number },
 ): ClasseResumo[] {
   const comSaldo = posicoes.filter((p) => Number(p.quantidade_atual) > 0);
   const porClasse = new Map<ClasseAtivo, AtivoResumo[]>();
@@ -69,9 +89,13 @@ export function agregarPorClasse(
     porClasse.set(classe, grupo);
   }
 
-  const totalMercado = [...porClasse.values()]
-    .flat()
-    .reduce((s, a) => s + a.valorMercado, 0);
+  const totalGeral = totais?.geral ?? [...porClasse.values()].flat().reduce((s, a) => s + a.valorMercado, 0);
+  const totalCorretora =
+    totais?.corretora ??
+    [...porClasse.entries()]
+      .filter(([classe]) => !foraDaCorretora(classe))
+      .flatMap(([, ativos]) => ativos)
+      .reduce((s, a) => s + a.valorMercado, 0);
 
   const resumos: ClasseResumo[] = [];
   for (const [classe, ativos] of porClasse) {
@@ -85,6 +109,8 @@ export function agregarPorClasse(
         ? comVariacao.reduce((s, a) => s + (a.variacaoDiaPct as number) * a.valorMercado, 0) /
           pesoVariacao
         : null;
+    const fora = foraDaCorretora(classe);
+    const base = fora ? totalGeral : totalCorretora;
     resumos.push({
       classe,
       quantidadeAtivos: ativos.length,
@@ -92,8 +118,9 @@ export function agregarPorClasse(
       valorMercado,
       variacaoDiaPct,
       rentabilidadePct: valorAplicado > 0 ? (valorMercado / valorAplicado - 1) * 100 : null,
-      percentualCarteira: totalMercado > 0 ? (valorMercado / totalMercado) * 100 : 0,
-      percentualAlvo: metasAlvo.get(classe) ?? null,
+      percentualCarteira: base > 0 ? (valorMercado / base) * 100 : 0,
+      percentualAlvo: fora ? null : (metasAlvo.get(classe) ?? null),
+      foraDaCorretora: fora,
       ativos: ativos.sort((a, b) => b.valorMercado - a.valorMercado),
     });
   }
@@ -109,18 +136,35 @@ export type FinalidadeResumo = {
 
 const ORDEM_FINALIDADE: FinalidadeCarteira[] = ["reserva_emergencia", "arthur", "investimentos"];
 
-// Reagrupa as classes já resumidas por finalidade (reserva/Arthur/livre) —
-// mesma fonte de dados do "Meus Ativos" por classe, só reparticionada.
-export function agruparPorFinalidade(classes: ClasseResumo[]): FinalidadeResumo[] {
-  const porFinalidade = new Map<FinalidadeCarteira, ClasseResumo[]>();
-  for (const c of classes) {
-    const finalidade = finalidadeDaClasse(c.classe);
+/**
+ * Reparticiona as posições por finalidade (reserva/Arthur/investimentos) e
+ * resume cada grupo por classe. Parte das POSIÇÕES, não das classes já
+ * resumidas: desde a migration 26 a mesma classe pode cair em duas finalidades
+ * (o dinheiro em espécie é reserva no cofre de casa e Arthur no cofrinho).
+ */
+export function agruparPorFinalidade(
+  posicoes: PosicaoDetalhada[],
+  cotacoes: Map<string, Cotacao>,
+  metasAlvo: Map<string, number>,
+): FinalidadeResumo[] {
+  const comSaldo = posicoes.filter((p) => Number(p.quantidade_atual) > 0);
+  const valorDe = (p: PosicaoDetalhada) => resumirAtivo(p, cotacoes).valorMercado;
+  const totais = {
+    geral: comSaldo.reduce((s, p) => s + valorDe(p), 0),
+    corretora: comSaldo
+      .filter((p) => !foraDaCorretora(classeDe(p.tipo)))
+      .reduce((s, p) => s + valorDe(p), 0),
+  };
+
+  const porFinalidade = new Map<FinalidadeCarteira, PosicaoDetalhada[]>();
+  for (const p of comSaldo) {
+    const finalidade = finalidadeDe(p.tipo, p.finalidade);
     const grupo = porFinalidade.get(finalidade) ?? [];
-    grupo.push(c);
+    grupo.push(p);
     porFinalidade.set(finalidade, grupo);
   }
   return ORDEM_FINALIDADE.filter((f) => porFinalidade.has(f)).map((finalidade) => {
-    const grupo = porFinalidade.get(finalidade)!;
+    const grupo = agregarPorClasse(porFinalidade.get(finalidade)!, cotacoes, metasAlvo, totais);
     return {
       finalidade,
       valorAplicado: grupo.reduce((s, c) => s + c.valorAplicado, 0),

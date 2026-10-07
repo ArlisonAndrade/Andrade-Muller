@@ -40,6 +40,42 @@ export function competenciaDe(data: Date) {
   return `${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, "0")}-01`;
 }
 
+export type RendaSalva = { competencia: string; valor: number; confirmado: boolean };
+
+/**
+ * Último valor salvo de cada tipo de renda até a competência pedida — a regra
+ * de herança do Bank em um lugar só (mês sem salvar repete o último salvo).
+ * Usada por `montarRendaDoMes` e pela geração das recorrências de salário.
+ */
+export async function rendaSalvaPorTipo(
+  supabase: SupabaseClient,
+  competencia: string,
+  entidadeId: string = ENTIDADE_FAMILIA,
+): Promise<Map<string, RendaSalva>> {
+  const { data } = await supabase
+    .from("renda_mensal")
+    .select("competencia, tipo, valor, confirmado")
+    .eq("entidade_id", entidadeId)
+    .lte("competencia", competencia)
+    .order("competencia", { ascending: false });
+  return mapearUltimaPorTipo(data ?? []);
+}
+
+type LinhaRenda = { competencia: string; tipo: string; valor: number; confirmado: boolean | null };
+
+function mapearUltimaPorTipo(linhas: LinhaRenda[]): Map<string, RendaSalva> {
+  const ultimaPorTipo = new Map<string, RendaSalva>();
+  for (const r of linhas) {
+    if (ultimaPorTipo.has(r.tipo)) continue;
+    ultimaPorTipo.set(r.tipo, {
+      competencia: String(r.competencia).slice(0, 10),
+      valor: Number(r.valor),
+      confirmado: r.confirmado ?? false,
+    });
+  }
+  return ultimaPorTipo;
+}
+
 export async function montarRendaDoMes(
   supabase: SupabaseClient,
   competencia: string,
@@ -63,18 +99,7 @@ export async function montarRendaDoMes(
   const pessoas = (pessoasRaw ?? []) as Pessoa[];
 
   // Primeira linha de cada tipo = a mais recente até este mês.
-  const ultimaPorTipo = new Map<
-    string,
-    { competencia: string; valor: number; confirmado: boolean }
-  >();
-  for (const r of rendaRaw ?? []) {
-    if (ultimaPorTipo.has(r.tipo)) continue;
-    ultimaPorTipo.set(r.tipo, {
-      competencia: String(r.competencia).slice(0, 10),
-      valor: Number(r.valor),
-      confirmado: r.confirmado ?? false,
-    });
-  }
+  const ultimaPorTipo = mapearUltimaPorTipo((rendaRaw ?? []) as LinhaRenda[]);
 
   let herdadoDe: string | null = null;
   const porPessoa = new Map<string, RendaDoMes>(

@@ -9,7 +9,7 @@ function moedaCompacta(valor: number) {
   return `${sinal}${moedaBRL(abs)}`;
 }
 
-// A tesoura: investido subindo em verde, dívida encolhendo em vermelho, e a
+// A tesoura: patrimônio bruto subindo em verde, dívida encolhendo em vermelho, e a
 // linha do patrimônio líquido entre as duas. O gráfico antigo mostrava só o
 // resultado da subtração — uma barra por ano —, então um ano de aporte forte e
 // um ano de amortização forte pareciam a mesma coisa. Aqui dá pra ver QUAL das
@@ -76,7 +76,7 @@ export function JornadaPatrimonio({ jornada }: { jornada: Jornada }) {
           </p>
         </div>
         <div>
-          <p className="text-[11px] uppercase tracking-wide text-text-faint">Investido</p>
+          <p className="text-[11px] uppercase tracking-wide text-text-faint">Patrimônio bruto</p>
           <p className="numeros-tabulares text-lg font-semibold text-text-primary">
             {moedaBRL(hoje.investimento)}
           </p>
@@ -102,7 +102,7 @@ export function JornadaPatrimonio({ jornada }: { jornada: Jornada }) {
           viewBox={`0 0 ${largura} ${altura}`}
           className="h-auto w-full min-w-[700px]"
           role="img"
-          aria-label="Evolução do investido, da dívida e do patrimônio líquido ano a ano"
+          aria-label="Evolução do patrimônio bruto, da dívida e do patrimônio líquido ano a ano"
         >
           <defs>
             <pattern
@@ -161,7 +161,7 @@ export function JornadaPatrimonio({ jornada }: { jornada: Jornada }) {
             </g>
           ))}
 
-          {/* Investido para cima, dívida espelhada para baixo */}
+          {/* Patrimônio bruto para cima, dívida espelhada para baixo */}
           <path d={area((p) => p.investimento)} fill="var(--color-bank-positivo)" opacity="0.16" />
           <path
             d={caminho((p) => p.investimento)}
@@ -296,7 +296,7 @@ export function JornadaPatrimonio({ jornada }: { jornada: Jornada }) {
                   fill="transparent"
                 >
                   <title>
-                    {`${p.ano}${p.projetado ? " (projeção)" : ehHoje ? " (hoje)" : ""}\nInvestido: ${moedaBRL(
+                    {`${p.ano}${p.projetado ? " (projeção)" : ehHoje ? " (hoje)" : ""}\nPatrimônio bruto: ${moedaBRL(
                       p.investimento,
                     )}\nDívida: ${moedaBRL(p.divida)}\nLíquido: ${moedaBRL(p.liquido)}`}
                   </title>
@@ -314,7 +314,7 @@ export function JornadaPatrimonio({ jornada }: { jornada: Jornada }) {
               className="h-2 w-4 rounded-sm"
               style={{ background: "var(--color-bank-positivo)", opacity: 0.5 }}
             />
-            investido
+            patrimônio bruto
           </span>
           <span className="flex items-center gap-1.5">
             <span
