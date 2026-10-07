@@ -12,10 +12,7 @@ import {
 import { CLASSES_ATIVOS, classeDe, ROTULO_FINALIDADE, COR_FINALIDADE } from "@/lib/bank/classes-ativos";
 import { obterPatrimonioArthur, obterMetaArthur } from "@/lib/bank/arthur";
 import { BotaoSincronizarInvestidor10 } from "@/components/bank/investimentos/botao-sincronizar-investidor10";
-import {
-  garantirSnapshotDoMes,
-  registrarProvento,
-} from "@/lib/bank/acoes/investimentos";
+import { garantirSnapshotDoMes } from "@/lib/bank/acoes/investimentos";
 import { CardMetrica } from "@/components/bank/ui/card-metrica";
 import { BadgeVariacao } from "@/components/bank/ui/badge-variacao";
 import { ProgressBar } from "@/components/bank/ui/progress-bar";
@@ -165,11 +162,6 @@ export default async function PaginaInvestimentos() {
     reserva_emergencia: metaReserva,
     arthur: metaArthur,
   };
-
-  // Ativos pra o select de proventos.
-  const listaAtivos = (posicoes ?? [])
-    .filter((p) => Number(p.quantidade_atual) > 0)
-    .sort((a, b) => a.ticker.localeCompare(b.ticker));
 
   return (
     <div className="flex flex-col gap-6">
@@ -349,65 +341,6 @@ export default async function PaginaInvestimentos() {
             </div>
           ))}
         </div>
-      </section>
-
-      {/* Registrar provento */}
-      <section className="card-bank p-4 sm:p-6">
-        <h2 className="text-sm font-semibold">Registrar provento</h2>
-        <p className="mt-1 text-xs text-text-faint">
-          Dividendos, JCP e rendimentos entram no "Lucro total" e no "Proventos (12M)".
-        </p>
-        <form
-          action={registrarProvento}
-          className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5"
-        >
-          <input type="hidden" name="entidade_id" value={ENTIDADE_FAMILIA} />
-          <select
-            name="ativo_id"
-            className="rounded-[8px] border border-border bg-surface-2 px-2 py-2 text-sm outline-none"
-            defaultValue=""
-          >
-            <option value="">Ativo —</option>
-            {listaAtivos.map((a) => (
-              <option key={a.ativo_id} value={a.ativo_id}>
-                {a.ticker}
-              </option>
-            ))}
-          </select>
-          <select
-            name="tipo"
-            required
-            className="rounded-[8px] border border-border bg-surface-2 px-2 py-2 text-sm outline-none"
-            defaultValue="dividendo"
-          >
-            <option value="dividendo">Dividendo</option>
-            <option value="jcp">JCP</option>
-            <option value="rendimento">Rendimento</option>
-            <option value="juros">Juros</option>
-          </select>
-          <input
-            name="valor"
-            type="number"
-            step="0.01"
-            min="0.01"
-            required
-            placeholder="Valor"
-            className="rounded-[8px] border border-border bg-surface-2 px-3 py-2 text-sm outline-none placeholder:text-text-faint"
-          />
-          <input
-            name="data"
-            type="date"
-            required
-            defaultValue={new Date().toISOString().slice(0, 10)}
-            className="rounded-[8px] border border-border bg-surface-2 px-3 py-2 text-sm outline-none"
-          />
-          <button
-            type="submit"
-            className="rounded-[8px] bg-bank-primaria px-3 py-2 text-sm font-medium text-white"
-          >
-            Registrar
-          </button>
-        </form>
       </section>
 
       {/* Nota sobre classes com % acima da meta */}

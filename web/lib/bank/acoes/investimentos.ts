@@ -64,19 +64,6 @@ export async function criarInvestimento(formData: FormData) {
   redirect("/bank/investimentos");
 }
 
-export async function registrarProvento(formData: FormData) {
-  const supabase = await createClient();
-  const { error } = await supabase.from("proventos").insert({
-    entidade_id: String(formData.get("entidade_id")),
-    ativo_id: String(formData.get("ativo_id") || "") || null,
-    tipo: String(formData.get("tipo")),
-    valor: Number(formData.get("valor")),
-    data: String(formData.get("data")),
-  });
-  if (error) throw new Error(`Falha ao registrar provento: ${error.message}`);
-  revalidatePath("/bank/investimentos");
-}
-
 // Tira o ativo da carteira DESTA entidade. `ativos` é global (o ticker é
 // compartilhado entre Família e Arthur), então o que some é a posição:
 // movimentações e proventos da entidade. O ativo e a cotação só são
@@ -111,16 +98,6 @@ export async function excluirPosicao(formData: FormData) {
 
   revalidatePath("/bank/investimentos");
   revalidatePath("/bank");
-}
-
-export async function excluirProvento(formData: FormData) {
-  const supabase = await createClient();
-  const id = String(formData.get("id"));
-
-  const { error } = await supabase.from("proventos").delete().eq("id", id);
-  if (error) return { erro: `Não deu pra excluir o provento: ${error.message}` };
-
-  revalidatePath("/bank/investimentos");
 }
 
 // Botão "Sincronizar com o Investidor10" — roda com a sessão do usuário.
