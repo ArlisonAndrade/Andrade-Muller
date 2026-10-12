@@ -19,14 +19,14 @@ import {
 import { obterPatrimonioArthur, obterMetaArthur } from "@/lib/bank/arthur";
 import { BotaoSincronizarInvestidor10 } from "@/components/bank/investimentos/botao-sincronizar-investidor10";
 import { AportesDoMes } from "@/components/bank/investimentos/aportes-do-mes";
+import { CarteiraNoArca } from "@/components/bank/investimentos/arca";
+import { montarArca } from "@/lib/bank/arca";
 import { aporteDoMesCorrente } from "@/lib/bank/aporte-mes";
 import { garantirSnapshotDoMes } from "@/lib/bank/acoes/investimentos";
 import { CardMetrica } from "@/components/bank/ui/card-metrica";
 import { BadgeVariacao } from "@/components/bank/ui/badge-variacao";
 import { ProgressBar } from "@/components/bank/ui/progress-bar";
 import { LinhaClasse } from "@/components/bank/investimentos/linha-classe";
-import { DonutAlocacao } from "@/components/bank/investimentos/donut-alocacao";
-import { EvolucaoPatrimonio } from "@/components/bank/investimentos/evolucao-patrimonio";
 import { MetaFinalidadeEditavel } from "@/components/bank/investimentos/meta-finalidade";
 import {
   IconPigMoney,
@@ -167,6 +167,12 @@ export default async function PaginaInvestimentos() {
       : undefined;
 
   const totalAtivos = classes.reduce((s, c) => s + c.quantidadeAtivos, 0);
+  const arca = montarArca(
+    (posicoes ?? []) as PosicaoDetalhada[],
+    mapaCotacoes,
+    aporteMes.planejado,
+  );
+
   const gruposFinalidade = agruparPorFinalidade(
     (posicoes ?? []) as PosicaoDetalhada[],
     mapaCotacoes,
@@ -266,35 +272,10 @@ export default async function PaginaInvestimentos() {
         comLink
       />
 
-      {/* Evolução + alocação */}
-      <div className="grid gap-4 lg:grid-cols-5">
-        <section className="card-bank p-4 sm:p-5 lg:col-span-3">
-          <h2 className="mb-3 text-sm font-semibold">Evolução da carteira</h2>
-          <EvolucaoPatrimonio
-            pontos={(snapshots ?? []).map((s) => ({
-              competencia: String(s.competencia),
-              valorAplicado: Number(s.valor_aplicado),
-              ganho: Number(s.valor_mercado) - Number(s.valor_aplicado),
-            }))}
-          />
-        </section>
-        <section className="card-bank p-4 sm:p-5 lg:col-span-2">
-          <h2 className="mb-3 text-sm font-semibold">Ativos na carteira</h2>
-          {classes.length === 0 ? (
-            <p className="py-10 text-center text-sm text-text-faint">
-              Cadastre a primeira posição pra ver a alocação.
-            </p>
-          ) : (
-            <DonutAlocacao
-              fatias={classes.map((c) => ({
-                rotulo: CLASSES_ATIVOS[c.classe].rotuloCurto,
-                valor: c.valorMercado,
-                cor: CLASSES_ATIVOS[c.classe].cor,
-              }))}
-            />
-          )}
-        </section>
-      </div>
+      {/* A carteira no modelo ARCA — no lugar do donut de alocação e do
+          gráfico de evolução, que repetiam o Investidor10. A evolução segue
+          em /bank/plano (plano × real) e no slide "O que construímos". */}
+      <CarteiraNoArca arca={arca} aporte={aporteMes.planejado} />
 
       {/* Metas: Reserva e Arthur, separadas */}
       <section className="card-bank p-4 sm:p-5">
