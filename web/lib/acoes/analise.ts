@@ -207,6 +207,6 @@ export async function confirmarAnalise(dados: {
   revalidatePath("/reunioes");
   revalidatePath(`/reunioes/${dados.reuniaoId}`);
   revalidatePath("/tarefas");
-  revalidatePath("/");
+  revalidatePath("/inicio");
   return { ok: true };
 }

@@ -22,7 +22,7 @@ function Icone({ children }: { children: React.ReactNode }) {
 
 const modulos = [
   {
-    href: "/",
+    href: "/inicio",
     label: "Dashboard",
     icone: (
       <Icone>
@@ -138,8 +138,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       </div>
       <nav className="flex flex-col gap-1">
         {modulos.map(({ href, label, icone }) => {
-          const ativo =
-            href === "/" ? pathname === "/" : pathname.startsWith(href);
+          const ativo = pathname === href || pathname.startsWith(`${href}/`);
           return (
             <Link
               key={href}
@@ -158,7 +157,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         })}
       </nav>
       <Link
-        href="/hub"
+        href="/"
         onClick={onNavigate}
         className="mt-6 flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm text-ink-faint transition-colors hover:bg-parchment/60 hover:text-ink"
       >

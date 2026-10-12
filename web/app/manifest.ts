@@ -1,14 +1,17 @@
 import type { MetadataRoute } from "next";
 
 // Portal instalável na tela inicial do celular (24/set/2026, mesmo caminho do
-// painel do Grupo Piotto, sem o passo a passo de instalação). Abre no /hub —
-// a escolha de ambiente de sempre. Ícones gerados por
+// painel do Grupo Piotto, sem o passo a passo de instalação). Abre na raiz,
+// que É a escolha de ambiente. Ícones gerados por
 // scripts/gerar_icones_app.py a partir do brasão da tela de entrada.
 //
+// ⚠ `id` continua "/hub": é a identidade do app já instalado no celular, e
+// trocá-la faria o navegador tratar como um aplicativo diferente (o antigo
+// ficaria lá, órfão). Não precisa ser rota válida — e /hub segue de pé,
+// redirecionando pra raiz.
+//
 // `shortcuts` = o menu que aparece ao segurar o ícone no Android (o iPhone
-// não tem; lá os mesmos atalhos estão no /hub). Só rotas internas: "/" aberto
-// de fora cai no hub (ver entrouDeFora em lib/supabase/middleware.ts), então
-// o atalho do FM aponta pra uma tela dele.
+// não tem; lá os mesmos atalhos estão na raiz).
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Portal Andrade Muller",
@@ -16,7 +19,7 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "FM Gestão e Andrade Muller Bank — o ecossistema da família.",
     lang: "pt-BR",
     id: "/hub",
-    start_url: "/hub",
+    start_url: "/",
     scope: "/",
     display: "standalone",
     orientation: "portrait",

@@ -37,7 +37,7 @@ export async function salvarMeta(fd: FormData) {
 
   if (error) throw new Error(`Erro ao salvar meta: ${error.message}`);
   revalidatePath("/metas");
-  revalidatePath("/");
+  revalidatePath("/inicio");
   redirect("/metas");
 }
 
@@ -46,6 +46,6 @@ export async function excluirMeta(id: string) {
   const { error } = await supabase.from("fm_metas_okrs").delete().eq("id", id);
   if (error) throw new Error(`Erro ao excluir meta: ${error.message}`);
   revalidatePath("/metas");
-  revalidatePath("/");
+  revalidatePath("/inicio");
   redirect("/metas");
 }

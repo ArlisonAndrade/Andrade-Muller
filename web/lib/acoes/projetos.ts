@@ -63,7 +63,7 @@ export async function criarProjeto(fd: FormData) {
 
   revalidatePath("/projetos");
   revalidatePath("/tarefas");
-  revalidatePath("/");
+  revalidatePath("/inicio");
   redirect(`/projetos/${projeto.id}`);
 }
 
@@ -73,7 +73,7 @@ export async function mudarStatusProjeto(id: string, status: string) {
   if (error) throw new Error(`Erro ao atualizar projeto: ${error.message}`);
   revalidatePath("/projetos");
   revalidatePath(`/projetos/${id}`);
-  revalidatePath("/");
+  revalidatePath("/inicio");
 }
 
 export async function excluirProjeto(id: string) {

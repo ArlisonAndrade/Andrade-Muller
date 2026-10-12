@@ -1,11 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { BotaoSair } from "@/components/entrada/botao-sair";
-import styles from "../entrada.module.css";
+import styles from "./entrada.module.css";
 
-// Tela 2 (hub): mesmo fundo da capa, brasão menor no canto como marca-d'água
-// da família + ambientes do ecossistema. FM Gestão em / e Bank em /bank —
-// mesmo app, mesmo login (não há mais domínio/SSO separado).
+// O hub É a raiz do portal (decisão do Arlison, 12/out/2026): mesmo fundo da
+// capa, brasão menor no canto como marca-d'água da família + ambientes do
+// ecossistema. FM Gestão em /inicio e Bank em /bank — mesmo app, mesmo login
+// (não há mais domínio/SSO separado).
 const ATALHOS = [
   { href: "/financeiro/notas", icone: "⇪", nome: "Subir NFS-e", onde: "FM Gestão" },
   { href: "/bank/semanas", icone: "🗓", nome: "Semana", onde: "Bank" },
@@ -36,9 +37,8 @@ export default function PaginaHub() {
       <p className={styles.hubSub}>Ecossistema Andrade Muller</p>
 
       <div className={styles.hubCards}>
-        {/* FM Gestão e Estratégica — ativo. Navegação interna, o middleware
-            não devolve pro hub (ver entrouDeFora em lib/supabase/middleware.ts). */}
-        <Link href="/" className={styles.envCard}>
+        {/* FM Gestão e Estratégica */}
+        <Link href="/inicio" className={styles.envCard}>
           <Image src="/logo-fm.png" alt="FM Gestão" width={72} height={72} className={styles.fmLogo} />
           <span className={styles.envLabel}>FM Gestão</span>
           <span className={styles.envNote}>CRM, reuniões, financeiro e metas</span>

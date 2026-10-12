@@ -49,7 +49,7 @@ export async function definirEisenhower(id: string, quadrante: string) {
     .update({ eisenhower: quadrante || null })
     .eq("id", id);
   if (error) throw new Error(`Erro ao classificar tarefa: ${error.message}`);
-  revalidatePath("/");
+  revalidatePath("/inicio");
   revalidatePath("/tarefas");
   revalidatePath("/reunioes");
 }

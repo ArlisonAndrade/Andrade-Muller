@@ -14,7 +14,7 @@ const ITENS_MENU = [
   { rotulo: "US$ 1 milhão", href: "/bank/plano" },
   { rotulo: "Arthur", href: "/bank/arthur" },
   { rotulo: "Modo TV", href: "/bank/tv" },
-  { rotulo: "Trocar ambiente", href: "/hub" },
+  { rotulo: "Trocar ambiente", href: "/" },
 ];
 
 function itemAtivo(pathname: string, href: string) {
