@@ -155,6 +155,18 @@ export async function lerCarteiraInvestidor10(walletId: number) {
 
 const quase = (a: number, b: number, tolerancia: number) => Math.abs(a - b) <= tolerancia;
 
+// Rendimento esperado de um papel pós-fixado entre duas rodadas (pedido do
+// Arlison, 13/out/2026: "todo dia vai entrar centavos por conta da liquidez
+// diária e eu não quero perder tokens com isso"). A taxa é generosa de
+// propósito — é um teto, não uma previsão: errar pra cima só faz um aporte
+// minúsculo deixar de ser contado, enquanto errar pra baixo volta a encher o
+// grupo de aporte que não existe.
+const TAXA_TETO_AA = 0.2;
+const APORTE_MINIMO_RENDA_FIXA = 10;
+
+const crescimentoEsperado = (saldo: number, dias: number) =>
+  saldo * (Math.pow(1 + TAXA_TETO_AA, dias / 365) - 1);
+
 /**
  * Lê o Investidor10 e espelha no banco. Funciona com o client da sessão
  * (botão) e com o service-role (cron). Sempre grava uma linha de log —
@@ -214,6 +226,20 @@ export async function sincronizarInvestidor10(
   for (const m of movimentos ?? []) {
     movsPorAtivo.set(m.ativo_id, [...(movsPorAtivo.get(m.ativo_id) ?? []), m]);
   }
+
+  // Dias desde a última sincronização que deu certo — é por ele que se mede
+  // quanto de rendimento já era esperado na renda fixa (ver crescimentoEsperado).
+  const { data: ultimaOk } = await supabase
+    .from("sincronizacoes_investidor10")
+    .select("executado_em")
+    .eq("entidade_id", entidadeId)
+    .eq("ok", true)
+    .order("executado_em", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const diasDesdeUltima = ultimaOk
+    ? Math.max(1, (Date.now() - new Date(ultimaOk.executado_em).getTime()) / 86_400_000)
+    : 1;
 
   const alteracoes: AlteracaoSync[] = [];
   const agora = new Date().toISOString();
@@ -291,8 +317,19 @@ export async function sincronizarInvestidor10(
             registrarMovimento(p.ref, p.ticker, deltaQtd * Number(espelho.preco_unitario)); // negativo = retirada
           }
         } else if (tipoAtivo === "renda_fixa" || tipoAtivo === "tesouro") {
-          // Renda fixa não muda de quantidade: aplicar/resgatar mexe no aplicado.
-          registrarMovimento(p.ref, p.ticker, p.aplicado - aplicadoAntes);
+          // Renda fixa não muda de quantidade: aplicar/resgatar mexe no
+          // aplicado. Só que o Investidor10 incorpora o rendimento nesse mesmo
+          // número — com liquidez diária, todo dia entrariam alguns reais que
+          // não são aporte (12/out/2026: R$ 1,44 lançados e anunciados no
+          // grupo). Então o que já era esperado render desde a última rodada é
+          // descontado; se o que sobra for relevante, o movimento é registrado
+          // pelo valor cheio (o rendimento embutido num aporte de verdade é
+          // ruído pequeno e tirá-lo faria R$ 200 virar R$ 195).
+          const delta = p.aplicado - aplicadoAntes;
+          const esperado = crescimentoEsperado(aplicadoAntes, diasDesdeUltima);
+          if (delta <= 0 || delta - esperado >= APORTE_MINIMO_RENDA_FIXA) {
+            registrarMovimento(p.ref, p.ticker, delta);
+          }
         }
         const mudouQtd = !quase(qtdAntes, p.quantidade, 1e-6);
         const mudouAplicado = !quase(aplicadoAntes, p.aplicado, 0.5);
