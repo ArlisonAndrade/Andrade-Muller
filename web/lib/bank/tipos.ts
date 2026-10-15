@@ -195,6 +195,7 @@ export type PosicaoAtivo = {
   entidade_id: string;
   ativo_id: string;
   ticker: string;
+  nome?: string | null;
   tipo: string | null;
   /** `ativos.finalidade` — sobrepõe a da classe (migration 26). */
   finalidade?: string | null;

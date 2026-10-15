@@ -24,6 +24,10 @@ export type Cotacao = { preco_atual: number | null; variacao_dia_pct: number | n
 export type AtivoResumo = {
   ativo_id: string;
   ticker: string;
+  /** Nome legível do ativo; nas posições manuais é o que a tabela mostra. */
+  nome?: string | null;
+  /** 'manual' = saldo que o Arlison mantém à mão (cofre, conta, ouro). */
+  origem?: string | null;
   quantidade: number;
   precoMedio: number;
   precoAtual: number;
@@ -57,6 +61,8 @@ export function resumirAtivo(p: PosicaoDetalhada, cotacoes: Map<string, Cotacao>
   return {
     ativo_id: p.ativo_id,
     ticker: p.ticker,
+    nome: p.nome,
+    origem: p.origem,
     quantidade,
     precoMedio,
     precoAtual,

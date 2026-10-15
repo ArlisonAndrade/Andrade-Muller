@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { sincronizarInvestidor10, type ResultadoSync } from "@/lib/bank/investidor10";
 import { ENTIDADE_FAMILIA, ENTIDADE_ARTHUR } from "@/lib/bank/tipos";
 import { classeDe, foraDaCorretora } from "@/lib/bank/classes-ativos";
+import { hojeSP } from "@/lib/bank/agente/datas";
 
 // Garante o ativo (ticker é global, compartilhado entre entidades) e lança a
 // movimentação de compra + a cotação atual inicial (preço da própria compra).
@@ -170,4 +171,70 @@ export async function garantirSnapshotDoMes() {
       { onConflict: "entidade_id,competencia" },
     );
   }
+}
+
+// Mexer no saldo de uma posição MANUAL (o cofre de casa, a conta do Arthur) —
+// pedido do Arlison, 15/out/2026: "preciso que nessa aba estendida tenha a
+// opção de eu adicionar dinheiro". É a exceção consciente ao "sem lançamento
+// manual" de 01/out: esse dinheiro não existe em nenhuma fonte automática, só
+// ele sabe quanto tem no cofre.
+//
+// Nessas posições a quantidade É o valor em reais (preço 1,00), então mexer no
+// saldo é mexer na quantidade. "Adicionar" e "retirar" também registram em
+// `movimentos_carteira`, porque é dinheiro novo entrando (ou saindo) e o
+// aporte do mês conta isso; "corrigir" só acerta o número, sem virar aporte —
+// é pra quando a contagem estava errada.
+export async function mexerNoSaldoManual(formData: FormData) {
+  const supabase = await createClient();
+  const ativoId = String(formData.get("ativo_id"));
+  const operacao = String(formData.get("operacao")) as "adicionar" | "retirar" | "corrigir";
+  const valor = Number(String(formData.get("valor")).replace(",", "."));
+  if (!ativoId || !Number.isFinite(valor) || valor <= 0) return;
+
+  const { data: ativo } = await supabase
+    .from("ativos")
+    .select("id, ticker, nome, tipo, origem, origem_ref")
+    .eq("id", ativoId)
+    .maybeSingle();
+  // Só posição manual: a espelhada do Investidor10 seria sobrescrita na
+  // sincronização seguinte, e o lançamento ainda abortaria a próxima rodada.
+  if (!ativo || ativo.origem !== "manual") return;
+
+  const { data: mov } = await supabase
+    .from("movimentacoes_ativos")
+    .select("id, quantidade")
+    .eq("ativo_id", ativoId)
+    .eq("entidade_id", ENTIDADE_FAMILIA)
+    .eq("origem", "manual")
+    .maybeSingle();
+  if (!mov) return;
+
+  const saldoAtual = Number(mov.quantidade);
+  const novoSaldo =
+    operacao === "corrigir" ? valor : operacao === "retirar" ? saldoAtual - valor : saldoAtual + valor;
+  if (novoSaldo < 0) return;
+
+  const { error } = await supabase
+    .from("movimentacoes_ativos")
+    .update({ quantidade: novoSaldo })
+    .eq("id", mov.id);
+  if (error) throw new Error(`Não deu pra atualizar o saldo: ${error.message}`);
+
+  if (operacao !== "corrigir") {
+    await supabase.from("movimentos_carteira").insert({
+      entidade_id: ENTIDADE_FAMILIA,
+      data: hojeSP(),
+      ativo_ref: ativo.origem_ref,
+      ticker: ativo.nome ?? ativo.ticker,
+      tipo: operacao === "adicionar" ? "entrada" : "retirada",
+      valor,
+      origem: "manual",
+      // Retirada nunca é anunciada no grupo (lib/bank/aporte-anuncio.ts).
+      anunciado_em: operacao === "retirar" ? new Date().toISOString() : null,
+    });
+  }
+
+  revalidatePath("/bank/investimentos");
+  revalidatePath("/bank/plano");
+  revalidatePath("/bank");
 }

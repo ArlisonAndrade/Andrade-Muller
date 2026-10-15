@@ -11,6 +11,7 @@ export type ClasseAtivo =
   | "cripto"
   | "ouro"
   | "especie"
+  | "conta"
   | "outro";
 
 // Cores em hex (mesmos valores dos tokens --color-classe-* do globals.css)
@@ -28,6 +29,7 @@ export const CLASSES_ATIVOS: Record<
   tesouro: { rotulo: "Tesouro Direto", rotuloCurto: "Tesouro", cor: "#64748b" },
   ouro: { rotulo: "Ouro físico", rotuloCurto: "Ouro", cor: "#b8860b" },
   especie: { rotulo: "Dinheiro em espécie", rotuloCurto: "Espécie", cor: "#15803d" },
+  conta: { rotulo: "Dinheiro em conta", rotuloCurto: "Em conta", cor: "#0e7490" },
   outro: { rotulo: "Outros", rotuloCurto: "Outros", cor: "#94a3b8" },
 };
 
@@ -41,6 +43,7 @@ export const ORDEM_CLASSES: ClasseAtivo[] = [
   "tesouro",
   "ouro",
   "especie",
+  "conta",
   "outro",
 ];
 
@@ -49,7 +52,7 @@ export const ORDEM_CLASSES: ClasseAtivo[] = [
 // sentido pra carteira — meta de alocação e rentabilidade (o ouro é de 2018 e
 // carregaria 8 anos de valorização pra dentro de um número que mede a
 // carteira desde que ela começou).
-const CLASSES_FORA_DA_CORRETORA = new Set<ClasseAtivo>(["ouro", "especie"]);
+const CLASSES_FORA_DA_CORRETORA = new Set<ClasseAtivo>(["ouro", "especie", "conta"]);
 
 export const foraDaCorretora = (classe: ClasseAtivo) => CLASSES_FORA_DA_CORRETORA.has(classe);
 
@@ -90,6 +93,7 @@ const FINALIDADE_DA_CLASSE: Record<ClasseAtivo, FinalidadeCarteira> = {
   tesouro: "investimentos",
   ouro: "investimentos",
   especie: "reserva_emergencia",
+  conta: "reserva_emergencia",
   outro: "investimentos",
 };
 

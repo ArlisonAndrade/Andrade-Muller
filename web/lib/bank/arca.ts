@@ -18,7 +18,7 @@ export const BALDES: Array<{
 }> = [
   { chave: "acoes", letra: "A", nome: "Ações", cor: "#2a78d6", contem: "ações brasileiras" },
   { chave: "imoveis", letra: "R", nome: "Imóveis · FIIs", cor: "#eb6834", contem: "fundos imobiliários" },
-  { chave: "caixa", letra: "C", nome: "Caixa", cor: "#1baf7a", contem: "renda fixa, Tesouro, fundos de RF e o dinheiro dos cofres" },
+  { chave: "caixa", letra: "C", nome: "Caixa", cor: "#1baf7a", contem: "renda fixa, Tesouro, fundos de RF e o dinheiro parado" },
   { chave: "internacional", letra: "A", nome: "Internacional", cor: "#eda100", contem: "ETFs lá fora e cripto" },
 ];
 
@@ -33,6 +33,7 @@ const BALDE_DA_CLASSE: Partial<Record<ClasseAtivo, BaldeArca>> = {
   tesouro: "caixa",
   fundo: "caixa",
   especie: "caixa",
+  conta: "caixa",
   etf_internacional: "internacional",
   cripto: "internacional",
 };

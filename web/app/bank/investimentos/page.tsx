@@ -61,7 +61,7 @@ export default async function PaginaInvestimentos() {
   ] = await Promise.all([
     supabase
       .from("posicao_ativos")
-      .select("entidade_id, ativo_id, ticker, tipo, finalidade, origem, quantidade_atual, preco_medio")
+      .select("entidade_id, ativo_id, ticker, nome, tipo, finalidade, origem, quantidade_atual, preco_medio")
       .eq("entidade_id", ENTIDADE_FAMILIA),
     supabase.from("cotacoes_atuais").select("ativo_id, preco_atual, variacao_dia_pct"),
     supabase

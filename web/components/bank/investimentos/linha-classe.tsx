@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { BadgeVariacao } from "@/components/bank/ui/badge-variacao";
 import { IconChevronDown } from "@/components/bank/ui/icones";
-import type { ClasseResumo } from "@/lib/bank/calculos-investimentos";
+import { mexerNoSaldoManual } from "@/lib/bank/acoes/investimentos";
+import type { AtivoResumo, ClasseResumo } from "@/lib/bank/calculos-investimentos";
 
 function brl(v: number) {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -23,6 +24,9 @@ export function LinhaClasse({
   classe: string;
 }) {
   const [aberta, setAberta] = useState(false);
+  const ehDinheiroManual =
+    (classe === "especie" || classe === "conta") &&
+    resumo.ativos.every((a) => a.origem === "manual");
   const acimaDaMeta =
     resumo.percentualAlvo != null && resumo.percentualCarteira > resumo.percentualAlvo;
 
@@ -109,7 +113,7 @@ export function LinhaClasse({
             <tbody className="divide-y divide-border">
               {resumo.ativos.map((a) => (
                 <tr key={a.ativo_id}>
-                  <td className="py-2.5 font-medium">{a.ticker}</td>
+                  <td className="py-2.5 font-medium">{a.nome ?? a.ticker}</td>
                   <td className="py-2.5 text-right text-text-secondary">
                     {a.quantidade.toLocaleString("pt-BR", { maximumFractionDigits: 6 })}
                   </td>
@@ -133,8 +137,49 @@ export function LinhaClasse({
               ))}
             </tbody>
           </table>
+
+          {/* Dinheiro parado (cofre de casa, conta do Arthur) não vem de
+              lugar nenhum automático — é aqui que ele se mexe. */}
+          {ehDinheiroManual &&
+            resumo.ativos.map((a) => <AjusteDeSaldo key={a.ativo_id} ativo={a} />)}
         </div>
       )}
     </div>
+  );
+}
+
+function AjusteDeSaldo({ ativo }: { ativo: AtivoResumo }) {
+  return (
+    <form action={mexerNoSaldoManual} className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
+      <input type="hidden" name="ativo_id" value={ativo.ativo_id} />
+      <span className="text-xs text-text-faint">{ativo.nome ?? ativo.ticker}</span>
+      <select
+        name="operacao"
+        defaultValue="adicionar"
+        className="rounded-[8px] border border-border bg-surface-2 px-2 py-1.5 text-sm outline-none"
+      >
+        <option value="adicionar">Adicionar</option>
+        <option value="retirar">Retirar</option>
+        <option value="corrigir">Corrigir para</option>
+      </select>
+      <input
+        name="valor"
+        type="number"
+        step="0.01"
+        min="0.01"
+        required
+        placeholder="R$"
+        className="w-28 rounded-[8px] border border-border bg-surface-2 px-3 py-1.5 text-sm outline-none placeholder:text-text-faint"
+      />
+      <button
+        type="submit"
+        className="rounded-[8px] bg-bank-primaria px-3 py-1.5 text-sm font-medium text-white"
+      >
+        Salvar
+      </button>
+      <span className="text-[11px] text-text-faint">
+        Adicionar e retirar contam no aporte do mês; corrigir só acerta o saldo.
+      </span>
+    </form>
   );
 }

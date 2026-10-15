@@ -110,7 +110,7 @@ export async function montarTrimestre(supabase: SupabaseClient, trimestre: strin
   const [{ data: posicoesDetalhe }, { data: cotacoesDetalhe }, jornada] = await Promise.all([
     supabase
       .from("posicao_ativos")
-      .select("ativo_id, ticker, tipo, finalidade, origem, quantidade_atual, preco_medio")
+      .select("ativo_id, ticker, nome, tipo, finalidade, origem, quantidade_atual, preco_medio")
       .eq("entidade_id", ENTIDADE_FAMILIA),
     supabase.from("cotacoes_atuais").select("ativo_id, preco_atual, variacao_dia_pct"),
     montarJornada(supabase, carteira.patrimonio),
