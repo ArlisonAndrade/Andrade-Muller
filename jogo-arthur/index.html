@@ -139,6 +139,27 @@ main{flex:1;min-height:0;position:relative}
 .painel{position:fixed;inset:0;background:rgba(29,43,79,.45);display:grid;place-items:center;z-index:20;padding:16px}
 .painel .caixa{background:var(--papel);border:4px solid var(--tinta);border-radius:24px;padding:18px 20px;max-width:440px;width:100%;box-sizing:border-box;max-height:90%;overflow-y:auto;user-select:text;-webkit-user-select:text}
 .painel h2{margin:0 0 8px;font-size:1.4rem}
+.painel .sec{margin:16px 0 6px;font-size:1.1rem}
+.lista-pais{display:flex;flex-direction:column;gap:6px}
+.lista-pais .item-p{display:flex;align-items:center;gap:8px;background:#fff;border:2px solid var(--tinta);border-radius:12px;padding:4px 8px;font-weight:700}
+.lista-pais .item-p span{flex:1;min-width:0}
+.lista-pais .item-p button{font:inherit;font-size:.85rem;font-weight:800;border:2px solid var(--tinta);border-radius:999px;background:var(--papel);padding:2px 10px}
+.lista-pais .vazio{color:var(--tinta-suave);font-size:.95rem}
+.form-premio{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.form-premio input{font:inherit;padding:6px 10px;border:3px solid var(--tinta);border-radius:12px;background:#fff;color:var(--tinta);min-width:0}
+#premioEm{width:3.2em;text-align:center}#premioNome{flex:1 1 140px}#premioPreco{width:6em}
+.premios-reais{width:100%;max-width:820px;background:#ffe3d6;border:4px solid var(--tinta);border-radius:28px;box-shadow:0 7px 0 var(--tinta);padding:12px 16px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:8px}
+.premios-reais h3{margin:0;font-size:1.3rem}
+.premios-reais .grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;width:100%}
+.premio{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 8px;border-radius:20px}
+.premio .em{font-size:2.6rem;line-height:1.1}
+.premio b{font-size:1.05rem;line-height:1.1;text-align:center}
+.premio .barra-s{width:100%;height:14px;border:2px solid var(--tinta);border-radius:999px;background:var(--papel);overflow:hidden}
+.premio .barra-s i{display:block;height:100%;background:var(--grama)}
+.premio .preco{display:flex;align-items:center;gap:4px;font-weight:800}
+.premio .preco .moeda{width:22px;height:22px;font-size:.65rem;border-width:2px}
+.premio.pode{background:#c9f2d6}
+.vale{font-size:1.05rem;border:3px dashed var(--tinta);border-radius:16px;padding:8px 12px;margin-top:6px;background:#fff8d6}
 .painel label{display:block;font-weight:700;margin:10px 0 4px}
 .painel input[type=text]{width:100%;box-sizing:border-box;font:inherit;padding:8px 12px;border:3px solid var(--tinta);border-radius:12px;background:#fff;color:var(--tinta)}
 .painel ul{padding-left:20px;margin:6px 0;font-size:.95rem;line-height:1.35}
@@ -385,6 +406,7 @@ canvas#confete{position:fixed;inset:0;pointer-events:none;z-index:30}
         </div>
       </div>
       <div class="sonho" id="sonho"></div>
+      <div class="premios-reais" id="premiosReais"></div>
       <div class="loja">
         <h3>🏪 Lojinha de figurinhas</h3>
         <div class="prateleira" id="prateleira"></div>
@@ -507,9 +529,20 @@ canvas#confete{position:fixed;inset:0;pointer-events:none;z-index:30}
     <h2>Área dos pais</h2>
     <label for="campoNome">Nome da criança</label>
     <input type="text" id="campoNome" maxlength="20" autocomplete="off">
+    <h3 class="sec">🎁 Pedidos de prêmio</h3>
+    <div id="listaPedidos" class="lista-pais"></div>
+    <h3 class="sec">Prêmios reais (pagos com o cofrinho)</h3>
+    <div id="listaPremios" class="lista-pais"></div>
+    <form id="formPremio" class="form-premio">
+      <input type="text" id="premioEm" maxlength="4" placeholder="🎁" aria-label="Emoji do prêmio" autocomplete="off">
+      <input type="text" id="premioNome" maxlength="30" placeholder="Nome do prêmio" aria-label="Nome do prêmio" autocomplete="off" required>
+      <input type="number" id="premioPreco" min="1" max="999" placeholder="Moedas" aria-label="Preço em moedas" required>
+      <button class="bloco acao" type="submit">Adicionar</button>
+    </form>
     <ul>
       <li><b>Aventura</b>: 8 fases. Cada monstrinho cai com 3 acertos (letra, leitura, contagem). O chefão da fase 8 só é capturado escrevendo o nome. Mundo 1 usa só vogais; do Mundo 2 em diante, todas as letras e contagem até 10.</li>
       <li><b>Rotina do dia</b>: escovar os dentes, comer tudo, arrumar a cama, guardar os brinquedos, tomar banho e ler uma historinha. Vale 1 moeda cada, uma vez por dia, e +2 quando faz tudo. Quem confirma é ele mesmo, então vale fazer junto com ele.</li>
+      <li><b>Prêmios reais</b>: cadastre acima (emoji, nome e preço em moedas). Ele só troca com o dinheiro do <b>cofrinho</b>; as moedas saem na hora e o pedido aparece em "Pedidos de prêmio" até vocês marcarem <b>Entregue</b> ou <b>Devolver moedas</b>. Esta área abre com uma conta de multiplicação, para ele não mexer.</li>
       <li><b>Meu sonho</b> (no Cofrinho): ele escolhe um monstrinho lendário de 25, 40 ou 60 moedas, que só se compra com o cofrinho. A barra mostra quanto falta, e a voz explica que esperando o cofrinho cresce.</li>
       <li><b>Minha Cidade</b>: ele constrói em 24 terrenos com as moedas da carteira. Loja (+1 por dia) e banco (+2 por dia) ensinam que comprar algo que rende é diferente de gastar. As 12 missões em sequência misturam construir, guardar e perguntas de inglês e espanhol. A arena leva para a Aventura; a escola, para Ler palavras.</li>
       <li><b>Controle de videogame</b> (Bluetooth ou USB, padrão Xbox/PlayStation): funciona no mapa (direcional ou analógico anda, A fala/entra, B fecha) e no Pular e pegar (A pula). Ligue o controle e aperte um botão com o jogo aberto, porque o navegador só enxerga o controle depois disso.</li>
@@ -534,6 +567,16 @@ canvas#confete{position:fixed;inset:0;pointer-events:none;z-index:30}
     <button class="bloco proximo" id="surpresaOk">OK!</button>
   </div>
 </div>
+<div class="surpresa" id="portao" hidden>
+  <div class="caixa" role="dialog" aria-label="Confirmação dos pais">
+    <p>Área dos pais<br><span id="portaoConta"></span></p>
+    <form id="formPortao" class="form-premio" style="justify-content:center">
+      <input type="number" id="portaoResp" aria-label="Resposta" autocomplete="off" style="max-width:120px">
+      <button class="bloco proximo" type="submit">Entrar</button>
+    </form>
+    <div class="linha-b" style="display:flex;justify-content:center;margin-top:12px"><button class="bloco acao" id="portaoFechar" type="button">Voltar</button></div>
+  </div>
+</div>
 <div class="surpresa" id="folha" hidden>
   <div class="caixa" role="dialog">
     <p id="folhaTitulo"></p>
@@ -555,7 +598,9 @@ const embaralhar=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(M
 
 /* ---------- estado (salvo neste navegador) ---------- */
 const CHAVE='jogo-arthur-v1';
-const PADRAO={nome:'Arthur',idioma:'pt',carteira:0,cofrinho:0,figurinhas:[],jurosEm:'',soVogais:true,som:true,contarAcertos:0,fase:0,mundo:0,album:[],introVista:false,nivelPular:0,pularVisto:false,cidade:[],missao:0,rendaEm:'',rendaPendente:0,rotina:{data:'',feitos:[]},sonho:null,lendarios:[]};
+const PADRAO={nome:'Arthur',idioma:'pt',carteira:0,cofrinho:0,figurinhas:[],jurosEm:'',soVogais:true,som:true,contarAcertos:0,fase:0,mundo:0,album:[],introVista:false,nivelPular:0,pularVisto:false,cidade:[],missao:0,rendaEm:'',rendaPendente:0,rotina:{data:'',feitos:[]},sonho:null,lendarios:[],
+  premios:[{id:1,em:'🍦',nome:'Sorvete',preco:15},{id:2,em:'🎬',nome:'Filme com pipoca',preco:25},{id:3,em:'🌳',nome:'Passeio no parque',preco:40},{id:4,em:'🧸',nome:'Brinquedo pequeno',preco:60}],
+  pedidos:[]};
 let S={...PADRAO};
 try{const s=JSON.parse(localStorage.getItem(CHAVE)||'null');if(s)S={...PADRAO,...s}}catch(e){}
 function salvar(){try{localStorage.setItem(CHAVE,JSON.stringify(S))}catch(e){}}
@@ -935,6 +980,7 @@ function desenharCofre(){
   }).join('');
   $('#nCarteira').textContent=S.carteira;
   desenharSonho();
+  desenharPremios();
 }
 $('#soltas').addEventListener('click',e=>{
   if(!e.target.closest('button')||S.carteira<=0)return;
@@ -2083,6 +2129,59 @@ $$('[data-dpad]').forEach(b=>{
   b.addEventListener('contextmenu',e=>e.preventDefault());
 });
 
+/* ================= PRÊMIOS REAIS (pagos com o cofrinho) ================= */
+const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function desenharPremios(){
+  const box=$('#premiosReais');if(!box)return;
+  if(!S.premios.length){box.innerHTML='<h3>🎁 Prêmios de verdade</h3><p class="regra">Peça para o papai ou a mamãe cadastrar prêmios na área dos pais.</p>';return}
+  const pend=S.pedidos.filter(p=>p.status==='pedido');
+  box.innerHTML='<h3>🎁 Prêmios de verdade</h3><p class="regra">São pagos com o dinheiro do cofrinho.</p><div class="grade">'+
+    S.premios.map(p=>{
+      const pct=Math.min(100,Math.round(S.cofrinho/p.preco*100)),pode=S.cofrinho>=p.preco;
+      return `<button class="bloco premio ${pode?'pode':''}" data-premio-real="${p.id}" aria-label="${esc(p.nome)}, ${p.preco} moedas"><span class="em">${esc(p.em||'🎁')}</span><b>${esc(p.nome)}</b><span class="preco"><span class="moeda"></span>${p.preco}</span><span class="barra-s"><i style="width:${pct}%"></i></span></button>`;
+    }).join('')+'</div>'+
+    (pend.length?`<p class="regra">Esperando o papai ou a mamãe entregar: ${pend.map(p=>esc(p.em)+' '+esc(p.nome)).join(', ')}</p>`:'');
+}
+$('#premiosReais').addEventListener('click',e=>{
+  const b=e.target.closest('[data-premio-real]');if(!b)return;
+  const p=S.premios.find(x=>x.id===+b.dataset.premioReal);if(!p)return;
+  if(S.cofrinho<p.preco){
+    const falta=p.preco-S.cofrinho;tremer(b);somErro();
+    falar(`${p.nome} custa ${p.preco} moedas. Faltam ${falta} no cofrinho. Guarde e espere: o cofrinho cresce, e você consegue!`,'pt');
+    return;
+  }
+  S.cofrinho-=p.preco;
+  S.pedidos.unshift({id:Date.now(),em:p.em,nome:p.nome,preco:p.preco,data:new Date().toISOString(),status:'pedido'});
+  salvar();desenharCofre();confete();somAcerto();
+  aparecer(p.em||'🎁',`Você trocou ${p.preco} moedas por: ${p.nome}! Mostre este vale para o papai ou a mamãe.`);
+  $('#surpresaTexto').insertAdjacentHTML('beforeend',`<span class="vale" style="display:block">🎟️ VALE: ${esc(p.nome)}</span>`);
+});
+function desenharPainelPremios(){
+  const ped=S.pedidos.filter(p=>p.status==='pedido');
+  const data=iso=>{try{return new Date(iso).toLocaleDateString('pt-BR')}catch(e){return ''}};
+  $('#listaPedidos').innerHTML=ped.length?ped.map(p=>`<div class="item-p"><span>${esc(p.em)} ${esc(p.nome)} · ${p.preco} moedas · ${data(p.data)}</span><button type="button" data-entregue="${p.id}">Entregue ✔</button><button type="button" data-devolver="${p.id}">Devolver moedas</button></div>`).join('')
+    :'<p class="vazio">Nenhum pedido esperando entrega.</p>';
+  $('#listaPremios').innerHTML=S.premios.length?S.premios.map(p=>`<div class="item-p"><span>${esc(p.em)} ${esc(p.nome)} · ${p.preco} moedas</span><button type="button" data-remover="${p.id}">Remover</button></div>`).join('')
+    :'<p class="vazio">Nenhum prêmio cadastrado.</p>';
+}
+$('#painel').addEventListener('click',e=>{
+  const ent=e.target.closest('[data-entregue]'),dev=e.target.closest('[data-devolver]'),rem=e.target.closest('[data-remover]');
+  if(ent){const p=S.pedidos.find(x=>x.id===+ent.dataset.entregue);if(p){p.status='entregue';p.entregueEm=new Date().toISOString()}}
+  else if(dev){const p=S.pedidos.find(x=>x.id===+dev.dataset.devolver);if(p){p.status='devolvido';S.cofrinho+=p.preco}}
+  else if(rem){S.premios=S.premios.filter(x=>x.id!==+rem.dataset.remover)}
+  else return;
+  salvar();desenharPainelPremios();atualizarMoedas();
+});
+$('#formPremio').addEventListener('submit',e=>{
+  e.preventDefault();
+  const nome=$('#premioNome').value.trim(),preco=Math.round(+$('#premioPreco').value);
+  if(!nome||!(preco>0))return;
+  S.premios.push({id:Date.now(),em:$('#premioEm').value.trim()||'🎁',nome,preco});
+  S.premios.sort((a,b)=>a.preco-b.preco);
+  salvar();desenharPainelPremios();
+  $('#premioEm').value='';$('#premioNome').value='';$('#premioPreco').value='';
+});
+
 /* ---------- barra, idioma, pais ---------- */
 function marcarIdioma(){$$('.bandeira').forEach(b=>b.setAttribute('aria-pressed',b.dataset.idioma===S.idioma))}
 $$('.bandeira').forEach(b=>b.onclick=()=>{
@@ -2104,7 +2203,20 @@ function mostrarNome(){
 }
 function textoSom(){$('#btnSom').textContent=S.som?'🔊 Som ligado':'🔇 Som desligado'}
 let confirmaZerar=false;
-$('#btnPais').onclick=()=>{$('#campoNome').value=S.nome;textoSom();confirmaZerar=false;$('#btnZerar').textContent='Zerar moedas e figurinhas';$('#painel').hidden=false};
+// trava simples: uma multiplicação que criança de 4 anos não resolve
+let respostaPortao=0;
+$('#btnPais').onclick=()=>{
+  const a=6+Math.floor(Math.random()*4),b=6+Math.floor(Math.random()*4);respostaPortao=a*b;
+  $('#portaoConta').textContent=`Quanto é ${a} × ${b}?`;$('#portaoResp').value='';
+  $('#portao').hidden=false;setTimeout(()=>$('#portaoResp').focus(),50);
+};
+$('#portaoFechar').onclick=()=>{$('#portao').hidden=true};
+$('#formPortao').addEventListener('submit',e=>{
+  e.preventDefault();
+  if(+$('#portaoResp').value!==respostaPortao){tremer($('#portaoResp'));$('#portaoResp').value='';return}
+  $('#portao').hidden=true;abrirPainel();
+});
+function abrirPainel(){$('#campoNome').value=S.nome;textoSom();confirmaZerar=false;$('#btnZerar').textContent='Zerar moedas e figurinhas';desenharPainelPremios();$('#painel').hidden=false}
 $('#fecharPainel').onclick=()=>{$('#painel').hidden=true};
 $('#painel').addEventListener('click',e=>{if(e.target.id==='painel')$('#painel').hidden=true});
 $('#campoNome').addEventListener('input',e=>{S.nome=e.target.value.trim();salvar();mostrarNome()});

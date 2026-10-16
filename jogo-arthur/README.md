@@ -27,3 +27,6 @@ Gamepad API do navegador (Bluetooth ou USB, mapeamento "standard" Xbox/PlayStati
 ## Parceiro e nomes do elenco
 - **Parceiro = Pikachu** (pedido do Arlison, 16/out/2026): segue o treinador no mapa, luta junto na batalha (choque do trovão). É personagem da Nintendo — ok porque o jogo é privado da família. **Se um dia for distribuído ou vendido, trocar** a constante `PARCEIRO` (e `SPRITES.pikachu`) por um parceiro próprio; é o único ponto do código.
 - **Nomes em 3 idiomas** (`NOMES`): montados com palavras reais pra ensinar junto — Brasito/Firo/Fueguito (fire/fuego), Folhapulo/Leafhop/Hojasalto, etc., mais o bicho nos 3 idiomas. Aparecem e são falados na captura e no álbum; na batalha o nome segue a bandeira escolhida.
+
+## Prêmios reais
+Área dos pais (⚙️, abre com uma multiplicação 6–9 × 6–9): cadastro de prêmios (`S.premios`: emoji, nome, preço) e lista de pedidos (`S.pedidos`: pedido → entregue | devolvido). A criança troca só com o **cofrinho** (não com a carteira) no Banco; as moedas saem na hora e aparece um vale. "Devolver moedas" estorna para o cofrinho. Tudo no `localStorage` do aparelho — pedido feito no notebook só aparece no notebook.
