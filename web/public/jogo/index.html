@@ -169,7 +169,8 @@ main{flex:1;min-height:0;position:relative}
 .arena{display:flex;justify-content:space-between;align-items:flex-end;width:100%;max-width:720px;position:relative;min-height:clamp(130px,24vh,200px);padding-inline:4%;box-sizing:border-box}
 .lutador{display:flex;flex-direction:column;align-items:center;gap:2px}
 .lutador .em{font-size:clamp(4rem,14vh,7.5rem);line-height:1;display:inline-block}
-.heroi .em{transform:scaleX(-1)}
+.px{image-rendering:pixelated;image-rendering:crisp-edges;width:1em;height:1em;vertical-align:middle;display:inline-block}
+.sonho .grande .px,.px.grande-px{width:1.1em;height:1.1em}
 .nome-l{font-weight:800;font-size:1.1rem;background:var(--papel);border:3px solid var(--tinta);border-radius:999px;padding:0 12px}
 .coracoes{font-size:1.5rem;letter-spacing:2px;min-height:2rem}
 .monstro .em{filter:drop-shadow(0 0 16px var(--aura,#ffc83d))}
@@ -403,7 +404,7 @@ canvas#confete{position:fixed;inset:0;pointer-events:none;z-index:30}
     <!-- BATALHA -->
     <section class="tela" id="batalha" hidden>
       <div class="arena" id="arena">
-        <div class="lutador heroi"><span class="em">🧒</span><span class="nome-l" id="nomeHeroi">Treinador Arthur</span></div>
+        <div class="lutador heroi"><span class="em" id="heroiEm">🧒</span><span class="nome-l" id="nomeHeroi">Treinador Arthur</span></div>
         <div class="lutador monstro" id="monstro" hidden><span class="coracoes" id="coracoes"></span><span class="em" id="monstroEm">🐲</span><span class="nome-l" id="monstroNome"></span></div>
       </div>
       <div class="desafio" id="desafioB"></div>
@@ -1121,9 +1122,49 @@ function treino(tipo){
 
 /* ================= AVENTURA ================= */
 // monstrinhos originais: [emoji, nome, cor da aura]
+/* ================= SPRITES 16x16 (pixel art) ================= */
+// cada linha = 16 pixels; '.' = transparente; letras = cor da paleta do bicho
+const SPRITES={"brasito":{"pal":{"k":"#2a1f2d","w":"#ffffff","a":"#e8483c","b":"#b02828","c":"#ff9a1f","y":"#ffe14a","d":"#ffd27a"},
+"px":["................","..kk........kk..","..kyk......kyk..","...kkkkkkkkkk...","..kaaaaaaaaaak..","..kaawwaawwaak..","..kaawkaawkaak..","..kaaaaaaaaaak..","..kaaakkkkaaak..","...kaaaaaaaak...",".kbkkddddddkkbk.","kbbbkddddddkbbbk","..kkaddddddakk..","...kaddddddak.cc","...kaakkkkaakcyc","...kkk....kkk.c."]},
+"cascaxa":{"pal":{"k":"#2a1f2d","w":"#ffffff","a":"#5cc8f0","s":"#2e8b57","S":"#1f6b42","d":"#f4e3a1"},
+"px":["................","................",".....kkkkkk.....","....kaaaaaak....","...kaawkkwaak...","...kaaaaaaaak...","....kaakkaak....","..kkkkkkkkkkkk..",".kssSssssssSssk.",".ksSSssSSssSSsk.",".kssssSSSSssssk.",".ksSSssssssSSsk.","..kssssssssssk..","kaakkddddddkkaak","kaak.kkkkkk.kaak","kkk..........kkk"]},
+"folhapulo":{"pal":{"k":"#2a1f2d","w":"#ffffff","a":"#6ad04a","b":"#3f9a2a","d":"#d9f59a","l":"#2f7a1f","p":"#ff9ab0"},
+"px":[".......l........","......lll.......","..kkk..l...kkk..",".kwkak....kakwk.",".kaaakkkkkkaaak.","kaaaaaaaaaaaaaak","kaaaaaaaaaaaaaak","kaapaaaaaaaapaak","kaaakkkkkkkkaaak",".kaaaaaaaaaaaak.","..kaddddddddak..",".kbkddddddddkbk.","kbbkddddddddkbbk",".kkaddddddddakk.",".kbbbkk..kkbbbk.",".kkkkk....kkkkk."]},
+"morcegao":{"pal":{"k":"#2a1f2d","w":"#ffffff","a":"#8a5cd6","b":"#5a3a9a","d":"#c9b3f2"},
+"px":["................","...k........k...","..kak......kak..","..kaak....kaak..","...kaakkkkaak...","k..kaaaaaaaak..k","kbkkawkaakwakkbk","kbbkaaaaaaaakbbk","kbbbkakkkkakbbbk","kbbbbkawwakbbbbk","kbkbbkddddkbbkbk","k.kbk.kddk.kbk.k","...k..kaak..k...","......kaak......","......kkkk......","................"]},
+"polvolante":{"pal":{"k":"#2a1f2d","w":"#ffffff","a":"#ff8fc8","b":"#d9579c","p":"#ff5c8a"},
+"px":["................",".....kkkkkk.....","....kaaaaaak....","...kaaaaaaaak...","..kaaaabbaaaak..","..kaaaaaaaaaak..","..kawwaaaawwak..","..kawkaaaakwak..","..kaapaaaapaak..","..kaaakkkkaaak..","...kaaaaaaaak...",".kaakaakkaakaak.","kak.kak..kak.kak","kak.kak..kak.kak",".kk..kk..kk..kk.","................"]},
+"raposeta":{"pal":{"k":"#2a1f2d","w":"#ffffff","a":"#ff9a3d","b":"#c86a1a","d":"#fff1df"},
+"px":[".k............k.",".kk..........kk.",".kak........kak.",".kaak......kaak.",".kaaakkkkkkaaak.",".kaaaaaaaaaaaak.","kaaawwaaaawwaaak","kaaawkaaaakwaaak","kaddddakkaddddak",".kdddddkkdddddk.","..kddddddddddk..","...kaaaaaaaak...","..kaaddddddaak..","..kaaddddddaakak","..kaak....kaakdk","..kkk......kkkk."]},
+"zumbizum":{"pal":{"k":"#2a1f2d","w":"#ffffff","a":"#ffd23a","n":"#cfefff"},
+"px":["................","...kk......kk...","....k......k....","....kkkkkkkk....","...kaaaaaaaak...","..kawwaaaawwak..","..kawkaaaakwak..","..kaaaakkaaaak..","nnkkkkkkkkkkkknn","nnnkaaaaaaaaknnn","nnkkkkkkkkkkkknn","..kaaaaaaaaaak..","...kkkkkkkkkk...","....kaaaaaak....",".......kk.......",".......k........"]},
+"rexao":{"pal":{"k":"#2a1f2d","w":"#ffffff","a":"#d83a3a","b":"#9a2020","d":"#ffcf9a"},
+"px":["...kkkkkkkkkk...","..kaaaaaaaaaak..",".kaabaaaaaabaak.",".kaawwaaaawwaak.",".kaawkaaaakwaak.",".kaaaaaaaaaaaak.",".kkkkkkkkkkkkkk.",".kwkwkwkkwkwkwk.","..kaaaaaaaaaak..",".kbkddddddddkbk.","kbbkddddddddkbbk","..kaddddddddak..","..kaddddddddakkk","..kaaaaaaaaaakak","..kaak....kaak..",".kkkkk....kkkkk."]},
+"unicornio":{"pal":{"k":"#2a1f2d","w":"#ffffff","a":"#ffffff","b":"#e0d8f0","y":"#ffd23a","m":"#ff8fc8","n":"#8fd3ff","p":"#ffb3cf"},
+"px":[".......kyk......",".......kyk......","...k..kkykk..k..","..kak.kaaak.kak.","..mkaaaaaaaaakn.",".mmkawwaaawwakn.",".mmkawkaaakwakn.",".mmkaaaaaaaaakn.","..mkaapaaapaakn.","..mkaaakkkaaakn.","...kaaaaaaaaak..","..kbkaaaaaaakbk.","..kbkaaaaaaakbk.","..kaaaaaaaaaaak.","..kaak.....kaak.","..kkk......kkk.."]},
+"baleia":{"pal":{"k":"#2a1f2d","w":"#ffffff","a":"#3a7bd5","b":"#23508f","d":"#cfe8ff","n":"#8fd3ff","y":"#ffd23a"},
+"px":["....n.....y.....","...n.n...yy.....","....n...yy......","........y.......","..kkkkkkkkkk....",".kaaaaaaaaaak.kk","kaaaaaaaaaaaakbk","kawwaaaaaaaaakbk","kawkaaaaaaaaakk.","kaaaaaaaaaaaak..","kakkkkaaaaaaak..","kddddddddddddk..",".kddddddddddk...","..kkkkkkkkkk....","................","................"]},
+"dourado":{"pal":{"k":"#2a1f2d","w":"#ffffff","a":"#ffc61a","b":"#c88c00","c":"#ff9a1f","y":"#fff7c2","d":"#fff3b0"},
+"px":["................","..kk........kk..","..kyk......kyk..","...kkkkkkkkkk...","..kaaaaaaaaaak..","..kaawwaawwaak..","..kaawkaawkaak..","..kaaaaaaaaaak..","..kaaakkkkaaak..","...kaaaaaaaak...",".kbkkddddddkkbk.","kbbbkddddddkbbbk","..kkaddddddakk..","...kaddddddak.cc","...kaakkkkaakcyc","...kkk....kkk.c."]}};
+const cacheSprite={};
+function sprCv(key){
+  if(cacheSprite[key])return cacheSprite[key];
+  const sp=SPRITES[key],c=document.createElement('canvas');c.width=c.height=16;
+  const g=c.getContext('2d');
+  sp.px.forEach((linha,y)=>[...linha].forEach((ch,x)=>{if(ch!=='.'){g.fillStyle=sp.pal[ch];g.fillRect(x,y,1,1)}}));
+  return cacheSprite[key]=c;
+}
+const urlSprite={};
+const spr=(key,cls='')=>`<img class="px ${cls}" alt="" src="${urlSprite[key]||(urlSprite[key]=sprCv(key).toDataURL())}">`;
+function treinadorURL(){
+  const c=document.createElement('canvas');c.width=c.height=16;
+  desenharTreinador(c.getContext('2d'),0,0,'dir',0);
+  return c.toDataURL();
+}
+
 const MUNDO=[
-  ['🐲','Brasito','#ff6b57'],['🐢','Cascaxá','#2f8cff'],['🐸','Folhapulo','#2fb36b'],['🦇','Morcegão','#7a5cff'],
-  ['🐙','Polvolante','#ff8fc8'],['🦊','Raposeta','#ff9a3d'],['🐝','Zumbizum','#ffc83d'],['🦖','Rexão','#ff3d3d']
+  ['🐲','Brasito','#ff6b57','brasito'],['🐢','Cascaxá','#2f8cff','cascaxa'],['🐸','Folhapulo','#2fb36b','folhapulo'],['🦇','Morcegão','#7a5cff','morcegao'],
+  ['🐙','Polvolante','#ff8fc8','polvolante'],['🦊','Raposeta','#ff9a3d','raposeta'],['🐝','Zumbizum','#ffc83d','zumbizum'],['🦖','Rexão','#ff3d3d','rexao']
 ];
 const NOMES_MUNDO=['Cidade das Teias','Floresta Brilhante','Vulcão Risonho','Ilha das Nuvens'];
 const DICAS=[
@@ -1134,7 +1175,7 @@ const DICAS=[
 ];
 let fechaSurpresa=null;
 function aparecer(quem,texto,depoisFn){
-  $('#surpresaQuem').textContent=quem;$('#surpresaTexto').textContent=texto;
+  if(quem.startsWith('<'))$('#surpresaQuem').innerHTML=quem;else $('#surpresaQuem').textContent=quem;$('#surpresaTexto').textContent=texto;
   $('#surpresa').hidden=false;tom([784,988,1175],.09);
   fechaSurpresa=depoisFn||null;
   setTimeout(()=>falar(texto,'pt'),350);
@@ -1146,7 +1187,7 @@ function abrirMapa(){
   $('#trilha').innerHTML=MUNDO.map((m,i)=>{
     const feito=i<S.fase,atual=i===S.fase,chefe=i===MUNDO.length-1;
     const cls=feito?'feito':atual?'atual':'trancado';
-    const rosto=feito?m[0]:atual?'❓':(chefe?'👑':'🔒');
+    const rosto=feito?spr(m[3]):atual?'❓':(chefe?'👑':'🔒');
     return `<button class="bloco no ${cls} ${chefe?'chefe':''}" data-fase="${i}" aria-label="Fase ${i+1}">${rosto}<small>${i+1}</small></button>`;
   }).join('');
   repetir=()=>falar('Toque na fase que está brilhando!','pt');
@@ -1169,7 +1210,7 @@ function iniciarBatalha(){
   const tipos=chefe?['ler','letra','nome']:embaralhar(S.mundo>=1?['letra','ler','contar','digitar']:['letra','ler','contar']).slice(0,3);
   const mon=$('#monstro');
   mon.hidden=true;mon.className='lutador monstro';mon.style.setProperty('--aura',m[2]);
-  $('#monstroEm').textContent=m[0];$('#monstroNome').textContent=m[1];
+  $('#monstroEm').innerHTML=spr(m[3]);$('#monstroNome').textContent=m[1];
   const coracoes=()=>{$('#coracoes').textContent='❤️'.repeat(vida)+'🤍'.repeat(3-vida)};coracoes();
   $('#desafioB').innerHTML='';$('#continuar').hidden=true;
   repetir=()=>{};
@@ -1202,7 +1243,7 @@ function iniciarBatalha(){
     if(!S.album.includes(lutaIdx))S.album.push(lutaIdx);
     if(!lutaSelvagem&&lutaIdx===S.fase)S.fase++;
     ganhar(3);salvar();
-    $('#desafioB').innerHTML=`<span class="figura">🕸️${m[0]}</span>`;
+    $('#desafioB').innerHTML=`<span class="figura">🕸️${spr(m[3])}</span>`;
     $('#continuar').hidden=false;
   }
 }
@@ -1223,10 +1264,10 @@ function abrirAlbum(){
   $('#albumConta').textContent=`${S.album.length} de ${MUNDO.length} capturados`;
   $('#albumGrade').innerHTML=MUNDO.map((m,i)=>{
     const tem=S.album.includes(i);
-    return `<button class="bloco no ${tem?'feito':''}" data-a="${i}" aria-label="${tem?m[1]:'Ainda não capturado'}"><span class="${tem?'':'sombra'}">${m[0]}</span></button>`;
+    return `<button class="bloco no ${tem?'feito':''}" data-a="${i}" aria-label="${tem?m[1]:'Ainda não capturado'}"><span class="${tem?'':'sombra'}">${spr(m[3])}</span></button>`;
   }).join('')+LENDARIOS.map(l=>{
     const tem=S.lendarios.includes(l[1]);
-    return `<button class="bloco no ${tem?'feito':''}" data-l="${l[1]}" aria-label="${tem?l[1]:'Lendário ainda não conquistado'}" style="${tem?'background:#fff3c4':''}"><span class="${tem?'':'sombra'}">${l[0]}</span></button>`;
+    return `<button class="bloco no ${tem?'feito':''}" data-l="${l[1]}" aria-label="${tem?l[1]:'Lendário ainda não conquistado'}" style="${tem?'background:#fff3c4':''}"><span class="${tem?'':'sombra'}">${spr(l[3])}</span></button>`;
   }).join('');
   repetir=()=>falar(`Você já capturou ${S.album.length} monstrinhos!`,'pt');repetir();
 }
@@ -1272,7 +1313,7 @@ $('#habitos').addEventListener('click',e=>{
 });
 
 /* ================= MEU SONHO (lendários do cofrinho) ================= */
-const LENDARIOS=[['🐉','Dragão Dourado',25],['🦄','Unicórnio Estelar',40],['🐋','Baleia Trovão',60]];
+const LENDARIOS=[['🐉','Dragão Dourado',25,'dourado'],['🦄','Unicórnio Estelar',40,'unicornio'],['🐋','Baleia Trovão',60,'baleia']];
 function desenharSonho(){
   const box=$('#sonho');
   const livres=LENDARIOS.filter(l=>!S.lendarios.includes(l[1]));
@@ -1280,11 +1321,11 @@ function desenharSonho(){
     S.sonho=null;
     box.innerHTML=livres.length
       ?'<h3>⭐ Escolha o seu sonho</h3><p class="regra">Um monstrinho lendário. Só dá para comprar com o dinheiro do cofrinho.</p><div class="opcoes-s">'+
-        LENDARIOS.map((l,i)=>S.lendarios.includes(l[1])?'':`<button class="bloco produto" data-sonho="${i}"><span class="em">${l[0]}</span><small>${l[1]}</small><span class="preco"><span class="moeda"></span>${l[2]}</span></button>`).join('')+'</div>'
+        LENDARIOS.map((l,i)=>S.lendarios.includes(l[1])?'':`<button class="bloco produto" data-sonho="${i}"><span class="em">${spr(l[3])}</span><small>${l[1]}</small><span class="preco"><span class="moeda"></span>${l[2]}</span></button>`).join('')+'</div>'
       :'<h3>🏆 Você conquistou todos os lendários!</h3>';
     return;
   }
-  const [em,nome,preco]=LENDARIOS[S.sonho];
+  const [,nome,preco,key]=LENDARIOS[S.sonho],em=spr(key,'grande-px');
   const pct=Math.min(100,Math.round(S.cofrinho/preco*100)),falta=Math.max(0,preco-S.cofrinho);
   const cresce=Math.floor(S.cofrinho/5);
   box.innerHTML=`<h3>⭐ Meu sonho: ${nome}</h3><span class="grande">${em}</span>
@@ -1301,7 +1342,7 @@ $('#sonho').addEventListener('click',e=>{
     return;
   }
   if(!e.target.closest('[data-comprar-sonho]')||S.sonho===null)return;
-  const [em,nome,preco]=LENDARIOS[S.sonho];
+  const [,nome,preco,key]=LENDARIOS[S.sonho],em=spr(key,'grande-px');
   if(S.cofrinho>=preco){
     S.cofrinho-=preco;S.lendarios.push(nome);S.sonho=null;salvar();desenharCofre();
     confete();somAcerto();depois(900,confete);
@@ -1500,7 +1541,7 @@ function montarNivel(n){
     const ex=16+Math.floor(r()*(L-28));
     if(buraco[ex]||buraco[ex-1]||buraco[ex+1]||mapa[7][ex]!==' ')continue;
     if(inimigos.some(e=>Math.abs(e.x-ex)<5))continue;
-    inimigos.push({x:ex,y:7.2,w:.8,h:.8,vx:-(1.1+Math.min(n,6)*.12),em:MUNDO[(t+n)%7][0],vivo:true});t++;
+    inimigos.push({x:ex,y:7.2,w:.8,h:.8,vx:-(1.1+Math.min(n,6)*.12),key:MUNDO[(t+n)%7][3],vivo:true});t++;
   }
   return {n,L,mapa,moedas:moedas.map(m=>({...m,pego:false})),inimigos,meta:L-4,nome,letras:0,tema:TEMAS[n%TEMAS.length],
     heroi:{x:2,y:7.1,w:.7,h:.9,vx:0,vy:0,chao:false,dir:1,inv:0,coyote:0,buffer:0,seguroX:2},
@@ -1656,13 +1697,14 @@ function desenharPular(){
   for(const e of P.inimigos){
     if(!e.vivo)continue;
     const cx=(e.x+e.w/2-cam)*T,cy=offY+(e.y+e.h/2)*T+Math.sin(performance.now()/150+e.x)*T*.04;
-    g.save();g.translate(cx,cy);if(e.vx>0)g.scale(-1,1);g.fillText(e.em,0,0);g.restore();
+    g.save();g.translate(cx,cy);if(e.vx>0)g.scale(-1,1);g.imageSmoothingEnabled=false;g.drawImage(sprCv(e.key),-T*.45,-T*.45,T*.9,T*.9);g.restore();
   }
   // herói
   if(!(h.inv>0&&Math.floor(h.inv*10)%2)){
-    g.save();g.translate((h.x+h.w/2-cam)*T,offY+(h.y+h.h/2)*T);
-    if(h.dir>0)g.scale(-1,1);
-    g.font=`${T*1.05}px ${EMOJI_FONTE}`;g.fillText('🦸',0,0);g.restore();
+    // mesmo treinador pixelado do mapa (16x16 escalado para ~1 bloco)
+    g.save();g.translate((h.x+h.w/2-cam)*T-T*.55,offY+(h.y+h.h)*T-T*1.1);g.scale(T*1.1/16,T*1.1/16);
+    g.imageSmoothingEnabled=false;
+    desenharTreinador(g,0,0,h.dir>0?'dir':'esq',h.chao?Math.floor(Math.abs(h.x)*2)%2:1);g.restore();
   }
   // partículas
   for(const p of P.particulas){
@@ -1939,7 +1981,7 @@ function desenharMundo(){
   gm.fillText('🦉',CORUJA.x*TS+8,CORUJA.y*TS+8+Math.sin(tempo*2)*1);
   for(const s of selvagens){
     const sx=s.x*TS+8,sy=s.y*TS+7+Math.abs(Math.sin(tempo*5+s.x))*-2;
-    gm.globalAlpha=.85;gm.fillText(MUNDO[s.idx][0],sx,sy);gm.globalAlpha=1;
+    gm.drawImage(sprCv(MUNDO[s.idx][3]),s.x*TS,Math.round(sy-7));
   }
   const andando=J.mov?Math.floor(J.mov.t*2)%2:0;
   desenharTreinador(gm,pxJ,pyJ-2,J.dir,(J.passo%2)^andando);
@@ -2020,6 +2062,7 @@ $('#btnZerar').onclick=()=>{
 $('#inicio').addEventListener('click',e=>{const b=e.target.closest('[data-diz]');if(b)falar(b.dataset.diz,'pt')},true);
 
 mostrarNome();marcarIdioma();atualizarMoedas();
+$('#heroiEm').innerHTML=`<img class="px" alt="" src="${treinadorURL()}">`;
 })();
 </script>
 
