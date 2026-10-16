@@ -425,6 +425,7 @@ canvas#confete{position:fixed;inset:0;pointer-events:none;z-index:30}
           <span class="pilula"><span class="moeda"></span><span id="hudMoedas">0</span></span>
           <span class="pilula letrinhas" id="hudNome"></span>
           <span class="pilula dica-tecla">← → andar · espaço pular</span>
+          <span class="pilula pilula-controle" hidden>🎮 A: pular</span>
         </div>
         <div class="controles">
           <div class="grupo">
@@ -453,6 +454,7 @@ canvas#confete{position:fixed;inset:0;pointer-events:none;z-index:30}
         <div class="hud">
           <span class="pilula"><span class="moeda"></span><span id="mundoMoedas">0</span></span>
           <span class="pilula dica-tecla">setas: andar · espaço: falar</span>
+          <span class="pilula pilula-controle" hidden>🎮 A: falar · B: fechar</span>
         </div>
         <div class="fala-mundo" id="falaMundo" hidden><span id="falaTexto"></span><i>▼</i></div>
         <div class="controles">
@@ -500,6 +502,7 @@ canvas#confete{position:fixed;inset:0;pointer-events:none;z-index:30}
       <li><b>Rotina do dia</b>: escovar os dentes, comer tudo, arrumar a cama, guardar os brinquedos, tomar banho e ler uma historinha. Vale 1 moeda cada, uma vez por dia, e +2 quando faz tudo. Quem confirma é ele mesmo, então vale fazer junto com ele.</li>
       <li><b>Meu sonho</b> (no Cofrinho): ele escolhe um monstrinho lendário de 25, 40 ou 60 moedas, que só se compra com o cofrinho. A barra mostra quanto falta, e a voz explica que esperando o cofrinho cresce.</li>
       <li><b>Minha Cidade</b>: ele constrói em 24 terrenos com as moedas da carteira. Loja (+1 por dia) e banco (+2 por dia) ensinam que comprar algo que rende é diferente de gastar. As 12 missões em sequência misturam construir, guardar e perguntas de inglês e espanhol. A arena leva para a Aventura; a escola, para Ler palavras.</li>
+      <li><b>Controle de videogame</b> (Bluetooth ou USB, padrão Xbox/PlayStation): funciona no mapa (direcional ou analógico anda, A fala/entra, B fecha) e no Pular e pegar (A pula). Ligue o controle e aperte um botão com o jogo aberto, porque o navegador só enxerga o controle depois disso.</li>
       <li><b>Pular e pegar</b>: plataforma no estilo Mario. Notebook: setas ou A/D para andar, espaço ou ↑ para pular. Celular: botões na tela (melhor com o celular deitado). Batendo a cabeça nos blocos "?" ele junta as letras do nome em ordem. Pular em cima do monstrinho captura; encostar só empurra. Ninguém morre: quem cai no buraco volta um pouco antes. As moedas da fase vão para a carteira.</li>
       <li><b>Ler palavras</b>: as alternativas começam com letras diferentes, então dá para acertar pela primeira letra (fase da escola). No acerto, a voz lê por sílabas. Às vezes pede para achar o próprio nome entre PAPAI e MAMÃE.</li>
       <li><b>Letras</b>: a voz pede a letra; no notebook ela acende no teclado da tela após 3 s (liga a tecla da tela à do teclado de verdade). No celular viram 4 botões grandes.</li>
@@ -1518,13 +1521,14 @@ const solido=(tx,ty)=>{if(!P||tx<0||tx>=P.L)return tx<0;if(ty<0||ty>=10)return f
 function particula(x,y,txt,cor){P.particulas.push({x,y,txt,cor,t:0})}
 function passoPular(dt){
   const h=P.heroi;
-  const alvoV=((ctl.dir?1:0)-(ctl.esq?1:0))*6.2;
+  const alvoV=((ctl.dir||GP.dir?1:0)-(ctl.esq||GP.esq?1:0))*6.2;
+  if(GP.aNovo)ctl.puloNovo=true;
   if(alvoV)h.dir=Math.sign(alvoV);
   const acc=(h.chao?32:20)*dt;h.vx+=Math.max(-acc,Math.min(acc,alvoV-h.vx));
   if(ctl.puloNovo){h.buffer=.16;ctl.puloNovo=false}
   h.buffer-=dt;h.coyote=h.chao?.1:h.coyote-dt;
   if(h.buffer>0&&h.coyote>0){h.vy=-16.6;h.buffer=0;h.coyote=0;h.chao=false;tom([523,784],.06,'square')}
-  if(!ctl.pulo&&h.vy<-7)h.vy=-7;
+  if(!ctl.pulo&&!GP.a&&h.vy<-7)h.vy=-7;
   h.vy=Math.min(h.vy+40*dt,20);
   // eixo X
   h.x+=h.vx*dt;
@@ -1661,6 +1665,8 @@ function desenharPular(){
 function quadroPular(t){
   if(tela!=='pular'){rafPular=null;ctl.esq=ctl.dir=ctl.pulo=false;return}
   const dt=Math.min(.033,(t-ultimoQuadro)/1000||0);ultimoQuadro=t;
+  lerControle();
+  if(P&&P.fim&&GP.aNovo)$('#proxFase').click();
   if(P&&!P.fim&&$('#painel').hidden)passoPular(dt);
   if(P&&cv2.width)desenharPular();
   rafPular=requestAnimationFrame(quadroPular);
@@ -1682,6 +1688,29 @@ $$('.ctl').forEach(b=>{
   ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>b.addEventListener(ev,off));
   b.addEventListener('contextmenu',e=>e.preventDefault());
 });
+
+/* ================= CONTROLE (gamepad Bluetooth/USB) ================= */
+// Padrão "standard": 0=A(Xbox)/X(PS) 1=B/Círculo 12..15=cruz direcional; eixos 0/1 = analógico esquerdo
+const GP={esq:false,dir:false,cima:false,baixo:false,a:false,b:false,aNovo:false,bNovo:false,ligado:false};
+function lerControle(){
+  let pads=[];try{pads=navigator.getGamepads?[...navigator.getGamepads()]:[]}catch(e){}
+  const g=pads.find(p=>p&&p.connected);
+  const antes={a:GP.a,b:GP.b};
+  if(!g){GP.esq=GP.dir=GP.cima=GP.baixo=GP.a=GP.b=false;GP.aNovo=GP.bNovo=false;marcarControle(false);return GP}
+  const bt=i=>!!(g.buttons[i]&&(g.buttons[i].pressed||g.buttons[i].value>.5));
+  const ax=i=>g.axes[i]||0;
+  GP.esq=bt(14)||ax(0)<-.5;GP.dir=bt(15)||ax(0)>.5;GP.cima=bt(12)||ax(1)<-.5;GP.baixo=bt(13)||ax(1)>.5;
+  GP.a=bt(0);GP.b=bt(1)||bt(2);
+  GP.aNovo=GP.a&&!antes.a;GP.bNovo=GP.b&&!antes.b;
+  marcarControle(true);
+  return GP;
+}
+function marcarControle(on){
+  if(GP.ligado===on)return;GP.ligado=on;
+  $$('.pilula-controle').forEach(e=>e.hidden=!on);
+  if(on){tom([523,784,1047],.08);falar('Controle conectado!','pt')}
+}
+addEventListener('gamepadconnected',()=>lerControle());
 
 /* ================= MUNDO (mapa visto de cima, estilo 16-bit) ================= */
 const MW=36,MH=26,TS=16;
@@ -1849,7 +1878,7 @@ function passoMundo(dt){
     if(J.mov.t>=1){J.x=J.mov.tx;J.y=J.mov.ty;J.mov=null;J.passo++;chegou()}
     return;
   }
-  const d=segurando[segurando.length-1];
+  const d=gpDir()||segurando[segurando.length-1];
   if(!d)return;
   J.dir=d;const [dx,dy]=DIRS[d],nx=J.x+dx,ny=J.y+dy;
   if(livre(nx,ny))J.mov={fx:J.x,fy:J.y,tx:nx,ty:ny,t:0};
@@ -1909,9 +1938,16 @@ function desenharMundo(){
   }
   gm.restore();
 }
+function gpDir(){return GP.cima?'cima':GP.baixo?'baixo':GP.esq?'esq':GP.dir?'dir':null}
 function quadroMundo(t){
   if(tela!=='mundo'){rafMundo=null;segurando=[];return}
   const dt=Math.min(.05,(t-ultMundo)/1000||0);ultMundo=t;
+  lerControle();
+  if(GP.aNovo||GP.bNovo){
+    if(!$('#folha').hidden){if(GP.bNovo){$('#folha').hidden=true;calar()}}
+    else if(GP.bNovo&&falaAberta)fecharFala();
+    else if(GP.aNovo)interagir();
+  }
   if($('#painel').hidden&&$('#folha').hidden)passoMundo(dt);
   if(cvM.width)desenharMundo();
   rafMundo=requestAnimationFrame(quadroMundo);

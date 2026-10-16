@@ -19,3 +19,6 @@ Jogo pedagógico do Arthur (4 anos). Projeto à parte do Portal — só mora nes
 | Letras, Palavras, Contar, Preciso ou quero, Meu nome, Digitar, Ler | treinos avulsos |
 
 Personagens são originais (inspirados em monstrinhos de bolso e herói de teia) — não usar marcas registradas.
+
+## Controle de videogame
+Gamepad API do navegador (Bluetooth ou USB, mapeamento "standard" Xbox/PlayStation). Mapa: direcional/analógico anda, A fala/entra, B fecha. Pular e pegar: A pula. O navegador só enxerga o controle depois de apertar um botão com a página aberta. Se dentro do Claude não reconhecer, abrir este `index.html` direto no Chrome/Edge.
