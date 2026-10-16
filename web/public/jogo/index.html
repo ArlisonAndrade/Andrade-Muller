@@ -180,7 +180,12 @@ main{flex:1;min-height:0;position:relative}
 .monstro.ri .em{animation:festa .6s}
 .monstro.capturado .em{animation:some 1.1s forwards}
 @keyframes some{to{transform:scale(.1) rotate(540deg);opacity:0}}
-.teia{position:absolute;font-size:3.2rem;left:16%;bottom:35%;pointer-events:none;z-index:2}
+.teia{position:absolute;font-size:3.2rem;left:22%;bottom:35%;pointer-events:none;z-index:2}
+.dupla{display:flex;align-items:flex-end;gap:4px}
+.dupla .parceiro{font-size:.7em}
+.lutador .dupla .parceiro{font-size:clamp(2.8rem,10vh,5.2rem)}
+.parceiro.ataca{animation:salto .45s}
+@keyframes salto{40%{transform:translateY(-22px) scale(1.1)}}
 .teia.voa{animation:voa .5s ease-out forwards}
 @keyframes voa{to{left:74%;transform:scale(1.9) rotate(220deg)}}
 .desafio{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%}
@@ -211,6 +216,9 @@ main{flex:1;min-height:0;position:relative}
 .flash{position:fixed;inset:0;background:#fff;z-index:40;pointer-events:none;opacity:0}
 .flash.pisca{animation:pisca .8s steps(1)}
 @keyframes pisca{0%,25%,50%,75%{opacity:1}12%,37%,62%,100%{opacity:0}}
+
+.album-info{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:center;background:var(--papel);border:4px solid var(--tinta);border-radius:24px;box-shadow:0 6px 0 var(--tinta);padding:10px 18px;width:100%;max-width:620px;box-sizing:border-box}
+.album-info .regra{font-size:1.1rem;font-weight:700;margin:6px 0 0}
 
 /* rotina e sonho */
 .habitos{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;width:100%;max-width:820px}
@@ -404,7 +412,7 @@ canvas#confete{position:fixed;inset:0;pointer-events:none;z-index:30}
     <!-- BATALHA -->
     <section class="tela" id="batalha" hidden>
       <div class="arena" id="arena">
-        <div class="lutador heroi"><span class="em" id="heroiEm">🧒</span><span class="nome-l" id="nomeHeroi">Treinador Arthur</span></div>
+        <div class="lutador heroi"><span class="dupla"><span class="em" id="heroiEm">🧒</span><span class="em parceiro" id="parceiroEm"></span></span><span class="nome-l" id="nomeHeroi">Treinador Arthur</span></div>
         <div class="lutador monstro" id="monstro" hidden><span class="coracoes" id="coracoes"></span><span class="em" id="monstroEm">🐲</span><span class="nome-l" id="monstroNome"></span></div>
       </div>
       <div class="desafio" id="desafioB"></div>
@@ -499,6 +507,7 @@ canvas#confete{position:fixed;inset:0;pointer-events:none;z-index:30}
     <section class="tela" id="album" hidden>
       <h2 class="titulo">Álbum dos monstrinhos</h2>
       <p class="sub" id="albumConta"></p>
+      <div class="album-info" id="albumInfo" hidden></div>
       <div class="trilha" id="albumGrade"></div>
     </section>
   </main>
@@ -1146,6 +1155,32 @@ const SPRITES={"brasito":{"pal":{"k":"#2a1f2d","w":"#ffffff","a":"#e8483c","b":"
 "px":["....n.....y.....","...n.n...yy.....","....n...yy......","........y.......","..kkkkkkkkkk....",".kaaaaaaaaaak.kk","kaaaaaaaaaaaakbk","kawwaaaaaaaaakbk","kawkaaaaaaaaakk.","kaaaaaaaaaaaak..","kakkkkaaaaaaak..","kddddddddddddk..",".kddddddddddk...","..kkkkkkkkkk....","................","................"]},
 "dourado":{"pal":{"k":"#2a1f2d","w":"#ffffff","a":"#ffc61a","b":"#c88c00","c":"#ff9a1f","y":"#fff7c2","d":"#fff3b0"},
 "px":["................","..kk........kk..","..kyk......kyk..","...kkkkkkkkkk...","..kaaaaaaaaaak..","..kaawwaawwaak..","..kaawkaawkaak..","..kaaaaaaaaaak..","..kaaakkkkaaak..","...kaaaaaaaak...",".kbkkddddddkkbk.","kbbbkddddddkbbbk","..kkaddddddakk..","...kaddddddak.cc","...kaakkkkaakcyc","...kkk....kkk.c."]}};
+SPRITES.pikachu={"pal":{"k":"#2a1f2d","w":"#ffffff","y":"#ffd83a","o":"#e0a800","r":"#ff4a3d","b":"#8a5a2a"},"px":[".kk.............",".kkk........kk..","..kyk......kkk..","..kyyk....kyk...","...kyykkkkyyk.kk","...kyyyyyyyyk.ky","..kyykwyykwyykyk","..kyykkyykkyykyk","..krryyyyyyrrkk.","..krryykkyyrrkyk","...kyyyyyyyykyyk","..kykyyyyyykykkk","..kyyyyyyyyyykbk","..kyyyyyyyyyykk.","...kyykkkkyyk...","...kkk....kkk..."]};
+// Parceiro do treinador. Pikachu é personagem da Nintendo: ok para uso privado da família;
+// se o jogo um dia for distribuído/vendido, trocar aqui por um parceiro próprio (sprite + nome + golpe).
+const PARCEIRO={key:'pikachu',nome:'Pikachu',grito:'Pika pika!',golpe:'choque do trovão',projetil:'⚡'};
+// Nomes do elenco nos 3 idiomas, montados com palavras reais pra ele aprender junto
+// (fire → Firo, fuego → Fueguito), + o bicho nos 3 idiomas.
+const NOMES={
+  brasito:{pt:'Brasito',en:'Firo',es:'Fueguito',bicho:['dragão','dragon','dragón']},
+  cascaxa:{pt:'Cascaxá',en:'Shelly',es:'Conchita',bicho:['tartaruga','turtle','tortuga']},
+  folhapulo:{pt:'Folhapulo',en:'Leafhop',es:'Hojasalto',bicho:['sapo','frog','rana']},
+  morcegao:{pt:'Morcegão',en:'Batty',es:'Murcielón',bicho:['morcego','bat','murciélago']},
+  polvolante:{pt:'Polvolante',en:'Octo',es:'Pulpito',bicho:['polvo','octopus','pulpo']},
+  raposeta:{pt:'Raposeta',en:'Foxy',es:'Zorrita',bicho:['raposa','fox','zorro']},
+  zumbizum:{pt:'Zumbizum',en:'Buzzy',es:'Abejita',bicho:['abelha','bee','abeja']},
+  rexao:{pt:'Rexão',en:'Big Rex',es:'Rexón',bicho:['dinossauro','dinosaur','dinosaurio']},
+  dourado:{pt:'Dragão Dourado',en:'Golden Dragon',es:'Dragón Dorado',bicho:['dragão','dragon','dragón']},
+  unicornio:{pt:'Unicórnio Estelar',en:'Star Unicorn',es:'Unicornio Estelar',bicho:['unicórnio','unicorn','unicornio']},
+  baleia:{pt:'Baleia Trovão',en:'Thunder Whale',es:'Ballena Trueno',bicho:['baleia','whale','ballena']}
+};
+const nomeM=(key,i=S.idioma)=>NOMES[key][i];
+const tresNomesHTML=key=>`<div class="tres"><span>🇧🇷 ${NOMES[key].pt}</span><span>🇺🇸 ${NOMES[key].en}</span><span>🇪🇸 ${NOMES[key].es}</span></div>`;
+function falarTresNomes(key,comBicho=true){
+  const n=NOMES[key];
+  falar(n.pt,'pt',true);falar(n.en,'en',true);falar(n.es,'es',true);
+  if(comBicho){falar(`É um ${n.bicho[0]}.`,'pt',true);falar(n.bicho[1],'en',true);falar(n.bicho[2],'es',true)}
+}
 const cacheSprite={};
 function sprCv(key){
   if(cacheSprite[key])return cacheSprite[key];
@@ -1210,13 +1245,14 @@ function iniciarBatalha(){
   const tipos=chefe?['ler','letra','nome']:embaralhar(S.mundo>=1?['letra','ler','contar','digitar']:['letra','ler','contar']).slice(0,3);
   const mon=$('#monstro');
   mon.hidden=true;mon.className='lutador monstro';mon.style.setProperty('--aura',m[2]);
-  $('#monstroEm').innerHTML=spr(m[3]);$('#monstroNome').textContent=m[1];
+  $('#monstroEm').innerHTML=spr(m[3]);$('#monstroNome').textContent=nomeM(m[3]);
   const coracoes=()=>{$('#coracoes').textContent='❤️'.repeat(vida)+'🤍'.repeat(3-vida)};coracoes();
   $('#desafioB').innerHTML='';$('#continuar').hidden=true;
   repetir=()=>{};
   depois(600,()=>{
     mon.hidden=false;mon.classList.add('entra');rugido();
     falar(chefe?`Cuidado! O chefão ${m[1]} apareceu! Para capturar, você vai precisar escrever o seu nome!`:`Olha! Um ${m[1]} selvagem apareceu!`,'pt');
+    falar(`Vai, ${PARCEIRO.nome}!`,'pt',true);
   });
   const proximo=()=>{
     if(tela!=='batalha')return;
@@ -1226,24 +1262,26 @@ function iniciarBatalha(){
   depois(chefe?5200:2800,proximo);
   function ataque(){
     const arena=$('#arena'),t=document.createElement('span');
-    t.className='teia';t.textContent='🕸️';arena.appendChild(t);
-    tom([1200,600],.12,'sine');
+    t.className='teia';t.textContent=PARCEIRO.projetil;arena.appendChild(t);
+    const pe=$('#parceiroEm');pe.classList.remove('ataca');void pe.offsetWidth;pe.classList.add('ataca');
+    tom([1400,300,1400,300],.05,'sawtooth');
+    falar(`${PARCEIRO.nome}, ${PARCEIRO.golpe}!`,'pt');
     requestAnimationFrame(()=>t.classList.add('voa'));
     depois(520,()=>{
       t.remove();vida--;coracoes();
       mon.classList.remove('leva');void mon.offsetWidth;mon.classList.add('leva');rugido();
-      falar(pick(['Teia certeira!','Acertou em cheio!','Pow! Na mosca!','Tchuf! Teia nele!']),'pt');
+      falar(pick(['Acertou em cheio!','Zap! Na mosca!','Que choque!','Pow! Muito bem!']),'pt',true);
       $('#desafioB').innerHTML='';
       if(vida<=0)depois(1300,capturar);else depois(1500,proximo);
     });
   }
   function capturar(){
     mon.classList.add('capturado');confete();somAcerto();
-    falar(`Você capturou o ${m[1]}! Ganhou 3 moedas!`,'pt');
+    falar(`Você capturou! Ganhou 3 moedas!`,'pt');falarTresNomes(m[3]);
     if(!S.album.includes(lutaIdx))S.album.push(lutaIdx);
     if(!lutaSelvagem&&lutaIdx===S.fase)S.fase++;
     ganhar(3);salvar();
-    $('#desafioB').innerHTML=`<span class="figura">🕸️${spr(m[3])}</span>`;
+    $('#desafioB').innerHTML=`<span class="figura">${spr(PARCEIRO.key)}✨${spr(m[3])}</span>${tresNomesHTML(m[3])}`;
     $('#continuar').hidden=false;
   }
 }
@@ -1261,22 +1299,32 @@ $('#continuar').onclick=()=>{
 };
 
 function abrirAlbum(){
+  $('#albumInfo').hidden=true;
   $('#albumConta').textContent=`${S.album.length} de ${MUNDO.length} capturados`;
   $('#albumGrade').innerHTML=MUNDO.map((m,i)=>{
     const tem=S.album.includes(i);
     return `<button class="bloco no ${tem?'feito':''}" data-a="${i}" aria-label="${tem?m[1]:'Ainda não capturado'}"><span class="${tem?'':'sombra'}">${spr(m[3])}</span></button>`;
   }).join('')+LENDARIOS.map(l=>{
     const tem=S.lendarios.includes(l[1]);
-    return `<button class="bloco no ${tem?'feito':''}" data-l="${l[1]}" aria-label="${tem?l[1]:'Lendário ainda não conquistado'}" style="${tem?'background:#fff3c4':''}"><span class="${tem?'':'sombra'}">${spr(l[3])}</span></button>`;
+    return `<button class="bloco no ${tem?'feito':''}" data-l="${l[1]}" data-k="${l[3]}" aria-label="${tem?l[1]:'Lendário ainda não conquistado'}" style="${tem?'background:#fff3c4':''}"><span class="${tem?'':'sombra'}">${spr(l[3])}</span></button>`;
   }).join('');
   repetir=()=>falar(`Você já capturou ${S.album.length} monstrinhos!`,'pt');repetir();
 }
+function mostrarInfo(key){
+  const n=NOMES[key],box=$('#albumInfo');
+  box.innerHTML=`<span class="figura">${spr(key)}</span><div>${tresNomesHTML(key)}<p class="regra">${n.bicho[0]} · ${n.bicho[1]} · ${n.bicho[2]}</p></div>`;
+  box.hidden=false;
+}
 $('#albumGrade').addEventListener('click',e=>{
   const l=e.target.closest('[data-l]');
-  if(l){falar(S.lendarios.includes(l.dataset.l)?l.dataset.l+'! Lendário!':'Esse é lendário. Escolha como sonho no cofrinho e guarde moedas!','pt');return}
+  if(l){
+    if(S.lendarios.includes(l.dataset.l)){mostrarInfo(l.dataset.k);falar('Lendário!','pt');falarTresNomes(l.dataset.k)}
+    else falar('Esse é lendário. Escolha como sonho no cofrinho e guarde moedas!','pt');
+    return;
+  }
   const b=e.target.closest('[data-a]');if(!b)return;
   const i=+b.dataset.a;
-  if(S.album.includes(i)){rugido();falar(MUNDO[i][1]+'!','pt')}
+  if(S.album.includes(i)){rugido();mostrarInfo(MUNDO[i][3]);calar();falarTresNomes(MUNDO[i][3])}
   else falar('Esse ainda está escondido. Vamos para a aventura!','pt');
 });
 
@@ -1820,6 +1868,7 @@ function pintarMapa(){
   }
   return c;
 }
+const PJ={x:5,y:6,mov:null}; // parceiro no mapa: ocupa o tile que o treinador acabou de deixar
 const J={x:5,y:7,dir:'baixo',mov:null,passo:0,cool:5,pausa:false,exc:0,excCb:null};
 const DIRS={cima:[0,-1],baixo:[0,1],esq:[-1,0],dir:[1,0]};
 let segurando=[],selvagens=[],rafMundo=null,ultMundo=0,falaAberta=false,falaDepois=null;
@@ -1847,12 +1896,19 @@ function abrirMundo(){
   voltarMundo=false;
   if(S.pos&&livre(S.pos.x,S.pos.y)){J.x=S.pos.x;J.y=S.pos.y;J.dir=S.pos.dir||'baixo'}
   J.mov=null;J.pausa=false;J.exc=0;segurando=[];
+  {const [dx,dy]=DIRS[J.dir];const bx=J.x-dx,by=J.y-dy;
+   if(livre(bx,by)&&!predioNaPorta(bx,by)){PJ.x=bx;PJ.y=by}else{PJ.x=J.x;PJ.y=J.y}PJ.mov=null}
   if(selvagens.length<2)espalharSelvagens();
   $('#mundoMoedas').textContent=S.carteira;
   redimMundo();
   repetir=()=>falarMundo('Ande com as setas. Na grama alta aparecem monstrinhos! Entre nas portas para jogar.');
-  if(!S.mundoVisto){S.mundoVisto=true;salvar();falarMundo(`Oi, treinador ${S.nome||''}! Eu sou a Coruja. Ande com as setas. Na grama alta aparecem monstrinhos. Entre nas portas das casas para jogar!`)}
+  if(!S.mundoVisto){S.mundoVisto=true;salvar();falarMundo(`Oi, treinador ${S.nome||''}! Eu sou a Coruja. Ande com as setas. Na grama alta aparecem monstrinhos. Entre nas portas das casas para jogar!`,apresentarParceiro)}
+  else if(!S.parceiroVisto)apresentarParceiro();
   if(!rafMundo){ultMundo=performance.now();rafMundo=requestAnimationFrame(quadroMundo)}
+}
+function apresentarParceiro(){
+  S.parceiroVisto=true;salvar();
+  aparecer(spr(PARCEIRO.key),`Este é o ${PARCEIRO.nome}, o seu parceiro! Ele vai andar com você e lutar junto nas batalhas.`,()=>falar(PARCEIRO.grito,'pt'));
 }
 function falarMundo(txt,depoisFn){
   falaAberta=true;falaDepois=depoisFn||null;
@@ -1904,6 +1960,7 @@ function entrarPredio(b){
 function interagir(){
   if(falaAberta)return fecharFala();
   const [dx,dy]=DIRS[J.dir],fx=J.x+dx,fy=J.y+dy;
+  if(fx===PJ.x&&fy===PJ.y){falarMundo(`${PARCEIRO.nome}: ${PARCEIRO.grito} ❤`);falar(PARCEIRO.grito,'pt');return}
   if(fx===CORUJA.x&&fy===CORUJA.y){
     const m=MISSOES[S.missao];
     const frases=[
@@ -1928,13 +1985,17 @@ function passoMundo(dt){
   if(J.pausa||falaAberta)return;
   if(J.mov){
     J.mov.t+=dt/.16;
-    if(J.mov.t>=1){J.x=J.mov.tx;J.y=J.mov.ty;J.mov=null;J.passo++;chegou()}
+    if(PJ.mov)PJ.mov.t=Math.min(1,J.mov.t);
+    if(J.mov.t>=1){J.x=J.mov.tx;J.y=J.mov.ty;J.mov=null;if(PJ.mov){PJ.x=PJ.mov.tx;PJ.y=PJ.mov.ty;PJ.mov=null}J.passo++;chegou()}
     return;
   }
   const d=gpDir()||segurando[segurando.length-1];
   if(!d)return;
   J.dir=d;const [dx,dy]=DIRS[d],nx=J.x+dx,ny=J.y+dy;
-  if(livre(nx,ny))J.mov={fx:J.x,fy:J.y,tx:nx,ty:ny,t:0};
+  if(livre(nx,ny)){
+    if(!(PJ.x===J.x&&PJ.y===J.y))PJ.mov={fx:PJ.x,fy:PJ.y,tx:J.x,ty:J.y,t:0};
+    J.mov={fx:J.x,fy:J.y,tx:nx,ty:ny,t:0};
+  }
 }
 const cvM=$('#mapaCv'),gm=cvM.getContext('2d');
 function redimMundo(){
@@ -1984,7 +2045,12 @@ function desenharMundo(){
     gm.drawImage(sprCv(MUNDO[s.idx][3]),s.x*TS,Math.round(sy-7));
   }
   const andando=J.mov?Math.floor(J.mov.t*2)%2:0;
+  let qx=PJ.x,qy=PJ.y;if(PJ.mov){qx=PJ.mov.fx+(PJ.mov.tx-PJ.mov.fx)*PJ.mov.t;qy=PJ.mov.fy+(PJ.mov.ty-PJ.mov.fy)*PJ.mov.t}
+  const pxP=Math.round(qx*TS),pyP=Math.round(qy*TS-2-Math.abs(Math.sin(tempo*6))*(PJ.mov?2:1));
+  const parceiro=()=>{gm.save();if(qx>jx+.01){gm.translate(pxP*2+16,0);gm.scale(-1,1)}gm.drawImage(sprCv(PARCEIRO.key),pxP,pyP);gm.restore()};
+  if(qy<=jy)parceiro();
   desenharTreinador(gm,pxJ,pyJ-2,J.dir,(J.passo%2)^andando);
+  if(qy>jy)parceiro();
   if(J.exc>0){
     gm.fillStyle='#fff';gm.fillRect(pxJ+4,pyJ-15,8,10);gm.strokeStyle='#202020';gm.lineWidth=1;gm.strokeRect(pxJ+4.5,pyJ-14.5,7,9);
     gm.fillStyle='#d02020';gm.font='8px "Press Start 2P",monospace';gm.fillText('!',pxJ+8.5,pyJ-9.5);
@@ -2045,7 +2111,7 @@ $('#carteira').onclick=()=>{falar(`Você tem ${S.carteira} ${S.carteira===1?'moe
 function mostrarNome(){
   $('#oi').textContent=`Oi, ${S.nome||'campeão'}!`;
   $('#icNome').textContent=(nomeMaiusc()||'ABC').slice(0,3);
-  $('#nomeHeroi').textContent=`Treinador ${S.nome||''}`.trim();
+  $('#nomeHeroi').textContent=`${S.nome||'Treinador'} e ${PARCEIRO.nome}`;
 }
 function textoSom(){$('#btnSom').textContent=S.som?'🔊 Som ligado':'🔇 Som desligado'}
 let confirmaZerar=false;
@@ -2056,13 +2122,14 @@ $('#campoNome').addEventListener('input',e=>{S.nome=e.target.value.trim();salvar
 $('#btnSom').onclick=()=>{S.som=!S.som;if(!S.som)calar();salvar();textoSom()};
 $('#btnZerar').onclick=()=>{
   if(!confirmaZerar){confirmaZerar=true;$('#btnZerar').textContent='Toque de novo para confirmar';return}
-  S.carteira=0;S.cofrinho=0;S.figurinhas=[];S.contarAcertos=0;S.jurosEm='';S.fase=0;S.mundo=0;S.album=[];S.introVista=false;S.nivelPular=0;S.pularVisto=false;S.pos=null;S.mundoVisto=false;S.cidade=[];S.missao=0;S.rendaEm='';S.rendaPendente=0;S.rotina={data:'',feitos:[]};S.sonho=null;S.lendarios=[];salvar();atualizarMoedas();
+  S.carteira=0;S.cofrinho=0;S.figurinhas=[];S.contarAcertos=0;S.jurosEm='';S.fase=0;S.mundo=0;S.album=[];S.introVista=false;S.nivelPular=0;S.pularVisto=false;S.pos=null;S.mundoVisto=false;S.parceiroVisto=false;S.cidade=[];S.missao=0;S.rendaEm='';S.rendaPendente=0;S.rotina={data:'',feitos:[]};S.sonho=null;S.lendarios=[];salvar();atualizarMoedas();
   confirmaZerar=false;$('#btnZerar').textContent='Zerado ✔';
 };
 $('#inicio').addEventListener('click',e=>{const b=e.target.closest('[data-diz]');if(b)falar(b.dataset.diz,'pt')},true);
 
 mostrarNome();marcarIdioma();atualizarMoedas();
 $('#heroiEm').innerHTML=`<img class="px" alt="" src="${treinadorURL()}">`;
+$('#parceiroEm').innerHTML=spr(PARCEIRO.key);
 })();
 </script>
 

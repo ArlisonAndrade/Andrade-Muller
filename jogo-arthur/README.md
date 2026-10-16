@@ -23,3 +23,7 @@ Personagens são originais (inspirados em monstrinhos de bolso e herói de teia)
 
 ## Controle de videogame
 Gamepad API do navegador (Bluetooth ou USB, mapeamento "standard" Xbox/PlayStation). Mapa: direcional/analógico anda, A fala/entra, B fecha. Pular e pegar: A pula. O navegador só enxerga o controle depois de apertar um botão com a página aberta. Se dentro do Claude não reconhecer, abrir este `index.html` direto no Chrome/Edge.
+
+## Parceiro e nomes do elenco
+- **Parceiro = Pikachu** (pedido do Arlison, 16/out/2026): segue o treinador no mapa, luta junto na batalha (choque do trovão). É personagem da Nintendo — ok porque o jogo é privado da família. **Se um dia for distribuído ou vendido, trocar** a constante `PARCEIRO` (e `SPRITES.pikachu`) por um parceiro próprio; é o único ponto do código.
+- **Nomes em 3 idiomas** (`NOMES`): montados com palavras reais pra ensinar junto — Brasito/Firo/Fueguito (fire/fuego), Folhapulo/Leafhop/Hojasalto, etc., mais o bicho nos 3 idiomas. Aparecem e são falados na captura e no álbum; na batalha o nome segue a bandeira escolhida.
