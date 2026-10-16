@@ -2,7 +2,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Press+Start+2P&display=swap">
 <style>
 /* Layout: brinquedoteca de blocos — uma tela só, botões grossos com contorno e sombra dura, como peças de encaixar. Visual único (claro) de propósito. */
 :root{
@@ -190,6 +190,19 @@ main{flex:1;min-height:0;position:relative}
 .surpresa .quem{font-size:5.5rem;line-height:1;display:inline-block;animation:chama 1.4s infinite}
 .surpresa p{font-size:1.25rem;font-weight:700;margin:8px 0 14px;text-wrap:balance}
 
+/* mundo 16-bit */
+.jogo.grande.mun{background:#3868d0}
+#mundo{overflow:hidden;padding-bottom:0}
+#palcoMundo{background:#185028}
+#mapaCv{display:block;width:100%;height:100%;touch-action:none;image-rendering:pixelated}
+.fala-mundo{position:absolute;left:12px;right:12px;bottom:12px;background:#f8f8f8;color:#202020;border:4px solid #202020;outline:4px solid #f8f8f8;box-shadow:0 0 0 8px #202020;border-radius:6px;padding:16px 40px 16px 18px;font-family:'Press Start 2P',monospace;font-size:clamp(.7rem,1.6vw,.95rem);line-height:1.8;cursor:pointer;z-index:3}
+.fala-mundo i{position:absolute;right:16px;bottom:10px;font-style:normal;animation:chama .8s infinite}
+.dpad{display:grid;grid-template-areas:". c ." "e . d" ". b .";gap:4px}
+.dpad .ctl{width:clamp(52px,12vw,70px);height:clamp(52px,12vw,70px);border-radius:14px;font-size:1.5rem}
+.flash{position:fixed;inset:0;background:#fff;z-index:40;pointer-events:none;opacity:0}
+.flash.pisca{animation:pisca .8s steps(1)}
+@keyframes pisca{0%,25%,50%,75%{opacity:1}12%,37%,62%,100%{opacity:0}}
+
 /* rotina e sonho */
 .habitos{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;width:100%;max-width:820px}
 .habito{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:22px;text-align:left}
@@ -281,6 +294,7 @@ canvas#confete{position:fixed;inset:0;pointer-events:none;z-index:30}
       <p class="sub">Escolha um jogo. Cada acerto vale uma moeda.</p>
       <div class="cardapio">
         <button class="bloco jogo grande" data-ir="mapa" data-diz="Aventura! Vamos capturar os monstrinhos!"><span class="ic">🦸🕸️</span><span><b>Aventura</b><small>capture os monstrinhos com a teia</small></span></button>
+        <button class="bloco jogo grande mun" data-ir="mundo" data-diz="Explorar o mapa!"><span class="ic">🗺️🧢</span><span><b>Explorar o mapa</b><small>ande, entre nas casas e capture monstrinhos</small></span></button>
         <button class="bloco jogo grande cid" data-ir="cidade" data-diz="Minha cidade! Vamos construir!"><span class="ic">🏠🏟️</span><span><b>Minha Cidade</b><small>construa casas, loja, banco e a arena</small></span></button>
         <button class="bloco jogo grande pula" data-ir="pular" data-diz="Pular e pegar moedas!"><span class="ic">🦸🪙</span><span><b>Pular e pegar</b><small>corra, pule e ache as letras do seu nome</small></span></button>
         <button class="bloco jogo c3" data-ir="rotina" data-diz="Rotina do dia"><span class="ic">🪥</span><b>Rotina do dia</b><small>dente, cama, prato</small></button>
@@ -378,7 +392,7 @@ canvas#confete{position:fixed;inset:0;pointer-events:none;z-index:30}
     <!-- BATALHA -->
     <section class="tela" id="batalha" hidden>
       <div class="arena" id="arena">
-        <div class="lutador heroi"><span class="em">🦸</span><span class="nome-l" id="nomeHeroi">Arthur Teia</span></div>
+        <div class="lutador heroi"><span class="em">🧒</span><span class="nome-l" id="nomeHeroi">Treinador Arthur</span></div>
         <div class="lutador monstro" id="monstro" hidden><span class="coracoes" id="coracoes"></span><span class="em" id="monstroEm">🐲</span><span class="nome-l" id="monstroNome"></span></div>
       </div>
       <div class="desafio" id="desafioB"></div>
@@ -428,6 +442,27 @@ canvas#confete{position:fixed;inset:0;pointer-events:none;z-index:30}
               <button class="bloco acao" id="irCofre">🐷 Guardar no cofrinho</button>
             </div>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MUNDO -->
+    <section class="tela" id="mundo" hidden>
+      <div class="palco" id="palcoMundo">
+        <canvas id="mapaCv"></canvas>
+        <div class="hud">
+          <span class="pilula"><span class="moeda"></span><span id="mundoMoedas">0</span></span>
+          <span class="pilula dica-tecla">setas: andar · espaço: falar</span>
+        </div>
+        <div class="fala-mundo" id="falaMundo" hidden><span id="falaTexto"></span><i>▼</i></div>
+        <div class="controles">
+          <div class="dpad">
+            <button class="bloco ctl" data-dpad="cima" aria-label="Para cima" style="grid-area:c">▲</button>
+            <button class="bloco ctl" data-dpad="esq" aria-label="Para a esquerda" style="grid-area:e">◀</button>
+            <button class="bloco ctl" data-dpad="dir" aria-label="Para a direita" style="grid-area:d">▶</button>
+            <button class="bloco ctl" data-dpad="baixo" aria-label="Para baixo" style="grid-area:b">▼</button>
+          </div>
+          <button class="bloco ctl pulo" data-dpad="a" aria-label="Falar">A</button>
         </div>
       </div>
     </section>
@@ -495,6 +530,7 @@ canvas#confete{position:fixed;inset:0;pointer-events:none;z-index:30}
     </div>
   </div>
 </div>
+<div class="flash" id="flash" hidden></div>
 <canvas id="confete"></canvas>
 
 <script>
@@ -597,10 +633,12 @@ function ir(id){
   limpar();calar();tela=id;
   $$('.tela').forEach(t=>t.hidden=t.id!==id);
   $('#btnCasa').hidden=id==='inicio';
+  $('#btnCasa').textContent=voltarMundo&&id!=='mundo'?'🗺️':'🏠';
   ({letras:iniciarLetras,palavras:novaRodadaPal,contar:novaRodadaCont,precisa:iniciarPrecisa,cofre:abrirCofre,inicio:()=>{},
-    mapa:abrirMapa,batalha:iniciarBatalha,pular:abrirPular,cidade:abrirCidade,rotina:abrirRotina,nome:()=>treino('nome'),ler:()=>treino('ler'),digitar:()=>treino('digitar'),album:abrirAlbum})[id]();
+    mundo:abrirMundo,mapa:abrirMapa,batalha:iniciarBatalha,pular:abrirPular,cidade:abrirCidade,rotina:abrirRotina,nome:()=>treino('nome'),ler:()=>treino('ler'),digitar:()=>treino('digitar'),album:abrirAlbum})[id]();
 }
 let D=null; // desafio ativo (aventura e treinos)
+let voltarMundo=false,lutaSelvagem=false;
 let repetir=()=>{};
 
 /* ================= LETRAS ================= */
@@ -1108,11 +1146,11 @@ $('#trilha').addEventListener('click',e=>{
   const b=e.target.closest('.no');if(!b)return;
   const i=+b.dataset.fase;
   if(i>S.fase){tremer(b);falar('Essa fase ainda está trancada. Primeiro, a que está brilhando!','pt');return}
-  lutaIdx=i;ir('batalha');
+  lutaIdx=i;lutaSelvagem=false;ir('batalha');
 });
 const rugido=()=>tom([180,320,140],.11,'sawtooth');
 function iniciarBatalha(){
-  const m=MUNDO[lutaIdx],chefe=lutaIdx===MUNDO.length-1;
+  const m=MUNDO[lutaIdx],chefe=!lutaSelvagem&&lutaIdx===MUNDO.length-1;
   let vida=3;
   const tipos=chefe?['ler','letra','nome']:embaralhar(S.mundo>=1?['letra','ler','contar','digitar']:['letra','ler','contar']).slice(0,3);
   const mon=$('#monstro');
@@ -1148,13 +1186,14 @@ function iniciarBatalha(){
     mon.classList.add('capturado');confete();somAcerto();
     falar(`Você capturou o ${m[1]}! Ganhou 3 moedas!`,'pt');
     if(!S.album.includes(lutaIdx))S.album.push(lutaIdx);
-    if(lutaIdx===S.fase)S.fase++;
+    if(!lutaSelvagem&&lutaIdx===S.fase)S.fase++;
     ganhar(3);salvar();
     $('#desafioB').innerHTML=`<span class="figura">🕸️${m[0]}</span>`;
     $('#continuar').hidden=false;
   }
 }
 $('#continuar').onclick=()=>{
+  if(lutaSelvagem){lutaSelvagem=false;voltarMundo=false;ir('mundo');return}
   if(S.fase>=MUNDO.length){
     S.mundo++;S.fase=0;salvar();
     ir('mapa');
@@ -1644,6 +1683,262 @@ $$('.ctl').forEach(b=>{
   b.addEventListener('contextmenu',e=>e.preventDefault());
 });
 
+/* ================= MUNDO (mapa visto de cima, estilo 16-bit) ================= */
+const MW=36,MH=26,TS=16;
+const PREDIOS_MUNDO=[
+  {nome:'CASA',x:3,y:2,w:5,h:4,porta:[5,5],vai:'rotina',telhado:'#d04838',parede:'#f8e8c8',fala:'Sua casa! Aqui fica a rotina do dia.'},
+  {nome:'ESCOLA',x:12,y:2,w:6,h:4,porta:[14,5],vai:'escola',telhado:'#3868d0',parede:'#f0f0e0',fala:'A escola! Hora de treinar letras e palavras.'},
+  {nome:'BANCO',x:24,y:2,w:5,h:4,porta:[26,5],vai:'cofre',telhado:'#e0a800',parede:'#f8f0d8',fala:'O banco! Aqui fica o seu cofrinho.'},
+  {nome:'PREFEITURA',x:3,y:17,w:5,h:4,porta:[5,20],vai:'cidade',telhado:'#8048c0',parede:'#f0e8f8',fala:'A prefeitura! Aqui você constrói a sua cidade.'},
+  {nome:'FLIPER',x:9,y:17,w:5,h:4,porta:[11,20],vai:'pular',telhado:'#20a070',parede:'#e8f8f0',fala:'O fliperama! Vamos pular e pegar moedas!'},
+  {nome:'ARENA',x:25,y:16,w:7,h:5,porta:[28,20],vai:'mapa',telhado:'#c03030',parede:'#c8c8d8',fala:'A arena! Aqui moram os chefões.'}
+];
+const CORUJA={x:18,y:8};
+let TERRENO=null,mapaCv=null;
+function construirTerreno(){
+  const t=Array.from({length:MH},()=>Array(MW).fill('.'));
+  const ret=(x0,y0,x1,y1,c)=>{for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)t[y][x]=c};
+  ret(0,0,MW-1,1,'T');ret(0,MH-2,MW-1,MH-1,'T');ret(0,0,1,MH-1,'T');ret(MW-2,0,MW-1,MH-1,'T');
+  ret(2,6,33,6,'=');ret(17,6,17,23,'=');ret(2,21,33,21,'=');
+  ret(3,9,12,14,',');ret(21,9,32,13,',');ret(20,22,32,23,',');
+  ret(13,9,15,13,'~');
+  [[20,16],[21,16],[20,17],[21,17],[15,17],[15,18],[22,15]].forEach(([x,y])=>t[y][x]='T');
+  [[8,7],[11,8],[19,4],[21,4],[30,7],[32,15],[23,19],[3,15],[7,15],[18,14],[16,8],[9,22],[13,23]].forEach(([x,y])=>{if(t[y][x]==='.')t[y][x]='f'});
+  for(const b of PREDIOS_MUNDO){ret(b.x,b.y,b.x+b.w-1,b.y+b.h-1,'H');t[b.porta[1]][b.porta[0]]='D'}
+  return t;
+}
+function pintarMapa(){
+  const c=document.createElement('canvas');c.width=MW*TS;c.height=MH*TS;
+  const m=c.getContext('2d');
+  const r=(x,y,w,h,cor)=>{m.fillStyle=cor;m.fillRect(x,y,w,h)};
+  const grama=(X,Y)=>{r(X,Y,16,16,'#78c850');const s=(X*7+Y*13)%5;r(X+3+s,Y+4,1,2,'#60b040');r(X+11-s,Y+11,1,2,'#60b040')};
+  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){
+    const X=x*TS,Y=y*TS,k=TERRENO[y][x];
+    if(k==='='){r(X,Y,16,16,'#e8d098');const s=(x*5+y*3)%4;r(X+2+s,Y+3,2,1,'#d0b878');r(X+10-s,Y+12,2,1,'#d0b878');continue}
+    if(k==='~'){r(X,Y,16,16,'#4890e8');r(X+2,Y+5,5,1,'#90c8f8');r(X+9,Y+11,5,1,'#90c8f8');continue}
+    grama(X,Y);
+    if(k===','){r(X,Y,16,16,'#50a030');for(let i=0;i<4;i++){r(X+1+i*4,Y+5,1,8,'#287818');r(X+2+i*4,Y+3,1,6,'#389028');r(X+3+i*4,Y+6,1,7,'#287818')}}
+    else if(k==='f'){const cor=(x+y)%2?'#f04060':'#f8d030';r(X+6,Y+5,4,4,cor);r(X+7,Y+6,2,2,'#fff8c0');r(X+7,Y+9,2,3,'#389028')}
+    else if(k==='T'){r(X+4,Y,8,1,'#206830');r(X+2,Y+1,12,9,'#287838');r(X+1,Y+3,14,5,'#287838');r(X+4,Y+2,4,2,'#48a050');r(X+2,Y+9,12,1,'#185028');r(X+6,Y+10,4,5,'#805030');r(X+6,Y+14,4,1,'#603818')}
+  }
+  for(const b of PREDIOS_MUNDO){
+    const X=b.x*TS,Y=b.y*TS,W=b.w*TS,H=b.h*TS,teto=b.nome==='ARENA'?22:20;
+    r(X+1,Y+teto,W-2,H-teto,b.parede);r(X+1,Y+H-2,W-2,2,'rgba(0,0,0,.18)');
+    r(X,Y+2,W,teto,b.telhado);r(X+2,Y,W-4,2,b.telhado);
+    for(let i=Y+5;i<Y+teto;i+=4)r(X,i,W,1,'rgba(0,0,0,.18)');
+    r(X,Y+teto-2,W,2,'rgba(0,0,0,.3)');
+    for(let i=0;i<b.w;i++){
+      const wx=X+i*TS+4;
+      if(b.x+i===b.porta[0])continue;
+      r(wx,Y+teto+5,8,7,'#304878');r(wx+1,Y+teto+6,3,2,'#a8d0f8');
+    }
+    const dx=b.porta[0]*TS,dy=b.porta[1]*TS;
+    r(dx+3,dy+2,10,14,'#704020');r(dx+4,dy+3,8,13,'#905830');r(dx+10,dy+9,1,2,'#f8d030');
+    if(b.nome==='ARENA'){r(X+6,Y+teto+2,4,10,'#f8f8f8');r(X+W-10,Y+teto+2,4,10,'#f8f8f8');r(X+7,Y+teto+3,2,4,'#c03030');r(X+W-9,Y+teto+3,2,4,'#c03030')}
+  }
+  return c;
+}
+const J={x:5,y:7,dir:'baixo',mov:null,passo:0,cool:5,pausa:false,exc:0,excCb:null};
+const DIRS={cima:[0,-1],baixo:[0,1],esq:[-1,0],dir:[1,0]};
+let segurando=[],selvagens=[],rafMundo=null,ultMundo=0,falaAberta=false,falaDepois=null;
+const ehPredio=(x,y)=>TERRENO[y]&&TERRENO[y][x]==='H';
+function livre(x,y){
+  if(x<0||y<0||x>=MW||y>=MH)return false;
+  const k=TERRENO[y][x];
+  if(k==='T'||k==='~'||k==='H')return false;
+  if(x===CORUJA.x&&y===CORUJA.y)return false;
+  return true;
+}
+function predioNaPorta(x,y){return PREDIOS_MUNDO.find(b=>b.porta[0]===x&&b.porta[1]===y)}
+function gramaAlta(x,y){return TERRENO[y]&&TERRENO[y][x]===','}
+function sortearMonstrinho(){
+  const faltam=[0,1,2,3,4,5,6].filter(i=>!S.album.includes(i));
+  return pick(faltam.length&&Math.random()<.7?faltam:[0,1,2,3,4,5,6]);
+}
+function espalharSelvagens(){
+  selvagens=[];
+  const tiles=[];for(let y=0;y<MH;y++)for(let x=0;x<MW;x++)if(gramaAlta(x,y))tiles.push([x,y]);
+  for(let i=0;i<3;i++){const [x,y]=pick(tiles);selvagens.push({x,y,idx:sortearMonstrinho(),t:1+Math.random()*2,vis:0})}
+}
+function abrirMundo(){
+  if(!TERRENO){TERRENO=construirTerreno();mapaCv=pintarMapa()}
+  voltarMundo=false;
+  if(S.pos&&livre(S.pos.x,S.pos.y)){J.x=S.pos.x;J.y=S.pos.y;J.dir=S.pos.dir||'baixo'}
+  J.mov=null;J.pausa=false;J.exc=0;segurando=[];
+  if(selvagens.length<2)espalharSelvagens();
+  $('#mundoMoedas').textContent=S.carteira;
+  redimMundo();
+  repetir=()=>falarMundo('Ande com as setas. Na grama alta aparecem monstrinhos! Entre nas portas para jogar.');
+  if(!S.mundoVisto){S.mundoVisto=true;salvar();falarMundo(`Oi, treinador ${S.nome||''}! Eu sou a Coruja. Ande com as setas. Na grama alta aparecem monstrinhos. Entre nas portas das casas para jogar!`)}
+  if(!rafMundo){ultMundo=performance.now();rafMundo=requestAnimationFrame(quadroMundo)}
+}
+function falarMundo(txt,depoisFn){
+  falaAberta=true;falaDepois=depoisFn||null;
+  $('#falaTexto').textContent=txt;$('#falaMundo').hidden=false;
+  falar(txt,'pt');
+}
+function fecharFala(){
+  if(!falaAberta)return;
+  falaAberta=false;$('#falaMundo').hidden=true;calar();
+  const f=falaDepois;falaDepois=null;if(f)f();
+}
+$('#falaMundo').addEventListener('click',fecharFala);
+function encontro(idx,sel){
+  if(J.exc)return;
+  J.exc=.9;rugido();
+  J.excCb=()=>{
+    if(sel)selvagens=selvagens.filter(s=>s!==sel);
+    const f=$('#flash');f.hidden=false;f.classList.remove('pisca');void f.offsetWidth;f.classList.add('pisca');
+    tom([880,660,880,660],.08,'square');
+    depois(800,()=>{f.hidden=true;lutaIdx=idx;lutaSelvagem=true;voltarMundo=true;salvarPos();ir('batalha')});
+  };
+}
+function salvarPos(){S.pos={x:J.x,y:J.y,dir:J.dir};salvar()}
+function chegou(){
+  const b=predioNaPorta(J.x,J.y);
+  if(b){
+    salvarPos();
+    J.pausa=true;tom([523,659],.07,'square');
+    J.y+=1;J.dir='baixo';salvarPos();J.y-=1;
+    falar(b.fala,'pt');
+    depois(500,()=>{J.pausa=false;voltarMundo=true;entrarPredio(b)});
+    return;
+  }
+  const s=selvagens.find(s=>s.x===J.x&&s.y===J.y);
+  if(s)return encontro(s.idx,s);
+  if(gramaAlta(J.x,J.y)){
+    J.cool--;
+    if(J.cool<=0&&Math.random()<.12){J.cool=6;encontro(sortearMonstrinho(),null)}
+  }
+  if(J.passo%8===0)salvarPos();
+}
+function entrarPredio(b){
+  if(b.vai!=='escola')return ir(b.vai);
+  $('#folhaTitulo').textContent='ESCOLA · o que vamos treinar?';
+  const op=[['📖','Ler palavras','ler'],['⌨️','Digitar','digitar'],['✏️','Meu nome','nome'],['🔤','Letras','letras'],['🌎','Palavras','palavras'],['🪙','Contar','contar']];
+  $('#catalogo').innerHTML=op.map(o=>`<button class="bloco produto" data-vai="${o[2]}"><span class="em">${o[0]}</span><small>${o[1]}</small></button>`).join('');
+  loteAberto=-1;$('#folha').hidden=false;
+}
+function interagir(){
+  if(falaAberta)return fecharFala();
+  const [dx,dy]=DIRS[J.dir],fx=J.x+dx,fy=J.y+dy;
+  if(fx===CORUJA.x&&fy===CORUJA.y){
+    const m=MISSOES[S.missao];
+    const frases=[
+      'Na grama alta aparecem monstrinhos. Acerte os desafios para capturar!',
+      m?`A sua missão da cidade: ${m.txt} Vá na prefeitura!`:'Sua cidade está completa, parabéns!',
+      ...DICAS
+    ];
+    J.dir=J.dir;falarMundo(frases[(J.falou=(J.falou||0)+1)%frases.length]);
+  }
+}
+function passoMundo(dt){
+  if(J.exc>0){J.exc-=dt;if(J.exc<=0){J.exc=0;const f=J.excCb;J.excCb=null;if(f)f()}return}
+  for(const s of selvagens){
+    s.vis+=dt;s.t-=dt;
+    if(s.t<=0){
+      s.t=1+Math.random()*1.6;
+      const [dx,dy]=pick(Object.values(DIRS));const nx=s.x+dx,ny=s.y+dy;
+      if(gramaAlta(nx,ny)&&!selvagens.some(o=>o!==s&&o.x===nx&&o.y===ny)){s.x=nx;s.y=ny}
+      if(!J.mov&&s.x===J.x&&s.y===J.y)return encontro(s.idx,s);
+    }
+  }
+  if(J.pausa||falaAberta)return;
+  if(J.mov){
+    J.mov.t+=dt/.16;
+    if(J.mov.t>=1){J.x=J.mov.tx;J.y=J.mov.ty;J.mov=null;J.passo++;chegou()}
+    return;
+  }
+  const d=segurando[segurando.length-1];
+  if(!d)return;
+  J.dir=d;const [dx,dy]=DIRS[d],nx=J.x+dx,ny=J.y+dy;
+  if(livre(nx,ny))J.mov={fx:J.x,fy:J.y,tx:nx,ty:ny,t:0};
+}
+const cvM=$('#mapaCv'),gm=cvM.getContext('2d');
+function redimMundo(){
+  const dpr=Math.min(window.devicePixelRatio||1,2),w=cvM.clientWidth,h=cvM.clientHeight;
+  if(!w||!h)return;cvM.width=Math.round(w*dpr);cvM.height=Math.round(h*dpr);
+}
+if('ResizeObserver' in window)new ResizeObserver(redimMundo).observe($('#palcoMundo'));
+function desenharTreinador(g,X,Y,dir,frame){
+  const r=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(X+x,Y+y,w,h)};
+  r(3,14,10,2,'rgba(0,0,0,.25)');
+  const pe=frame?1:0;
+  r(4,12-pe,3,3,'#283048');r(9,12-(1-pe),3,3,'#283048');
+  r(4,8,8,5,'#2858c8');r(3,8,1,4,'#f8c898');r(12,8,1,4,'#f8c898');
+  if(dir==='cima')r(5,8,6,4,'#f8c030');
+  r(4,3,8,5,'#f8c898');
+  r(3,1,10,3,'#e03030');
+  if(dir==='cima')r(4,3,8,4,'#583018');
+  if(dir==='baixo'){r(4,4,8,1,'#b02020');r(6,5,1,2,'#202020');r(9,5,1,2,'#202020')}
+  if(dir==='esq'){r(1,4,4,1,'#b02020');r(5,5,1,2,'#202020');r(10,4,2,3,'#583018')}
+  if(dir==='dir'){r(11,4,4,1,'#b02020');r(10,5,1,2,'#202020');r(4,4,2,3,'#583018')}
+  r(3,0,10,1,'#202020');r(2,1,1,3,'#202020');r(13,1,1,3,'#202020');
+}
+function desenharMundo(){
+  const W=cvM.width,H=cvM.height;
+  const z=Math.max(2,Math.floor(Math.min(W/(15*TS),H/(10*TS))));
+  const vw=W/z,vh=H/z;
+  let jx=J.x,jy=J.y;
+  if(J.mov){jx=J.mov.fx+(J.mov.tx-J.mov.fx)*J.mov.t;jy=J.mov.fy+(J.mov.ty-J.mov.fy)*J.mov.t}
+  const pxJ=Math.round(jx*TS),pyJ=Math.round(jy*TS);
+  const cam=(p,v,tot)=>tot<=v?(tot-v)/2:Math.max(0,Math.min(p+8-v/2,tot-v));
+  const cx=Math.round(cam(pxJ,vw,MW*TS)),cy=Math.round(cam(pyJ,vh,MH*TS));
+  gm.imageSmoothingEnabled=false;
+  gm.fillStyle='#185028';gm.fillRect(0,0,W,H);
+  gm.save();gm.scale(z,z);gm.translate(-cx,-cy);
+  gm.drawImage(mapaCv,0,0);
+  gm.font='7px "Press Start 2P",monospace';gm.textAlign='center';gm.textBaseline='middle';
+  for(const b of PREDIOS_MUNDO){
+    const tx=b.x*TS+b.w*TS/2,ty=b.y*TS+11;
+    gm.fillStyle='rgba(0,0,0,.45)';gm.fillText(b.nome,tx+1,ty+1);
+    gm.fillStyle='#ffffff';gm.fillText(b.nome,tx,ty);
+  }
+  const tempo=performance.now()/1000;
+  gm.font='13px '+EMOJI_FONTE;
+  gm.fillText('🦉',CORUJA.x*TS+8,CORUJA.y*TS+8+Math.sin(tempo*2)*1);
+  for(const s of selvagens){
+    const sx=s.x*TS+8,sy=s.y*TS+7+Math.abs(Math.sin(tempo*5+s.x))*-2;
+    gm.globalAlpha=.85;gm.fillText(MUNDO[s.idx][0],sx,sy);gm.globalAlpha=1;
+  }
+  const andando=J.mov?Math.floor(J.mov.t*2)%2:0;
+  desenharTreinador(gm,pxJ,pyJ-2,J.dir,(J.passo%2)^andando);
+  if(J.exc>0){
+    gm.fillStyle='#fff';gm.fillRect(pxJ+4,pyJ-15,8,10);gm.strokeStyle='#202020';gm.lineWidth=1;gm.strokeRect(pxJ+4.5,pyJ-14.5,7,9);
+    gm.fillStyle='#d02020';gm.font='8px "Press Start 2P",monospace';gm.fillText('!',pxJ+8.5,pyJ-9.5);
+  }
+  gm.restore();
+}
+function quadroMundo(t){
+  if(tela!=='mundo'){rafMundo=null;segurando=[];return}
+  const dt=Math.min(.05,(t-ultMundo)/1000||0);ultMundo=t;
+  if($('#painel').hidden&&$('#folha').hidden)passoMundo(dt);
+  if(cvM.width)desenharMundo();
+  rafMundo=requestAnimationFrame(quadroMundo);
+}
+const TECLAS_MUNDO={ArrowUp:'cima',w:'cima',W:'cima',ArrowDown:'baixo',s:'baixo',S:'baixo',ArrowLeft:'esq',a:'esq',A:'esq',ArrowRight:'dir',d:'dir',D:'dir'};
+document.addEventListener('keydown',e=>{
+  if(tela!=='mundo'||(e.target.closest&&e.target.closest('input'))||!$('#folha').hidden||!$('#painel').hidden)return;
+  if(e.key===' '||e.key==='Enter'){e.preventDefault();if(!e.repeat)interagir();return}
+  const d=TECLAS_MUNDO[e.key];if(!d)return;
+  e.preventDefault();
+  if(falaAberta){if(!e.repeat)fecharFala();return}
+  if(!segurando.includes(d))segurando.push(d);
+},true);
+document.addEventListener('keyup',e=>{const d=TECLAS_MUNDO[e.key];if(d)segurando=segurando.filter(x=>x!==d)});
+$$('[data-dpad]').forEach(b=>{
+  const d=b.dataset.dpad;
+  b.addEventListener('pointerdown',e=>{
+    e.preventDefault();b.classList.add('ativo');try{b.setPointerCapture(e.pointerId)}catch(_){}
+    if(d==='a')return interagir();
+    if(falaAberta)return fecharFala();
+    if(!segurando.includes(d))segurando.push(d);
+  });
+  const off=()=>{b.classList.remove('ativo');segurando=segurando.filter(x=>x!==d)};
+  ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>b.addEventListener(ev,off));
+  b.addEventListener('contextmenu',e=>e.preventDefault());
+});
+
 /* ---------- barra, idioma, pais ---------- */
 function marcarIdioma(){$$('.bandeira').forEach(b=>b.setAttribute('aria-pressed',b.dataset.idioma===S.idioma))}
 $$('.bandeira').forEach(b=>b.onclick=()=>{
@@ -1656,12 +1951,12 @@ $$('.bandeira').forEach(b=>b.onclick=()=>{
 });
 $$('[data-repetir]').forEach(b=>b.onclick=()=>repetir());
 $$('[data-ir]').forEach(b=>b.onclick=()=>{ir(b.dataset.ir)});
-$('#btnCasa').onclick=()=>ir('inicio');
+$('#btnCasa').onclick=()=>ir(voltarMundo&&tela!=='mundo'?'mundo':'inicio');
 $('#carteira').onclick=()=>{falar(`Você tem ${S.carteira} ${S.carteira===1?'moeda':'moedas'} na carteira.`,'pt')};
 function mostrarNome(){
   $('#oi').textContent=`Oi, ${S.nome||'campeão'}!`;
   $('#icNome').textContent=(nomeMaiusc()||'ABC').slice(0,3);
-  $('#nomeHeroi').textContent=`${S.nome||'Herói'} Teia`;
+  $('#nomeHeroi').textContent=`Treinador ${S.nome||''}`.trim();
 }
 function textoSom(){$('#btnSom').textContent=S.som?'🔊 Som ligado':'🔇 Som desligado'}
 let confirmaZerar=false;
@@ -1672,7 +1967,7 @@ $('#campoNome').addEventListener('input',e=>{S.nome=e.target.value.trim();salvar
 $('#btnSom').onclick=()=>{S.som=!S.som;if(!S.som)calar();salvar();textoSom()};
 $('#btnZerar').onclick=()=>{
   if(!confirmaZerar){confirmaZerar=true;$('#btnZerar').textContent='Toque de novo para confirmar';return}
-  S.carteira=0;S.cofrinho=0;S.figurinhas=[];S.contarAcertos=0;S.jurosEm='';S.fase=0;S.mundo=0;S.album=[];S.introVista=false;S.nivelPular=0;S.pularVisto=false;S.cidade=[];S.missao=0;S.rendaEm='';S.rendaPendente=0;S.rotina={data:'',feitos:[]};S.sonho=null;S.lendarios=[];salvar();atualizarMoedas();
+  S.carteira=0;S.cofrinho=0;S.figurinhas=[];S.contarAcertos=0;S.jurosEm='';S.fase=0;S.mundo=0;S.album=[];S.introVista=false;S.nivelPular=0;S.pularVisto=false;S.pos=null;S.mundoVisto=false;S.cidade=[];S.missao=0;S.rendaEm='';S.rendaPendente=0;S.rotina={data:'',feitos:[]};S.sonho=null;S.lendarios=[];salvar();atualizarMoedas();
   confirmaZerar=false;$('#btnZerar').textContent='Zerado ✔';
 };
 $('#inicio').addEventListener('click',e=>{const b=e.target.closest('[data-diz]');if(b)falar(b.dataset.diz,'pt')},true);

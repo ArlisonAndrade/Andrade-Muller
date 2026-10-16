@@ -10,6 +10,7 @@ Jogo pedagógico do Arthur (4 anos). Projeto à parte do Portal — só mora nes
 ## Modos
 | Modo | O que ensina |
 |---|---|
+| Explorar o mapa | mapa visto de cima em pixel art 16-bit: o treinador anda com as setas, encontra monstrinhos na grama alta (viram batalha) e entra nos prédios — Casa (rotina), Escola (leitura/digitação/letras), Banco (cofrinho), Prefeitura (construir), Fliper (plataforma), Arena (chefões) |
 | Minha Cidade | construir com moedas, prédios que rendem (loja +1/dia, banco +2/dia), missões de finanças e idiomas |
 | Pular e pegar | plataforma estilo Mario; blocos "?" soltam as letras do nome em ordem; moedas vão pra carteira |
 | Aventura | mapa de 8 fases, monstrinhos capturados com teia acertando letra/leitura/contagem; chefão = escrever o nome |
