@@ -275,6 +275,12 @@
   filter: invert(1) brightness(1.15);
 }
 
+.jogoIcone {
+  font-size: 56px;
+  line-height: 72px;
+  height: 72px;
+}
+
 .envLabel {
   font-family: var(--font-cinzel), serif;
   font-size: 13px;

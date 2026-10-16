@@ -50,6 +50,16 @@ export default function PaginaHub() {
           <span className={styles.envLabel}>Andrade Muller Bank</span>
           <span className={styles.envNote}>Patrimônio, orçamento e investimentos</span>
         </Link>
+
+        {/* Jogo do Arthur — página estática em public/jogo/, fora do roteador do
+            Next; por isso <a> e não <Link>. */}
+        <a href="/jogo" className={styles.envCard}>
+          <span className={styles.jogoIcone} aria-hidden>
+            🧢
+          </span>
+          <span className={styles.envLabel}>Jogo do Arthur</span>
+          <span className={styles.envNote}>Letras, idiomas e o cofrinho</span>
+        </a>
       </div>
 
       {/* Atalhos do dia a dia no celular (no Android também aparecem ao

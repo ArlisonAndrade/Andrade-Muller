@@ -1,0 +1,2249 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#cfeeff">
+<!-- GERADO por jogo-arthur/publicar_no_portal.py — editar jogo-arthur/index.html, não este arquivo. -->
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box}body{margin:0}img{max-width:100%}</style>
+<title>Jogo do Arthur</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Press+Start+2P&display=swap">
+<style>
+/* Layout: brinquedoteca de blocos — uma tela só, botões grossos com contorno e sombra dura, como peças de encaixar. Visual único (claro) de propósito. */
+:root{
+  --ceu:#cfeeff; --papel:#fffdf7; --tinta:#1d2b4f; --tinta-suave:#55618a;
+  --sol:#ffc83d; --sol-escuro:#e0a300; --grama:#2fb36b; --tomate:#ff6b57;
+  --uva:#7a5cff; --agua:#2f8cff; --rosa:#ff8fc8;
+  --fonte:'Baloo 2','Chalkboard SE','Comic Sans MS',system-ui,sans-serif;
+  color-scheme:light;
+}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{background:var(--ceu);color:var(--tinta);font-family:var(--fonte);font-size:18px;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;overflow:hidden}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--ceu)}
+button{font-family:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible{outline:4px solid var(--uva);outline-offset:3px}
+
+.app{height:100%;box-sizing:border-box;max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:10px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:10px 14px}
+
+/* ---- barra de cima ---- */
+.barra{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.barra .oi{font-weight:800;font-size:1.35rem;margin-right:auto;line-height:1.1}
+.bloco{background:var(--papel);border:3px solid var(--tinta);border-radius:18px;box-shadow:0 5px 0 var(--tinta);transition:transform .08s,box-shadow .08s}
+.bloco:active{transform:translateY(4px);box-shadow:0 1px 0 var(--tinta)}
+.mini{width:48px;height:48px;font-size:1.5rem;display:grid;place-items:center;padding:0}
+.bandeiras{display:flex;gap:6px}
+.bandeira{width:52px;height:48px;font-size:1.7rem;padding:0;opacity:.45}
+.bandeira[aria-pressed="true"]{opacity:1;background:var(--sol)}
+.carteira{display:flex;align-items:center;gap:6px;padding:4px 12px 4px 6px;height:48px;box-sizing:border-box;font-weight:800;font-size:1.4rem;font-variant-numeric:tabular-nums}
+.carteira.pulo{animation:pulo .45s}
+@keyframes pulo{40%{transform:scale(1.18) rotate(-4deg)}}
+
+.moeda{width:34px;height:34px;border-radius:50%;flex:none;display:inline-grid;place-items:center;font-weight:800;font-size:.95rem;color:#7a4d00;
+  background:radial-gradient(circle at 35% 30%,#fff6c4 0 18%,var(--sol) 45%,var(--sol-escuro) 100%);border:3px solid #a87400;box-sizing:border-box}
+.moeda::after{content:"1"}
+.moeda.g{width:64px;height:64px;font-size:1.6rem;border-width:4px}
+
+/* ---- telas ---- */
+main{flex:1;min-height:0;position:relative}
+.tela{height:100%;display:flex;flex-direction:column;align-items:center;gap:14px;overflow-y:auto;overflow-x:hidden;padding-bottom:8px}
+
+/* início */
+.titulo{font-size:clamp(1.6rem,4.5vw,2.4rem);font-weight:800;text-align:center;margin:4px 0 0;text-wrap:balance;line-height:1.1}
+.sub{margin:0;color:var(--tinta-suave);font-weight:500;text-align:center}
+.cardapio{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;width:100%;max-width:900px}
+.jogo{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:16px 10px 12px;min-height:150px;border-radius:26px}
+.jogo .ic{font-size:3.4rem;line-height:1}
+.jogo .ic.abc{font-weight:800;font-size:2.8rem;letter-spacing:.04em}
+.jogo b{font-size:1.25rem;font-weight:800}
+.jogo small{font-size:.9rem;color:var(--tinta-suave);font-weight:500}
+.jogo.c1{background:#ffe08a}.jogo.c2{background:#bfe0ff}.jogo.c3{background:#ffd0b0}.jogo.c4{background:#c9f2d6}.jogo.c5{background:#e2d8ff}
+
+/* elementos comuns de jogo */
+.topo-jogo{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:center}
+.chip{padding:6px 16px;font-weight:800;font-size:1.1rem;border-radius:999px}
+.chip[aria-pressed="true"]{background:var(--sol)}
+.falar{padding:6px 16px;font-weight:800;font-size:1.1rem;border-radius:999px;background:#fff}
+.estrelas{display:flex;gap:4px;font-size:1.8rem;min-height:2.4rem}
+.estrelas span{filter:grayscale(1);opacity:.3;transition:.3s}
+.estrelas span.on{filter:none;opacity:1;transform:scale(1.15)}
+.balao{font-size:1.25rem;font-weight:700;text-align:center;min-height:2.2em;margin:0;text-wrap:balance;max-width:34ch}
+
+/* letras */
+.placa{display:flex;align-items:center;gap:22px;justify-content:center;background:var(--papel);border:4px solid var(--tinta);border-radius:32px;box-shadow:0 7px 0 var(--tinta);padding:6px 34px;min-width:min(420px,100%);box-sizing:border-box}
+.letra-g{font-size:clamp(110px,24vh,220px);font-weight:800;line-height:1;color:var(--agua)}
+.letra-p{font-size:clamp(60px,12vh,110px);font-weight:700;line-height:1;color:var(--tomate)}
+.dica{display:flex;flex-direction:column;align-items:center;min-width:90px}
+.dica .em{font-size:clamp(56px,11vh,96px);line-height:1}
+.dica .pal{font-weight:800;font-size:1.3rem}
+.placa.certo{animation:festa .6s}
+@keyframes festa{30%{transform:scale(1.06) rotate(-2deg)}60%{transform:scale(1.03) rotate(2deg)}}
+
+.teclado{display:flex;flex-direction:column;gap:8px;align-items:center}
+.linha{display:flex;gap:8px}
+.linha:nth-child(2){margin-left:26px}.linha:nth-child(3){margin-left:70px}
+.tecla{width:clamp(44px,6.2vw,64px);height:clamp(44px,6.2vw,64px);font-size:1.6rem;font-weight:800;padding:0;border-radius:14px}
+.tecla.vogal{color:var(--tomate)}
+.tecla.brilha{background:var(--sol);animation:brilho 1s infinite}
+@keyframes brilho{50%{box-shadow:0 5px 0 var(--tinta),0 0 0 8px rgba(255,200,61,.6)}}
+.errou{animation:treme .4s}
+@keyframes treme{20%,60%{transform:translateX(-8px)}40%,80%{transform:translateX(8px)}}
+
+.opcoes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;width:100%;max-width:420px}
+.opcao{height:clamp(96px,16vh,140px);font-size:clamp(3rem,10vh,4.6rem);font-weight:800;border-radius:26px;padding:0}
+
+/* palavras */
+.cartas{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;width:100%;max-width:640px}
+.carta{aspect-ratio:1;max-width:100%;font-size:clamp(3.6rem,13vw,7rem);border-radius:28px;padding:0;display:grid;place-items:center}
+.carta.ok{background:#c9f2d6;animation:festa .6s}
+.carta.apagada{opacity:.3}
+.tres{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;min-height:56px}
+.tres span{background:var(--papel);border:3px solid var(--tinta);border-radius:14px;padding:4px 14px;font-weight:800;font-size:1.25rem;white-space:nowrap}
+.proximo{font-size:1.5rem;font-weight:800;padding:8px 28px;border-radius:999px;background:var(--grama);color:#fff}
+.proximo:not([hidden]){animation:chama 1.2s infinite}
+@keyframes chama{50%{transform:scale(1.06)}}
+
+/* contar */
+.mesa{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;align-content:center;background:#9bd8a8;border:4px solid var(--tinta);border-radius:28px;padding:20px;width:100%;max-width:560px;min-height:150px;box-sizing:border-box}
+.mesa .moeda{transition:transform .2s}
+.mesa .moeda.conta{transform:scale(1.25) translateY(-6px)}
+.numeros{display:flex;gap:16px;flex-wrap:wrap;justify-content:center}
+.numero{width:clamp(84px,20vw,120px);height:clamp(84px,20vw,120px);font-size:clamp(2.6rem,8vw,3.6rem);font-weight:800;border-radius:24px;padding:0}
+
+/* preciso ou quero */
+.item{font-size:clamp(5rem,20vh,9rem);line-height:1;background:var(--papel);border:4px solid var(--tinta);border-radius:32px;box-shadow:0 7px 0 var(--tinta);padding:10px 34px}
+.item-nome{font-size:1.6rem;font-weight:800;margin:0}
+.escolhas{display:flex;gap:16px;flex-wrap:wrap;justify-content:center}
+.escolha{display:flex;flex-direction:column;align-items:center;padding:10px 26px;border-radius:26px;min-width:150px;font-weight:800;font-size:1.5rem}
+.escolha span{font-size:2.6rem;line-height:1.1}
+.escolha.p{background:#c9f2d6}.escolha.q{background:#e2d8ff}
+
+/* cofrinho */
+.cofre-area{display:grid;grid-template-columns:1fr 1fr;gap:16px;width:100%;max-width:820px}
+.pote{background:var(--papel);border:4px solid var(--tinta);border-radius:28px;box-shadow:0 7px 0 var(--tinta);padding:12px;display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0}
+.pote h3{margin:0;font-size:1.3rem}
+.pote .total{font-size:2.4rem;font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
+.porco{font-size:4.4rem;line-height:1}
+.porco.engorda{animation:pulo .5s}
+.moedas-soltas{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;min-height:40px}
+.moedas-soltas button{padding:0;border:0;background:none;border-radius:50%}
+.regra{font-size:.95rem;color:var(--tinta-suave);text-align:center;margin:0;font-weight:500}
+.acao{padding:6px 16px;font-weight:800;font-size:1.05rem;border-radius:999px}
+.loja{width:100%;max-width:820px}
+.loja h3{margin:4px 0 8px;font-size:1.3rem;text-align:center}
+.prateleira{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:12px}
+.produto{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 4px;border-radius:20px}
+.produto .em{font-size:2.6rem;line-height:1.1}
+.produto .preco{display:flex;align-items:center;gap:4px;font-weight:800;font-size:1.15rem}
+.produto .preco .moeda{width:24px;height:24px;font-size:.7rem;border-width:2px}
+.produto.tenho{background:#c9f2d6}
+.produto.longe{opacity:.65}
+
+/* painel dos pais */
+.painel{position:fixed;inset:0;background:rgba(29,43,79,.45);display:grid;place-items:center;z-index:20;padding:16px}
+.painel .caixa{background:var(--papel);border:4px solid var(--tinta);border-radius:24px;padding:18px 20px;max-width:440px;width:100%;box-sizing:border-box;max-height:90%;overflow-y:auto;user-select:text;-webkit-user-select:text}
+.painel h2{margin:0 0 8px;font-size:1.4rem}
+.painel .sec{margin:16px 0 6px;font-size:1.1rem}
+.lista-pais{display:flex;flex-direction:column;gap:6px}
+.lista-pais .item-p{display:flex;align-items:center;gap:8px;background:#fff;border:2px solid var(--tinta);border-radius:12px;padding:4px 8px;font-weight:700}
+.lista-pais .item-p span{flex:1;min-width:0}
+.lista-pais .item-p button{font:inherit;font-size:.85rem;font-weight:800;border:2px solid var(--tinta);border-radius:999px;background:var(--papel);padding:2px 10px}
+.lista-pais .vazio{color:var(--tinta-suave);font-size:.95rem}
+.form-premio{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.form-premio input{font:inherit;padding:6px 10px;border:3px solid var(--tinta);border-radius:12px;background:#fff;color:var(--tinta);min-width:0}
+#premioEm{width:3.2em;text-align:center}#premioNome{flex:1 1 140px}#premioPreco{width:6em}
+.premios-reais{width:100%;max-width:820px;background:#ffe3d6;border:4px solid var(--tinta);border-radius:28px;box-shadow:0 7px 0 var(--tinta);padding:12px 16px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:8px}
+.premios-reais h3{margin:0;font-size:1.3rem}
+.premios-reais .grade{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;width:100%}
+.premio{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 8px;border-radius:20px}
+.premio .em{font-size:2.6rem;line-height:1.1}
+.premio b{font-size:1.05rem;line-height:1.1;text-align:center}
+.premio .barra-s{width:100%;height:14px;border:2px solid var(--tinta);border-radius:999px;background:var(--papel);overflow:hidden}
+.premio .barra-s i{display:block;height:100%;background:var(--grama)}
+.premio .preco{display:flex;align-items:center;gap:4px;font-weight:800}
+.premio .preco .moeda{width:22px;height:22px;font-size:.65rem;border-width:2px}
+.premio.pode{background:#c9f2d6}
+.vale{font-size:1.05rem;border:3px dashed var(--tinta);border-radius:16px;padding:8px 12px;margin-top:6px;background:#fff8d6}
+.painel label{display:block;font-weight:700;margin:10px 0 4px}
+.painel input[type=text]{width:100%;box-sizing:border-box;font:inherit;padding:8px 12px;border:3px solid var(--tinta);border-radius:12px;background:#fff;color:var(--tinta)}
+.painel ul{padding-left:20px;margin:6px 0;font-size:.95rem;line-height:1.35}
+.painel .linha-b{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.painel .perigo{background:#ffe1dc}
+
+/* aventura */
+.jogo.grande{grid-column:1/-1;flex-direction:row;gap:18px;min-height:110px;background:var(--tomate);color:#fff}
+.jogo.grande small{color:#fff;opacity:.9;display:block}
+.jogo.grande b{font-size:1.8rem;display:block;line-height:1}
+.jogo.grande span:last-child{text-align:left}
+.trilha{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;width:100%;max-width:620px}
+.no{aspect-ratio:1;max-width:100%;border-radius:50%;font-size:clamp(2rem,7vw,3rem);display:grid;place-items:center;padding:0;position:relative}
+.no small{position:absolute;bottom:-4px;right:-2px;background:var(--tinta);color:#fff;border-radius:999px;font-size:.85rem;padding:0 8px;font-weight:800}
+.no.atual{background:var(--sol);animation:chama 1.2s infinite}
+.no.feito{background:#c9f2d6}
+.no.trancado{opacity:.4}
+.no.chefe{border-color:var(--tomate);border-width:5px}
+.sombra{filter:brightness(0);opacity:.25}
+.arena{display:flex;justify-content:space-between;align-items:flex-end;width:100%;max-width:720px;position:relative;min-height:clamp(130px,24vh,200px);padding-inline:4%;box-sizing:border-box}
+.lutador{display:flex;flex-direction:column;align-items:center;gap:2px}
+.lutador .em{font-size:clamp(4rem,14vh,7.5rem);line-height:1;display:inline-block}
+.px{image-rendering:pixelated;image-rendering:crisp-edges;width:1em;height:1em;vertical-align:middle;display:inline-block}
+.sonho .grande .px,.px.grande-px{width:1.1em;height:1.1em}
+.nome-l{font-weight:800;font-size:1.1rem;background:var(--papel);border:3px solid var(--tinta);border-radius:999px;padding:0 12px}
+.coracoes{font-size:1.5rem;letter-spacing:2px;min-height:2rem}
+.monstro .em{filter:drop-shadow(0 0 16px var(--aura,#ffc83d))}
+.monstro.entra{animation:entra .7s cubic-bezier(.3,1.6,.5,1)}
+@keyframes entra{0%{transform:scale(0) rotate(-30deg);opacity:0}100%{transform:none;opacity:1}}
+.monstro.leva .em{animation:treme .4s}
+.monstro.ri .em{animation:festa .6s}
+.monstro.capturado .em{animation:some 1.1s forwards}
+@keyframes some{to{transform:scale(.1) rotate(540deg);opacity:0}}
+.teia{position:absolute;font-size:3.2rem;left:22%;bottom:35%;pointer-events:none;z-index:2}
+.dupla{display:flex;align-items:flex-end;gap:4px}
+.dupla .parceiro{font-size:.7em}
+.lutador .dupla .parceiro{font-size:clamp(2.8rem,10vh,5.2rem)}
+.parceiro.ataca{animation:salto .45s}
+@keyframes salto{40%{transform:translateY(-22px) scale(1.1)}}
+.teia.voa{animation:voa .5s ease-out forwards}
+@keyframes voa{to{left:74%;transform:scale(1.9) rotate(220deg)}}
+.desafio{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%}
+.letra-d{font-size:clamp(70px,13vh,120px);font-weight:800;line-height:1;color:var(--agua)}
+.slots{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.slot{width:clamp(46px,10vw,72px);height:clamp(58px,12vw,88px);border:4px dashed var(--tinta-suave);border-radius:16px;display:grid;place-items:center;font-size:clamp(2rem,6vw,3.2rem);font-weight:800;color:rgba(29,43,79,.16);background:var(--papel)}
+.slot.feito{border-style:solid;border-color:var(--grama);color:var(--grama)}
+.slot.agora{border-style:solid;border-color:var(--sol-escuro);color:rgba(29,43,79,.4);animation:chama 1.2s infinite}
+.figura{font-size:clamp(4rem,13vh,6.5rem);line-height:1}
+.silabas{font-size:2rem;font-weight:800;letter-spacing:.12em;min-height:2.6rem;color:var(--uva)}
+.palavras-b{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.pal-b{font-size:clamp(1.8rem,6vw,2.6rem);font-weight:800;padding:6px 22px;border-radius:20px;letter-spacing:.06em}
+.pal-b.ok{background:#c9f2d6}
+.surpresa{position:fixed;inset:0;display:grid;place-items:center;z-index:25;background:rgba(29,43,79,.4);padding:16px}
+.surpresa .caixa{background:var(--papel);border:4px solid var(--tinta);border-radius:28px;box-shadow:0 8px 0 var(--tinta);padding:18px 22px;max-width:440px;width:100%;box-sizing:border-box;text-align:center;animation:entra .6s cubic-bezier(.3,1.6,.5,1)}
+.surpresa .quem{font-size:5.5rem;line-height:1;display:inline-block;animation:chama 1.4s infinite}
+.surpresa p{font-size:1.25rem;font-weight:700;margin:8px 0 14px;text-wrap:balance}
+
+/* mundo 16-bit */
+.jogo.grande.mun{background:#3868d0}
+#mundo{overflow:hidden;padding-bottom:0}
+#palcoMundo{background:#185028}
+#mapaCv{display:block;width:100%;height:100%;touch-action:none;image-rendering:pixelated}
+.fala-mundo{position:absolute;left:12px;right:12px;bottom:12px;background:#f8f8f8;color:#202020;border:4px solid #202020;outline:4px solid #f8f8f8;box-shadow:0 0 0 8px #202020;border-radius:6px;padding:16px 40px 16px 18px;font-family:'Press Start 2P',monospace;font-size:clamp(.7rem,1.6vw,.95rem);line-height:1.8;cursor:pointer;z-index:3}
+.fala-mundo i{position:absolute;right:16px;bottom:10px;font-style:normal;animation:chama .8s infinite}
+.dpad{display:grid;grid-template-areas:". c ." "e . d" ". b .";gap:4px}
+.dpad .ctl{width:clamp(52px,12vw,70px);height:clamp(52px,12vw,70px);border-radius:14px;font-size:1.5rem}
+.flash{position:fixed;inset:0;background:#fff;z-index:40;pointer-events:none;opacity:0}
+.flash.pisca{animation:pisca .8s steps(1)}
+@keyframes pisca{0%,25%,50%,75%{opacity:1}12%,37%,62%,100%{opacity:0}}
+
+.album-info{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:center;background:var(--papel);border:4px solid var(--tinta);border-radius:24px;box-shadow:0 6px 0 var(--tinta);padding:10px 18px;width:100%;max-width:620px;box-sizing:border-box}
+.album-info .regra{font-size:1.1rem;font-weight:700;margin:6px 0 0}
+
+/* rotina e sonho */
+.habitos{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;width:100%;max-width:820px}
+.habito{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:22px;text-align:left}
+.habito .em{font-size:2.8rem;line-height:1}
+.habito span.q{flex:1;font-size:1.25rem;font-weight:800;line-height:1.15}
+.habito .ok{font-size:1.1rem;font-weight:800;background:var(--grama);color:#fff;border-radius:999px;padding:4px 14px;white-space:nowrap}
+.habito.feito{background:#c9f2d6}
+.habito.feito .ok{background:var(--tinta)}
+.sonho{width:100%;max-width:820px;background:#fff3c4;border:4px solid var(--tinta);border-radius:28px;box-shadow:0 7px 0 var(--tinta);padding:12px 16px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:8px}
+.sonho h3{margin:0;font-size:1.3rem}
+.sonho .grande{font-size:4.5rem;line-height:1}
+.sonho .barra-s{width:100%;max-width:420px;height:26px;border:3px solid var(--tinta);border-radius:999px;background:var(--papel);overflow:hidden}
+.sonho .barra-s i{display:block;height:100%;background:var(--sol);transition:width .5s}
+.sonho .opcoes-s{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+
+/* cidade */
+.jogo.grande.cid{background:var(--grama)}
+.missao{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:center;background:var(--papel);border:4px solid var(--tinta);border-radius:24px;box-shadow:0 6px 0 var(--tinta);padding:10px 16px;width:100%;max-width:820px;box-sizing:border-box}
+.missao .em{font-size:2.8rem;line-height:1}
+.missao .txt{flex:1;min-width:180px}
+.missao .txt b{display:block;font-size:.95rem;color:var(--tinta-suave)}
+.missao .txt span{font-size:1.25rem;font-weight:800;line-height:1.15}
+.missao .quiz{display:flex;gap:8px;flex-wrap:wrap}
+.missao .quiz button{font-size:1.25rem;font-weight:800;padding:4px 16px;border-radius:16px}
+.lotes{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;width:100%;max-width:820px}
+.lote{aspect-ratio:1;max-width:100%;border-radius:18px;padding:0;display:grid;place-items:center;font-size:clamp(2rem,7vw,3.4rem);background:#a8e0a0;position:relative}
+.lote.vazio{border-style:dashed;box-shadow:none;color:rgba(29,43,79,.35);font-size:1.8rem;font-weight:800}
+.lote .renda{position:absolute;top:-8px;right:-6px;font-size:1.3rem;animation:chama 1.2s infinite}
+.lote.nasce{animation:entra .6s cubic-bezier(.3,1.6,.5,1)}
+.catalogo{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.catalogo .produto small{font-size:.85rem;font-weight:700;color:var(--tinta-suave)}
+@media (max-width:719px){.lotes{grid-template-columns:repeat(4,minmax(0,1fr))}}
+
+/* pular e pegar */
+.jogo.grande.pula{background:var(--agua)}
+#pular{overflow:hidden;padding-bottom:0}
+.palco{position:relative;flex:1;width:100%;min-height:0;border:4px solid var(--tinta);border-radius:24px;overflow:hidden;background:#8fd3ff;box-sizing:border-box}
+#cena{display:block;width:100%;height:100%;touch-action:none}
+.hud{position:absolute;top:8px;left:8px;right:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;pointer-events:none}
+.pilula{background:var(--papel);border:3px solid var(--tinta);border-radius:999px;padding:0 12px;font-weight:800;font-size:1.2rem;display:flex;align-items:center;gap:6px;min-height:38px;font-variant-numeric:tabular-nums}
+.pilula .moeda{width:24px;height:24px;font-size:.7rem;border-width:2px}
+.letrinhas{letter-spacing:.12em}
+.letrinhas span{color:rgba(29,43,79,.22)}
+.letrinhas span.on{color:var(--grama)}
+.dica-tecla{font-size:.9rem;font-weight:700}
+.controles{position:absolute;inset:auto 0 0 0;display:flex;justify-content:space-between;align-items:flex-end;pointer-events:none;
+  padding:10px max(10px,env(safe-area-inset-right,0px)) max(10px,env(safe-area-inset-bottom,0px)) max(10px,env(safe-area-inset-left,0px))}
+.controles .grupo{display:flex;gap:12px}
+.ctl{pointer-events:auto;width:clamp(64px,15vw,88px);height:clamp(64px,15vw,88px);font-size:2rem;border-radius:50%;padding:0;opacity:.88;touch-action:none}
+.ctl.pulo{width:clamp(80px,19vw,110px);height:clamp(80px,19vw,110px);background:var(--sol)}
+.ctl.ativo{transform:translateY(4px);box-shadow:0 1px 0 var(--tinta)}
+@media (hover:hover) and (pointer:fine){.controles{display:none}}
+@media not ((hover:hover) and (pointer:fine)){.dica-tecla{display:none}}
+.fim{position:absolute;inset:0;display:grid;place-items:center;background:rgba(29,43,79,.4);padding:16px}
+.fim .caixa{background:var(--papel);border:4px solid var(--tinta);border-radius:28px;box-shadow:0 8px 0 var(--tinta);padding:18px 22px;max-width:440px;width:100%;box-sizing:border-box;text-align:center;animation:entra .6s cubic-bezier(.3,1.6,.5,1)}
+.fim .quem{font-size:4.5rem;line-height:1}
+.fim p{font-size:1.25rem;font-weight:700;margin:8px 0 14px;text-wrap:balance}
+.fim .linha-b{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+
+canvas#confete{position:fixed;inset:0;pointer-events:none;z-index:30}
+
+@media (max-width:719px){
+  .placa{gap:12px;padding:6px 18px}
+  .cofre-area{grid-template-columns:1fr}
+  .oi{font-size:1.1rem!important}
+  .bandeira{width:44px}
+}
+@media (max-height:560px){.jogo{min-height:110px}.jogo .ic{font-size:2.6rem}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+
+<div class="app">
+  <header class="barra">
+    <button class="bloco mini" id="btnCasa" aria-label="Voltar para o início" hidden>🏠</button>
+    <div class="oi" id="oi">Oi, Arthur!</div>
+    <div class="bandeiras" role="group" aria-label="Idioma">
+      <button class="bloco bandeira" data-idioma="pt" aria-label="Português">🇧🇷</button>
+      <button class="bloco bandeira" data-idioma="en" aria-label="English">🇺🇸</button>
+      <button class="bloco bandeira" data-idioma="es" aria-label="Español">🇪🇸</button>
+    </div>
+    <button class="bloco carteira" id="carteira" aria-label="Moedas na carteira"><span class="moeda"></span><span id="nCarteira">0</span></button>
+    <button class="bloco mini" id="btnPais" aria-label="Área dos pais">⚙️</button>
+  </header>
+
+  <main>
+    <!-- INÍCIO -->
+    <section class="tela" id="inicio">
+      <h1 class="titulo">Vamos brincar?</h1>
+      <p class="sub">Escolha um jogo. Cada acerto vale uma moeda.</p>
+      <div class="cardapio">
+        <button class="bloco jogo grande" data-ir="mapa" data-diz="Aventura! Vamos capturar os monstrinhos!"><span class="ic">🦸🕸️</span><span><b>Aventura</b><small>capture os monstrinhos com a teia</small></span></button>
+        <button class="bloco jogo grande mun" data-ir="mundo" data-diz="Explorar o mapa!"><span class="ic">🗺️🧢</span><span><b>Explorar o mapa</b><small>ande, entre nas casas e capture monstrinhos</small></span></button>
+        <button class="bloco jogo grande cid" data-ir="cidade" data-diz="Minha cidade! Vamos construir!"><span class="ic">🏠🏟️</span><span><b>Minha Cidade</b><small>construa casas, loja, banco e a arena</small></span></button>
+        <button class="bloco jogo grande pula" data-ir="pular" data-diz="Pular e pegar moedas!"><span class="ic">🦸🪙</span><span><b>Pular e pegar</b><small>corra, pule e ache as letras do seu nome</small></span></button>
+        <button class="bloco jogo c3" data-ir="rotina" data-diz="Rotina do dia"><span class="ic">🪥</span><b>Rotina do dia</b><small>dente, cama, prato</small></button>
+        <button class="bloco jogo c4" data-ir="nome" data-diz="Escrever meu nome"><span class="ic abc" id="icNome">ART</span><b>Meu nome</b><small>escrever no teclado</small></button>
+        <button class="bloco jogo c5" data-ir="digitar" data-diz="Digitar palavras"><span class="ic">⌨️</span><b>Digitar palavras</b><small>na língua da bandeira</small></button>
+        <button class="bloco jogo c2" data-ir="ler" data-diz="Ler palavras"><span class="ic">📖</span><b>Ler palavras</b><small>qual está escrito?</small></button>
+        <button class="bloco jogo c1" data-ir="letras" data-diz="Letras"><span class="ic abc">ABC</span><b>Letras</b><small>achar no teclado</small></button>
+        <button class="bloco jogo c2" data-ir="palavras" data-diz="Palavras"><span class="ic">🌎</span><b>Palavras</b><small>3 idiomas</small></button>
+        <button class="bloco jogo c3" data-ir="contar" data-diz="Contar moedas"><span class="ic">🪙</span><b>Contar</b><small>quantas moedas?</small></button>
+        <button class="bloco jogo c4" data-ir="precisa" data-diz="Preciso ou quero?"><span class="ic">🤔</span><b>Preciso ou quero?</b><small>escolhas</small></button>
+        <button class="bloco jogo c5" data-ir="cofre" data-diz="Cofrinho e lojinha"><span class="ic">🐷</span><b>Cofrinho</b><small>guardar e comprar</small></button>
+        <button class="bloco jogo c1" data-ir="album" data-diz="Álbum dos monstrinhos"><span class="ic">📒</span><b>Álbum</b><small>monstrinhos capturados</small></button>
+      </div>
+    </section>
+
+    <!-- LETRAS -->
+    <section class="tela" id="letras" hidden>
+      <div class="topo-jogo">
+        <button class="bloco chip" id="chipVogais" aria-pressed="true">AEIOU</button>
+        <button class="bloco chip" id="chipTodas" aria-pressed="false">A–Z</button>
+        <button class="bloco falar" data-repetir>🔊 De novo</button>
+      </div>
+      <div class="placa" id="placa">
+        <span class="letra-g" id="letraG">A</span>
+        <span class="letra-p" id="letraP">a</span>
+        <div class="dica"><span class="em" id="dicaEm">❓</span><span class="pal" id="dicaPal">&nbsp;</span></div>
+      </div>
+      <div class="estrelas" id="estrelasLetras"></div>
+      <div id="entradaLetras"></div>
+    </section>
+
+    <!-- PALAVRAS -->
+    <section class="tela" id="palavras" hidden>
+      <div class="topo-jogo"><button class="bloco falar" data-repetir>🔊 De novo</button></div>
+      <p class="balao" id="perguntaPal"></p>
+      <div class="cartas" id="cartas"></div>
+      <div class="tres" id="tres"></div>
+      <button class="bloco proximo" id="proxPal" hidden>Próximo ▶</button>
+      <div class="estrelas" id="estrelasPal"></div>
+    </section>
+
+    <!-- CONTAR -->
+    <section class="tela" id="contar" hidden>
+      <div class="topo-jogo"><button class="bloco falar" data-repetir>🔊 De novo</button></div>
+      <p class="balao" id="perguntaCont"></p>
+      <div class="mesa" id="mesa"></div>
+      <div class="numeros" id="numeros"></div>
+      <div class="estrelas" id="estrelasCont"></div>
+    </section>
+
+    <!-- PRECISO OU QUERO -->
+    <section class="tela" id="precisa" hidden>
+      <div class="topo-jogo"><button class="bloco falar" data-repetir>🔊 De novo</button></div>
+      <div class="item" id="itemEm">💧</div>
+      <p class="item-nome" id="itemNome"></p>
+      <div class="escolhas">
+        <button class="bloco escolha p" data-resp="p"><span>🌱</span>Preciso</button>
+        <button class="bloco escolha q" data-resp="q"><span>💭</span>Quero</button>
+      </div>
+      <p class="balao" id="explica"></p>
+      <button class="bloco proximo" id="proxPrec" hidden>Próximo ▶</button>
+    </section>
+
+    <!-- COFRINHO -->
+    <section class="tela" id="cofre" hidden>
+      <div class="cofre-area">
+        <div class="pote">
+          <h3>👛 Carteira</h3>
+          <span class="total" id="tCarteira">0</span>
+          <div class="moedas-soltas" id="soltas"></div>
+          <p class="regra">Toque numa moeda para guardar no cofrinho.</p>
+        </div>
+        <div class="pote">
+          <h3>Cofrinho</h3>
+          <span class="porco" id="porco">🐷</span>
+          <span class="total" id="tCofre">0</span>
+          <p class="regra">Dinheiro guardado cresce: a cada 5 moedas no cofrinho, ganha +1 por dia.</p>
+          <button class="bloco acao" id="tirar">Tirar 1 moeda</button>
+        </div>
+      </div>
+      <div class="sonho" id="sonho"></div>
+      <div class="premios-reais" id="premiosReais"></div>
+      <div class="loja">
+        <h3>🏪 Lojinha de figurinhas</h3>
+        <div class="prateleira" id="prateleira"></div>
+      </div>
+    </section>
+
+    <!-- MAPA DA AVENTURA -->
+    <section class="tela" id="mapa" hidden>
+      <h2 class="titulo" id="tituloMundo">Mundo 1 · Cidade das Teias</h2>
+      <p class="sub">Toque na fase que está brilhando.</p>
+      <div class="trilha" id="trilha"></div>
+    </section>
+
+    <!-- BATALHA -->
+    <section class="tela" id="batalha" hidden>
+      <div class="arena" id="arena">
+        <div class="lutador heroi"><span class="dupla"><span class="em" id="heroiEm">🧒</span><span class="em parceiro" id="parceiroEm"></span></span><span class="nome-l" id="nomeHeroi">Treinador Arthur</span></div>
+        <div class="lutador monstro" id="monstro" hidden><span class="coracoes" id="coracoes"></span><span class="em" id="monstroEm">🐲</span><span class="nome-l" id="monstroNome"></span></div>
+      </div>
+      <div class="desafio" id="desafioB"></div>
+      <button class="bloco proximo" id="continuar" hidden>Continuar ▶</button>
+    </section>
+
+    <!-- TREINO: NOME E LEITURA -->
+    <section class="tela" id="nome" hidden>
+      <div class="topo-jogo"><button class="bloco falar" data-repetir>🔊 De novo</button></div>
+      <div class="desafio" id="desafioNome"></div>
+      <div class="estrelas" id="estrelasNome"></div>
+    </section>
+    <section class="tela" id="digitar" hidden>
+      <div class="topo-jogo"><button class="bloco falar" data-repetir>🔊 De novo</button></div>
+      <div class="desafio" id="desafioDig"></div>
+      <div class="estrelas" id="estrelasDig"></div>
+    </section>
+    <section class="tela" id="ler" hidden>
+      <div class="topo-jogo"><button class="bloco falar" data-repetir>🔊 De novo</button></div>
+      <div class="desafio" id="desafioLer"></div>
+      <div class="estrelas" id="estrelasLer"></div>
+    </section>
+
+    <!-- PULAR E PEGAR (plataforma) -->
+    <section class="tela" id="pular" hidden>
+      <div class="palco" id="palco">
+        <canvas id="cena"></canvas>
+        <div class="hud">
+          <span class="pilula" id="hudFase">Fase 1</span>
+          <span class="pilula"><span class="moeda"></span><span id="hudMoedas">0</span></span>
+          <span class="pilula letrinhas" id="hudNome"></span>
+          <span class="pilula dica-tecla">← → andar · espaço pular</span>
+          <span class="pilula pilula-controle" hidden>🎮 A: pular</span>
+        </div>
+        <div class="controles">
+          <div class="grupo">
+            <button class="bloco ctl" data-ctl="esq" aria-label="Andar para a esquerda">◀</button>
+            <button class="bloco ctl" data-ctl="dir" aria-label="Andar para a direita">▶</button>
+          </div>
+          <button class="bloco ctl pulo" data-ctl="pulo" aria-label="Pular">⬆</button>
+        </div>
+        <div class="fim" id="fimFase" hidden>
+          <div class="caixa">
+            <div class="quem">🏰</div>
+            <p id="fimTexto"></p>
+            <div class="linha-b">
+              <button class="bloco proximo" id="proxFase">Próxima fase ▶</button>
+              <button class="bloco acao" id="irCofre">🐷 Guardar no cofrinho</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MUNDO -->
+    <section class="tela" id="mundo" hidden>
+      <div class="palco" id="palcoMundo">
+        <canvas id="mapaCv"></canvas>
+        <div class="hud">
+          <span class="pilula"><span class="moeda"></span><span id="mundoMoedas">0</span></span>
+          <span class="pilula dica-tecla">setas: andar · espaço: falar</span>
+          <span class="pilula pilula-controle" hidden>🎮 A: falar · B: fechar</span>
+        </div>
+        <div class="fala-mundo" id="falaMundo" hidden><span id="falaTexto"></span><i>▼</i></div>
+        <div class="controles">
+          <div class="dpad">
+            <button class="bloco ctl" data-dpad="cima" aria-label="Para cima" style="grid-area:c">▲</button>
+            <button class="bloco ctl" data-dpad="esq" aria-label="Para a esquerda" style="grid-area:e">◀</button>
+            <button class="bloco ctl" data-dpad="dir" aria-label="Para a direita" style="grid-area:d">▶</button>
+            <button class="bloco ctl" data-dpad="baixo" aria-label="Para baixo" style="grid-area:b">▼</button>
+          </div>
+          <button class="bloco ctl pulo" data-dpad="a" aria-label="Falar">A</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ROTINA DO DIA -->
+    <section class="tela" id="rotina" hidden>
+      <h2 class="titulo">Rotina do dia</h2>
+      <p class="sub">Cada coisa feita hoje vale 1 moeda. Tudo feito: +2 de bônus!</p>
+      <div class="habitos" id="habitos"></div>
+    </section>
+
+    <!-- MINHA CIDADE -->
+    <section class="tela" id="cidade" hidden>
+      <div class="missao" id="missao"></div>
+      <button class="bloco proximo" id="coletar" hidden></button>
+      <div class="lotes" id="lotes"></div>
+    </section>
+
+    <!-- ÁLBUM -->
+    <section class="tela" id="album" hidden>
+      <h2 class="titulo">Álbum dos monstrinhos</h2>
+      <p class="sub" id="albumConta"></p>
+      <div class="album-info" id="albumInfo" hidden></div>
+      <div class="trilha" id="albumGrade"></div>
+    </section>
+  </main>
+</div>
+
+<div class="painel" id="painel" hidden>
+  <div class="caixa" role="dialog" aria-label="Área dos pais">
+    <h2>Área dos pais</h2>
+    <label for="campoNome">Nome da criança</label>
+    <input type="text" id="campoNome" maxlength="20" autocomplete="off">
+    <h3 class="sec">🎁 Pedidos de prêmio</h3>
+    <div id="listaPedidos" class="lista-pais"></div>
+    <h3 class="sec">Prêmios reais (pagos com o cofrinho)</h3>
+    <div id="listaPremios" class="lista-pais"></div>
+    <form id="formPremio" class="form-premio">
+      <input type="text" id="premioEm" maxlength="4" placeholder="🎁" aria-label="Emoji do prêmio" autocomplete="off">
+      <input type="text" id="premioNome" maxlength="30" placeholder="Nome do prêmio" aria-label="Nome do prêmio" autocomplete="off" required>
+      <input type="number" id="premioPreco" min="1" max="999" placeholder="Moedas" aria-label="Preço em moedas" required>
+      <button class="bloco acao" type="submit">Adicionar</button>
+    </form>
+    <ul>
+      <li><b>Aventura</b>: 8 fases. Cada monstrinho cai com 3 acertos (letra, leitura, contagem). O chefão da fase 8 só é capturado escrevendo o nome. Mundo 1 usa só vogais; do Mundo 2 em diante, todas as letras e contagem até 10.</li>
+      <li><b>Rotina do dia</b>: escovar os dentes, comer tudo, arrumar a cama, guardar os brinquedos, tomar banho e ler uma historinha. Vale 1 moeda cada, uma vez por dia, e +2 quando faz tudo. Quem confirma é ele mesmo, então vale fazer junto com ele.</li>
+      <li><b>Prêmios reais</b>: cadastre acima (emoji, nome e preço em moedas). Ele só troca com o dinheiro do <b>cofrinho</b>; as moedas saem na hora e o pedido aparece em "Pedidos de prêmio" até vocês marcarem <b>Entregue</b> ou <b>Devolver moedas</b>. Esta área abre com uma conta de multiplicação, para ele não mexer.</li>
+      <li><b>Meu sonho</b> (no Cofrinho): ele escolhe um monstrinho lendário de 25, 40 ou 60 moedas, que só se compra com o cofrinho. A barra mostra quanto falta, e a voz explica que esperando o cofrinho cresce.</li>
+      <li><b>Minha Cidade</b>: ele constrói em 24 terrenos com as moedas da carteira. Loja (+1 por dia) e banco (+2 por dia) ensinam que comprar algo que rende é diferente de gastar. As 12 missões em sequência misturam construir, guardar e perguntas de inglês e espanhol. A arena leva para a Aventura; a escola, para Ler palavras.</li>
+      <li><b>Controle de videogame</b> (Bluetooth ou USB, padrão Xbox/PlayStation): funciona no mapa (direcional ou analógico anda, A fala/entra, B fecha) e no Pular e pegar (A pula). Ligue o controle e aperte um botão com o jogo aberto, porque o navegador só enxerga o controle depois disso.</li>
+      <li><b>Pular e pegar</b>: plataforma no estilo Mario. Notebook: setas ou A/D para andar, espaço ou ↑ para pular. Celular: botões na tela (melhor com o celular deitado). Batendo a cabeça nos blocos "?" ele junta as letras do nome em ordem. Pular em cima do monstrinho captura; encostar só empurra. Ninguém morre: quem cai no buraco volta um pouco antes. As moedas da fase vão para a carteira.</li>
+      <li><b>Ler palavras</b>: as alternativas começam com letras diferentes, então dá para acertar pela primeira letra (fase da escola). No acerto, a voz lê por sílabas. Às vezes pede para achar o próprio nome entre PAPAI e MAMÃE.</li>
+      <li><b>Letras</b>: a voz pede a letra; no notebook ela acende no teclado da tela após 3 s (liga a tecla da tela à do teclado de verdade). No celular viram 4 botões grandes.</li>
+      <li><b>Bandeiras</b>: mudam a língua da voz nas Letras, Palavras e Contar. Nas Palavras o acerto sempre fala nos 3 idiomas.</li>
+      <li><b>Finanças</b>: acertos viram moedas na carteira. Guardar no cofrinho rende 1 moeda a cada 5, uma vez por dia. A lojinha só aceita moedas da carteira: as figurinhas caras exigem guardar.</li>
+      <li>O progresso fica salvo só neste aparelho e navegador.</li>
+    </ul>
+    <div class="linha-b">
+      <button class="bloco acao" id="btnSom">🔊 Som ligado</button>
+      <button class="bloco acao perigo" id="btnZerar">Zerar moedas e figurinhas</button>
+    </div>
+    <div class="linha-b"><button class="bloco acao" id="fecharPainel">Fechar</button></div>
+  </div>
+</div>
+<div class="surpresa" id="surpresa" hidden>
+  <div class="caixa" role="dialog" aria-live="polite">
+    <div class="quem" id="surpresaQuem">🦉</div>
+    <p id="surpresaTexto"></p>
+    <button class="bloco proximo" id="surpresaOk">OK!</button>
+  </div>
+</div>
+<div class="surpresa" id="portao" hidden>
+  <div class="caixa" role="dialog" aria-label="Confirmação dos pais">
+    <p>Área dos pais<br><span id="portaoConta"></span></p>
+    <form id="formPortao" class="form-premio" style="justify-content:center">
+      <input type="number" id="portaoResp" aria-label="Resposta" autocomplete="off" style="max-width:120px">
+      <button class="bloco proximo" type="submit">Entrar</button>
+    </form>
+    <div class="linha-b" style="display:flex;justify-content:center;margin-top:12px"><button class="bloco acao" id="portaoFechar" type="button">Voltar</button></div>
+  </div>
+</div>
+<div class="surpresa" id="folha" hidden>
+  <div class="caixa" role="dialog">
+    <p id="folhaTitulo"></p>
+    <div class="catalogo" id="catalogo"></div>
+    <div class="linha-b" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:12px">
+      <button class="bloco acao" id="fecharFolha">Fechar</button>
+    </div>
+  </div>
+</div>
+<div class="flash" id="flash" hidden></div>
+<canvas id="confete"></canvas>
+
+<script>
+(function(){
+'use strict';
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const embaralhar=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+
+/* ---------- estado (salvo neste navegador) ---------- */
+const CHAVE='jogo-arthur-v1';
+const PADRAO={nome:'Arthur',idioma:'pt',carteira:0,cofrinho:0,figurinhas:[],jurosEm:'',soVogais:true,som:true,contarAcertos:0,fase:0,mundo:0,album:[],introVista:false,nivelPular:0,pularVisto:false,cidade:[],missao:0,rendaEm:'',rendaPendente:0,rotina:{data:'',feitos:[]},sonho:null,lendarios:[],
+  premios:[{id:1,em:'🍦',nome:'Sorvete',preco:15},{id:2,em:'🎬',nome:'Filme com pipoca',preco:25},{id:3,em:'🌳',nome:'Passeio no parque',preco:40},{id:4,em:'🧸',nome:'Brinquedo pequeno',preco:60}],
+  pedidos:[]};
+let S={...PADRAO};
+try{const s=JSON.parse(localStorage.getItem(CHAVE)||'null');if(s)S={...PADRAO,...s}}catch(e){}
+function salvar(){try{localStorage.setItem(CHAVE,JSON.stringify(S))}catch(e){}}
+
+/* ---------- voz ---------- */
+const LANG={pt:'pt-BR',en:'en-US',es:'es-ES'};
+let vozes=[];
+function carregarVozes(){try{vozes=speechSynthesis.getVoices()||[]}catch(e){}}
+if('speechSynthesis' in window){carregarVozes();try{speechSynthesis.onvoiceschanged=carregarVozes}catch(e){}}
+function voz(idioma){
+  const alvo=LANG[idioma].toLowerCase();
+  const norm=v=>(v.lang||'').replace('_','-').toLowerCase();
+  return vozes.find(v=>norm(v)===alvo)||vozes.find(v=>norm(v).startsWith(idioma));
+}
+function falar(texto,idioma=S.idioma,fila=false){
+  if(!S.som||!('speechSynthesis' in window))return;
+  try{
+    if(!fila)speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(texto);
+    u.lang=LANG[idioma];const v=voz(idioma);if(v)u.voice=v;
+    u.rate=.88;u.pitch=1.1;speechSynthesis.speak(u);
+  }catch(e){}
+}
+function calar(){try{speechSynthesis.cancel()}catch(e){}}
+
+/* ---------- sons ---------- */
+let ctx=null;
+function tom(freqs,dur=.12,tipo='triangle'){
+  if(!S.som)return;
+  try{
+    ctx=ctx||new (window.AudioContext||window.webkitAudioContext)();
+    if(ctx.state==='suspended')ctx.resume();
+    freqs.forEach((f,i)=>{
+      const o=ctx.createOscillator(),g=ctx.createGain(),t=ctx.currentTime+i*dur;
+      o.type=tipo;o.frequency.value=f;
+      g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(.22,t+.02);g.gain.exponentialRampToValueAtTime(.0001,t+dur*1.7);
+      o.connect(g).connect(ctx.destination);o.start(t);o.stop(t+dur*1.9);
+    });
+  }catch(e){}
+}
+const somAcerto=()=>tom([523,659,784,1047],.1);
+const somErro=()=>tom([247,220],.16,'sine');
+const somMoeda=()=>tom([1319,1760],.07,'square');
+
+/* ---------- confete ---------- */
+const reduz=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const cv=$('#confete'),c2=cv.getContext('2d');
+function confete(){
+  if(reduz)return;
+  cv.width=innerWidth;cv.height=innerHeight;
+  const cores=['#ffc83d','#2fb36b','#ff6b57','#7a5cff','#2f8cff','#ff8fc8'];
+  const ps=Array.from({length:130},()=>({x:innerWidth/2+(Math.random()-.5)*120,y:innerHeight*.45,vx:(Math.random()-.5)*14,vy:-Math.random()*15-4,r:Math.random()*6+4,c:pick(cores),a:Math.random()*6,va:(Math.random()-.5)*.4}));
+  const t0=performance.now();
+  (function quadro(t){
+    c2.clearRect(0,0,cv.width,cv.height);
+    ps.forEach(p=>{p.vy+=.45;p.x+=p.vx;p.y+=p.vy;p.a+=p.va;c2.save();c2.translate(p.x,p.y);c2.rotate(p.a);c2.fillStyle=p.c;c2.fillRect(-p.r,-p.r/2,p.r*2,p.r);c2.restore()});
+    if(t-t0<2400)requestAnimationFrame(quadro);else c2.clearRect(0,0,cv.width,cv.height);
+  })(t0);
+}
+
+/* ---------- moedas ---------- */
+function atualizarMoedas(){
+  $('#nCarteira').textContent=S.carteira;
+  if(tela==='cofre')desenharCofre();
+}
+function ganhar(n=1){
+  S.carteira+=n;salvar();atualizarMoedas();somMoeda();
+  const el=$('#carteira');el.classList.remove('pulo');void el.offsetWidth;el.classList.add('pulo');
+}
+
+/* ---------- estrelas (5 acertos = festa) ---------- */
+const sequencia={};
+function desenharEstrelas(id){
+  const n=sequencia[id]||0;
+  $('#'+id).innerHTML=Array.from({length:5},(_,i)=>`<span class="${i<n?'on':''}">⭐</span>`).join('');
+}
+function estrela(id){
+  sequencia[id]=(sequencia[id]||0)+1;desenharEstrelas(id);
+  if(sequencia[id]>=5){confete();depois(1600,()=>{sequencia[id]=0;desenharEstrelas(id)});return true}
+  return false;
+}
+
+/* ---------- navegação ---------- */
+let tela='inicio',timers=[],bloqueado=false;
+const depois=(ms,fn)=>timers.push(setTimeout(fn,ms));
+function limpar(){timers.forEach(clearTimeout);timers=[];bloqueado=false;D=null}
+function ir(id){
+  limpar();calar();tela=id;
+  $$('.tela').forEach(t=>t.hidden=t.id!==id);
+  $('#btnCasa').hidden=id==='inicio';
+  $('#btnCasa').textContent=voltarMundo&&id!=='mundo'?'🗺️':'🏠';
+  ({letras:iniciarLetras,palavras:novaRodadaPal,contar:novaRodadaCont,precisa:iniciarPrecisa,cofre:abrirCofre,inicio:()=>{},
+    mundo:abrirMundo,mapa:abrirMapa,batalha:iniciarBatalha,pular:abrirPular,cidade:abrirCidade,rotina:abrirRotina,nome:()=>treino('nome'),ler:()=>treino('ler'),digitar:()=>treino('digitar'),album:abrirAlbum})[id]();
+}
+let D=null; // desafio ativo (aventura e treinos)
+let voltarMundo=false,lutaSelvagem=false;
+let repetir=()=>{};
+
+/* ================= LETRAS ================= */
+const ABC='ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+const VOGAIS='AEIOU'.split('');
+const NOME_LETRA={
+  pt:{A:'á',B:'bê',C:'cê',D:'dê',E:'é',F:'éfe',G:'gê',H:'agá',I:'i',J:'jota',K:'cá',L:'éle',M:'ême',N:'ene',O:'ó',P:'pê',Q:'quê',R:'érre',S:'ésse',T:'tê',U:'u',V:'vê',W:'dáblio',X:'xis',Y:'ípsilon',Z:'zê'},
+  es:{A:'a',B:'be',C:'ce',D:'de',E:'e',F:'efe',G:'ge',H:'hache',I:'i',J:'jota',K:'ka',L:'ele',M:'eme',N:'ene',O:'o',P:'pe',Q:'cu',R:'erre',S:'ese',T:'te',U:'u',V:'uve',W:'uve doble',X:'equis',Y:'ye',Z:'zeta'}
+};
+const nomeLetra=(L,i=S.idioma)=>i==='en'?L:NOME_LETRA[i][L];
+const PALAVRA={
+  pt:{A:['Abelha','🐝'],B:['Bola','⚽'],C:['Casa','🏠'],D:['Dado','🎲'],E:['Elefante','🐘'],F:['Foca','🦭'],G:['Gato','🐱'],H:['Hipopótamo','🦛'],I:['Ioiô','🪀'],J:['Jacaré','🐊'],K:['Kiwi','🥝'],L:['Leão','🦁'],M:['Macaco','🐒'],N:['Navio','🚢'],O:['Ovo','🥚'],P:['Pato','🦆'],Q:['Queijo','🧀'],R:['Rato','🐭'],S:['Sapo','🐸'],T:['Tartaruga','🐢'],U:['Uva','🍇'],V:['Vaca','🐄'],W:['Waffle','🧇'],X:['Xícara','☕'],Y:['Yoga','🧘'],Z:['Zebra','🦓']},
+  en:{A:['Apple','🍎'],B:['Ball','⚽'],C:['Cat','🐱'],D:['Dog','🐶'],E:['Egg','🥚'],F:['Fish','🐟'],G:['Goat','🐐'],H:['Hat','🎩'],I:['Ice cream','🍦'],J:['Juice','🧃'],K:['Kite','🪁'],L:['Lion','🦁'],M:['Moon','🌙'],N:['Nose','👃'],O:['Orange','🍊'],P:['Pig','🐷'],Q:['Queen','👑'],R:['Rabbit','🐰'],S:['Sun','☀️'],T:['Tree','🌳'],U:['Umbrella','☂️'],V:['Van','🚐'],W:['Whale','🐳'],X:['Xylophone','🎶'],Y:['Yo-yo','🪀'],Z:['Zebra','🦓']},
+  es:{A:['Abeja','🐝'],B:['Ballena','🐳'],C:['Casa','🏠'],D:['Dedo','👆'],E:['Elefante','🐘'],F:['Fresa','🍓'],G:['Gato','🐱'],H:['Helado','🍦'],I:['Isla','🏝️'],J:['Jirafa','🦒'],K:['Koala','🐨'],L:['León','🦁'],M:['Mono','🐒'],N:['Nube','☁️'],O:['Oso','🐻'],P:['Pato','🦆'],Q:['Queso','🧀'],R:['Ratón','🐭'],S:['Sol','☀️'],T:['Tortuga','🐢'],U:['Uva','🍇'],V:['Vaca','🐄'],W:['Waffle','🧇'],X:['Xilófono','🎶'],Y:['Yate','🛥️'],Z:['Zapato','👟']}
+};
+const ELOGIO={pt:['Muito bem!','Isso aí!','Parabéns!','Mandou bem!'],en:['Great job!','Awesome!','Well done!','Super!'],es:['¡Muy bien!','¡Excelente!','¡Bravo!','¡Genial!']};
+const elogio=()=>pick(ELOGIO[S.idioma]);
+let alvo='A';
+const largo=()=>matchMedia('(min-width: 720px)').matches;
+
+function pedirLetra(){
+  const n=nomeLetra(alvo);
+  falar({pt:`Aperte a letra ${n}`,en:`Press the letter ${alvo}`,es:`Presiona la letra ${n}`}[S.idioma]);
+}
+function iniciarLetras(){
+  $('#chipVogais').setAttribute('aria-pressed',S.soVogais);
+  $('#chipTodas').setAttribute('aria-pressed',!S.soVogais);
+  desenharEstrelas('estrelasLetras');
+  repetir=pedirLetra;
+  novaLetra();
+}
+function novaLetra(){
+  bloqueado=false;
+  const pool=S.soVogais?VOGAIS:ABC;
+  let l;do{l=pick(pool)}while(l===alvo&&pool.length>1);
+  alvo=l;
+  $('#letraG').textContent=l;$('#letraP').textContent=l.toLowerCase();
+  $('#dicaEm').textContent='❓';$('#dicaPal').innerHTML='&nbsp;';
+  desenharEntrada();
+  pedirLetra();
+}
+function desenharEntrada(){
+  const box=$('#entradaLetras');
+  if(largo()){
+    const linhas=['QWERTYUIOP','ASDFGHJKL','ZXCVBNM'];
+    box.innerHTML='<div class="teclado">'+linhas.map(r=>'<div class="linha">'+r.split('').map(k=>`<button class="bloco tecla ${VOGAIS.includes(k)?'vogal':''}" data-tecla="${k}">${k}</button>`).join('')+'</div>').join('')+'</div>';
+    depois(3000,()=>{const t=box.querySelector(`[data-tecla="${alvo}"]`);if(t&&!bloqueado)t.classList.add('brilha')});
+  }else{
+    const pool=S.soVogais?VOGAIS:ABC;
+    const outras=embaralhar(pool.filter(x=>x!==alvo)).slice(0,3);
+    box.innerHTML='<div class="opcoes">'+embaralhar([alvo,...outras]).map(k=>`<button class="bloco opcao" data-tecla="${k}">${k}</button>`).join('')+'</div>';
+  }
+}
+function responderLetra(k){
+  if(bloqueado||tela!=='letras')return;
+  const btn=$(`#entradaLetras [data-tecla="${k}"]`);
+  if(k===alvo){
+    bloqueado=true;somAcerto();ganhar();
+    const [pal,em]=PALAVRA[S.idioma][alvo];
+    $('#dicaEm').textContent=em;$('#dicaPal').textContent=pal;
+    const placa=$('#placa');placa.classList.remove('certo');void placa.offsetWidth;placa.classList.add('certo');
+    $$('#entradaLetras .brilha').forEach(b=>b.classList.remove('brilha'));
+    if(btn)btn.style.background='var(--grama)';
+    const n=nomeLetra(alvo);
+    falar({pt:`${elogio()} ${n}, de ${pal}!`,en:`${elogio()} ${alvo} is for ${pal}!`,es:`${elogio()} ${n}, de ${pal}!`}[S.idioma]);
+    const festa=estrela('estrelasLetras');
+    depois(festa?3600:2900,novaLetra);
+  }else{
+    somErro();
+    if(btn){btn.classList.remove('errou');void btn.offsetWidth;btn.classList.add('errou')}
+    const e=nomeLetra(k),a=nomeLetra(alvo);
+    falar({pt:`Essa é a ${e}. Procure a ${a}.`,en:`That is ${k}. Find ${alvo}.`,es:`Esa es la ${e}. Busca la ${a}.`}[S.idioma]);
+  }
+}
+$('#entradaLetras').addEventListener('click',e=>{const b=e.target.closest('[data-tecla]');if(b)responderLetra(b.dataset.tecla)});
+document.addEventListener('keydown',e=>{
+  if(e.target.closest&&e.target.closest('input'))return;
+  if(e.ctrlKey||e.metaKey||e.altKey||!$('#painel').hidden||!$('#surpresa').hidden)return;
+  const k=(e.key||'').toUpperCase();
+  if(!/^[A-Z]$/.test(k))return;
+  if(D&&D.tecla&&!D.travado){e.preventDefault();D.tecla(k);return}
+  if(tela==='letras'){e.preventDefault();responderLetra(k)}
+});
+$('#chipVogais').onclick=()=>{S.soVogais=true;salvar();limpar();iniciarLetras()};
+$('#chipTodas').onclick=()=>{S.soVogais=false;salvar();limpar();iniciarLetras()};
+let ultimoLargo=largo();
+addEventListener('resize',()=>{if(tela==='letras'&&largo()!==ultimoLargo&&!bloqueado){ultimoLargo=largo();desenharEntrada()}ultimoLargo=largo()});
+
+/* ================= PALAVRAS ================= */
+// [emoji, [artigo pt, nome pt], [artigo en, nome en], [artigo es, nome es]]
+const VOCAB=[
+  ['🐶',['o','cachorro'],['the','dog'],['el','perro']],
+  ['🐱',['o','gato'],['the','cat'],['el','gato']],
+  ['🐄',['a','vaca'],['the','cow'],['la','vaca']],
+  ['🐴',['o','cavalo'],['the','horse'],['el','caballo']],
+  ['🐟',['o','peixe'],['the','fish'],['el','pez']],
+  ['🐦',['o','passarinho'],['the','bird'],['el','pájaro']],
+  ['🦁',['o','leão'],['the','lion'],['el','león']],
+  ['🐘',['o','elefante'],['the','elephant'],['el','elefante']],
+  ['🐵',['o','macaco'],['the','monkey'],['el','mono']],
+  ['🐸',['o','sapo'],['the','frog'],['la','rana']],
+  ['🍎',['a','maçã'],['the','apple'],['la','manzana']],
+  ['🍌',['a','banana'],['the','banana'],['el','plátano']],
+  ['🍓',['o','morango'],['the','strawberry'],['la','fresa']],
+  ['🥕',['a','cenoura'],['the','carrot'],['la','zanahoria']],
+  ['🍞',['o','pão'],['the','bread'],['el','pan']],
+  ['💧',['a','água'],['the','water'],['el','agua']],
+  ['🚗',['o','carro'],['the','car'],['el','carro']],
+  ['✈️',['o','avião'],['the','airplane'],['el','avión']],
+  ['🚌',['o','ônibus'],['the','bus'],['el','autobús']],
+  ['⚽',['a','bola'],['the','ball'],['la','pelota']],
+  ['🏠',['a','casa'],['the','house'],['la','casa']],
+  ['☀️',['o','sol'],['the','sun'],['el','sol']],
+  ['🌙',['a','lua'],['the','moon'],['la','luna']],
+  ['⭐',['a','estrela'],['the','star'],['la','estrella']],
+  ['🌳',['a','árvore'],['the','tree'],['el','árbol']],
+  ['📖',['o','livro'],['the','book'],['el','libro']],
+  ['🔴',['o','vermelho'],['',  'red'],['el','rojo']],
+  ['🔵',['o','azul'],['','blue'],['el','azul']],
+  ['🟢',['o','verde'],['','green'],['el','verde']],
+  ['🟡',['o','amarelo'],['','yellow'],['el','amarillo']]
+];
+const IDX={pt:1,en:2,es:3};
+const comArtigo=(it,i)=>{const [a,n]=it[IDX[i]];return (a?a+' ':'')+n};
+let rodadaPal=null;
+function perguntarPal(){
+  const it=rodadaPal.alvo,i=S.idioma;
+  const q={pt:`Onde está ${comArtigo(it,'pt')}?`,en:`Where is ${comArtigo(it,'en')}?`,es:`¿Dónde está ${comArtigo(it,'es')}?`}[i];
+  $('#perguntaPal').textContent=q;falar(q,i);
+}
+function novaRodadaPal(){
+  limpar();
+  desenharEstrelas('estrelasPal');
+  let alvoIt;do{alvoIt=pick(VOCAB)}while(rodadaPal&&alvoIt===rodadaPal.alvo);
+  const cores=alvoIt[0].match(/[🔴🔵🟢🟡]/u);
+  // cor com cor, coisa com coisa (fica mais justo para a criança)
+  const mesmoTipo=VOCAB.filter(v=>v!==alvoIt&&(!!v[0].match(/[🔴🔵🟢🟡]/u))===!!cores);
+  const opcoes=embaralhar([alvoIt,...embaralhar(mesmoTipo).slice(0,2)]);
+  rodadaPal={alvo:alvoIt,opcoes};
+  $('#cartas').innerHTML=opcoes.map((v,n)=>`<button class="bloco carta" data-n="${n}" aria-label="${v[1][1]}">${v[0]}</button>`).join('');
+  $('#tres').innerHTML='';$('#proxPal').hidden=true;
+  repetir=perguntarPal;perguntarPal();
+}
+$('#cartas').addEventListener('click',e=>{
+  const b=e.target.closest('.carta');if(!b||bloqueado)return;
+  const it=rodadaPal.opcoes[+b.dataset.n];
+  if(it===rodadaPal.alvo){
+    bloqueado=true;somAcerto();ganhar();
+    b.classList.add('ok');$$('#cartas .carta').forEach(c=>{if(c!==b)c.classList.add('apagada')});
+    $('#tres').innerHTML=`<span>🇧🇷 ${it[1][1]}</span><span>🇺🇸 ${it[2][1]}</span><span>🇪🇸 ${it[3][1]}</span>`;
+    falar(elogio(),S.idioma);
+    falar(it[1][1],'pt',true);falar(it[2][1],'en',true);falar(it[3][1],'es',true);
+    estrela('estrelasPal');
+    $('#proxPal').hidden=false;
+    depois(7000,novaRodadaPal);
+  }else{
+    somErro();b.classList.remove('errou');void b.offsetWidth;b.classList.add('errou');
+    const i=S.idioma;
+    falar({pt:`Isso é ${comArtigo(it,'pt')}. Tente de novo!`,en:`That is ${comArtigo(it,'en')}. Try again!`,es:`Eso es ${comArtigo(it,'es')}. ¡Intenta otra vez!`}[i],i);
+  }
+});
+$('#proxPal').onclick=novaRodadaPal;
+
+/* ================= CONTAR ================= */
+let rodadaCont=null;
+function perguntarCont(){
+  const q={pt:'Quantas moedas tem aqui?',en:'How many coins?',es:'¿Cuántas monedas hay?'}[S.idioma];
+  $('#perguntaCont').textContent=q;falar(q);
+}
+function novaRodadaCont(){
+  limpar();desenharEstrelas('estrelasCont');
+  const max=S.contarAcertos>=10?10:5;
+  let n;do{n=1+Math.floor(Math.random()*max)}while(rodadaCont&&n===rodadaCont.n);
+  const pool=[];for(let i=1;i<=max;i++)if(i!==n)pool.push(i);
+  const perto=pool.sort((a,b)=>Math.abs(a-n)-Math.abs(b-n)+Math.random()-.5).slice(0,2);
+  rodadaCont={n};
+  $('#mesa').innerHTML=Array.from({length:n},()=>'<span class="moeda g"></span>').join('');
+  $('#numeros').innerHTML=embaralhar([n,...perto]).map(x=>`<button class="bloco numero" data-num="${x}">${x}</button>`).join('');
+  repetir=perguntarCont;perguntarCont();
+}
+$('#numeros').addEventListener('click',e=>{
+  const b=e.target.closest('.numero');if(!b||bloqueado)return;
+  const x=+b.dataset.num,n=rodadaCont.n;
+  if(x===n){
+    bloqueado=true;somAcerto();b.style.background='var(--grama)';
+    S.contarAcertos++;
+    const ms=$$('#mesa .moeda');
+    const seq=Array.from({length:n},(_,i)=>i+1).join(', ');
+    falar(seq+'!');
+    ms.forEach((m,i)=>depois(650*i,()=>m.classList.add('conta')));
+    depois(650*n+200,()=>{
+      falar({pt:`${elogio()} São ${n} moedas!`,en:`${elogio()} ${n} coins!`,es:`${elogio()} ¡Son ${n} monedas!`}[S.idioma]);
+      ganhar();estrela('estrelasCont');
+    });
+    depois(650*n+3200,novaRodadaCont);
+  }else{
+    somErro();b.classList.remove('errou');void b.offsetWidth;b.classList.add('errou');
+    falar({pt:'Vamos contar juntos, apontando cada moeda.',en:"Let's count together. Point to each coin.",es:'Contemos juntos. Señala cada moneda.'}[S.idioma]);
+  }
+});
+
+/* ================= PRECISO OU QUERO ================= */
+const ITENS=[
+  ['💧','Água','p','A gente precisa beber água todo dia.'],
+  ['🍚','Arroz e feijão','p','Comida de verdade a gente precisa pra crescer forte.'],
+  ['💊','Remédio','p','Quando fica doente, a gente precisa de remédio.'],
+  ['🧥','Casaco','p','No frio, a gente precisa de casaco.'],
+  ['🪥','Escova de dente','p','A gente precisa escovar os dentes todo dia.'],
+  ['🛏️','Cama','p','A gente precisa de um lugar pra dormir.'],
+  ['🍎','Maçã','p','Fruta é comida que a gente precisa.'],
+  ['🏠','Casa','p','A gente precisa de uma casa pra morar.'],
+  ['🍭','Pirulito','q','Pirulito é gostoso, mas a gente não precisa. É um querer.'],
+  ['🧸','Ursinho novo','q','Brinquedo novo é legal, mas dá pra esperar. É um querer.'],
+  ['🎮','Videogame','q','Videogame é divertido, mas é um querer. Dá pra juntar moedas!'],
+  ['🍦','Sorvete','q','Sorvete é uma delícia, mas é um querer.'],
+  ['🎈','Balão','q','Balão é bonito, mas é um querer.'],
+  ['🍫','Chocolate','q','Chocolate é gostoso, mas a gente não precisa. É um querer.'],
+  ['🚁','Helicóptero de brinquedo','q','Brinquedo é um querer. A gente pode guardar moedas pra comprar.'],
+  ['🍟','Batata frita','q','Batata frita é gostosa, mas é um querer.']
+];
+let itemAtual=null,primeiraVezPrecisa=true;
+function iniciarPrecisa(){
+  if(primeiraVezPrecisa){
+    primeiraVezPrecisa=false;
+    falar('Preciso é o que a gente não pode ficar sem. Quero é o que é legal, mas dá pra esperar.','pt');
+    novoItem(true);
+  }else novoItem();
+}
+function perguntarItem(fila){falar(`${itemAtual[1]}. Você precisa, ou você quer?`,'pt',fila)}
+function novoItem(fila=false){
+  limpar();
+  let it;do{it=pick(ITENS)}while(it===itemAtual);
+  itemAtual=it;
+  $('#itemEm').textContent=it[0];$('#itemNome').textContent=it[1];
+  $('#explica').textContent='';$('#proxPrec').hidden=true;
+  $$('.escolha').forEach(b=>b.style.outline='');
+  repetir=()=>perguntarItem(false);perguntarItem(fila);
+}
+$$('.escolha').forEach(b=>b.onclick=()=>{
+  if(bloqueado||!itemAtual)return;
+  bloqueado=true;
+  const certo=b.dataset.resp===itemAtual[2];
+  $('#explica').textContent=itemAtual[3];
+  if(certo){somAcerto();ganhar();falar('Isso! '+itemAtual[3],'pt')}
+  else{somErro();falar('Hmm, olha só: '+itemAtual[3],'pt')}
+  $(`.escolha[data-resp="${itemAtual[2]}"]`).style.outline='5px solid var(--grama)';
+  $('#proxPrec').hidden=false;
+  depois(7000,()=>novoItem());
+});
+$('#proxPrec').onclick=()=>novoItem();
+
+/* ================= COFRINHO E LOJA ================= */
+const LOJA=[['⭐','Estrela',2],['🚗','Carrinho',4],['🦁','Leão',6],['🐴','Cavalo',8],['🚀','Foguete',12],['🦖','Dinossauro',20],['🏰','Castelo',30]];
+const hoje=()=>{const d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate()};
+function abrirCofre(){
+  repetir=()=>falar('Toque numa moeda para guardar no cofrinho. Na lojinha, você compra com as moedas da carteira.','pt');
+  desenharCofre();
+  if(S.jurosEm!==hoje()){
+    const ganho=Math.floor(S.cofrinho/5);
+    S.jurosEm=hoje();
+    if(ganho>0){
+      S.cofrinho+=ganho;salvar();desenharCofre();
+      depois(500,()=>{confete();somMoeda();falar(`Olha! O seu cofrinho cresceu. Ganhou ${ganho} ${ganho>1?'moedas':'moeda'} de presente, porque você guardou!`,'pt')});
+      return;
+    }
+    salvar();
+  }
+  const so=S.sonho!==null&&LENDARIOS[S.sonho];
+  falar(`Você tem ${S.carteira} na carteira e ${S.cofrinho} no cofrinho.`+(so?` Para o ${so[1]}, faltam ${Math.max(0,so[2]-S.cofrinho)}.`:''),'pt');
+}
+function desenharCofre(){
+  $('#tCarteira').textContent=S.carteira;$('#tCofre').textContent=S.cofrinho;
+  const mostrar=Math.min(S.carteira,24);
+  $('#soltas').innerHTML=Array.from({length:mostrar},()=>'<button aria-label="Guardar uma moeda"><span class="moeda"></span></button>').join('')+(S.carteira>mostrar?`<b>+${S.carteira-mostrar}</b>`:'')
+    +(S.carteira===0?'<span class="regra">Jogue para ganhar moedas!</span>':'');
+  $('#tirar').disabled=S.cofrinho===0;$('#tirar').style.opacity=S.cofrinho===0?.4:1;
+  $('#prateleira').innerHTML=LOJA.map(([em,nome,preco],i)=>{
+    const tenho=S.figurinhas.includes(em);
+    const cls=tenho?'tenho':(S.carteira<preco?'longe':'');
+    return `<button class="bloco produto ${cls}" data-i="${i}" aria-label="${nome}, ${preco} moedas"><span class="em">${em}</span>${tenho?'<b>✔ É seu!</b>':`<span class="preco"><span class="moeda"></span>${preco}</span>`}</button>`;
+  }).join('');
+  $('#nCarteira').textContent=S.carteira;
+  desenharSonho();
+  desenharPremios();
+}
+$('#soltas').addEventListener('click',e=>{
+  if(!e.target.closest('button')||S.carteira<=0)return;
+  S.carteira--;S.cofrinho++;salvar();somMoeda();desenharCofre();
+  const p=$('#porco');p.classList.remove('engorda');void p.offsetWidth;p.classList.add('engorda');
+  falar(String(S.cofrinho),'pt');
+  if(S.cofrinho%5===0)depois(700,()=>falar(`Muito bem! Com ${S.cofrinho} no cofrinho, amanhã ele cresce ${S.cofrinho/5}.`,'pt'));
+});
+$('#tirar').onclick=()=>{
+  if(S.cofrinho<=0)return;
+  S.cofrinho--;S.carteira++;salvar();somMoeda();desenharCofre();
+  falar('Tirou uma moeda do cofrinho.','pt');
+};
+$('#prateleira').addEventListener('click',e=>{
+  const b=e.target.closest('.produto');if(!b)return;
+  const [em,nome,preco]=LOJA[+b.dataset.i];
+  if(S.figurinhas.includes(em)){falar(`O ${nome.toLowerCase()} já é seu!`,'pt');return}
+  if(S.carteira>=preco){
+    S.carteira-=preco;S.figurinhas.push(em);salvar();desenharCofre();confete();somAcerto();
+    falar(`Você comprou: ${nome}! Gastou ${preco} moedas. Sobraram ${S.carteira}.`,'pt');
+  }else{
+    const falta=preco-S.carteira;
+    somErro();b.classList.remove('errou');void b.offsetWidth;b.classList.add('errou');
+    const total=S.carteira+S.cofrinho;
+    falar(total>=preco
+      ?`Faltam ${falta} na carteira. Você tem moedas no cofrinho. Quer tirar, ou continuar guardando?`
+      :`Faltam ${falta} ${falta>1?'moedas':'moeda'}. Se você jogar e guardar, você consegue!`,'pt');
+  }
+});
+
+/* ================= MOTOR DE DESAFIOS ================= */
+const nomeMaiusc=()=>(S.nome||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[^A-Z]/g,'');
+const LEITURA=[
+  ['🐱','GATO',['ga','to']],['⚽','BOLA',['bo','la']],['🦆','PATO',['pa','to']],['🐄','VACA',['va','ca']],
+  ['🐭','RATO',['ra','to']],['🎂','BOLO',['bo','lo']],['🌙','LUA',['lu','a']],['☀️','SOL',['sol']],
+  ['🍇','UVA',['u','va']],['🥚','OVO',['o','vo']],['🎲','DADO',['da','do']],['🐸','SAPO',['sa','po']],
+  ['🪁','PIPA',['pi','pa']],['🏠','CASA',['ca','sa']],['🦁','LEÃO',['le','ão']],['🐟','PEIXE',['pei','xe']],
+  ['🦒','GIRAFA',['gi','ra','fa']],['🍌','BANANA',['ba','na','na']],['👨','PAPAI',['pa','pai']],['👩','MAMÃE',['ma','mãe']],
+  ['🐴','CAVALO',['ca','va','lo']],['🚗','CARRO',['car','ro']],['🦷','DENTE',['den','te']],['🔥','FOGO',['fo','go']]
+];
+const DIGITAR={
+  pt:[['🐱','GATO'],['⚽','BOLA'],['☀️','SOL'],['🦆','PATO'],['🍇','UVA'],['🌙','LUA'],['🏠','CASA'],['🥚','OVO']],
+  en:[['🐱','CAT'],['🐶','DOG'],['☀️','SUN'],['🚌','BUS'],['🐷','PIG'],['🚗','CAR'],['⚽','BALL'],['🐟','FISH'],['🌙','MOON'],['⭐','STAR']],
+  es:[['☀️','SOL'],['🐻','OSO'],['🐱','GATO'],['🏠','CASA'],['🌙','LUNA'],['🦆','PATO'],['🐒','MONO'],['🍇','UVA']]
+};
+// teclado da tela (notebook) ou 4 botões grandes (celular)
+function teclas(cont,alvoL,pool){
+  if(largo()){
+    const linhas=['QWERTYUIOP','ASDFGHJKL','ZXCVBNM'];
+    cont.innerHTML='<div class="teclado">'+linhas.map(r=>'<div class="linha">'+r.split('').map(k=>`<button class="bloco tecla ${VOGAIS.includes(k)?'vogal':''}" data-tecla="${k}">${k}</button>`).join('')+'</div>').join('')+'</div>';
+    const d=D;depois(3000,()=>{if(D!==d||d.travado)return;const t=cont.querySelector(`[data-tecla="${alvoL}"]`);if(t)t.classList.add('brilha')});
+  }else{
+    const outras=embaralhar(pool.filter(x=>x!==alvoL)).slice(0,3);
+    cont.innerHTML='<div class="opcoes">'+embaralhar([alvoL,...outras]).map(k=>`<button class="bloco opcao" data-tecla="${k}">${k}</button>`).join('')+'</div>';
+  }
+  cont.onclick=e=>{const b=e.target.closest('[data-tecla]');if(b&&D&&D.tecla&&!D.travado)D.tecla(b.dataset.tecla,b)};
+}
+function tremer(el){if(!el)return;el.classList.remove('errou');void el.offsetWidth;el.classList.add('errou')}
+function montarDesafio(tipo,cont,ok,erro=()=>{}){
+  D={tipo,cont,travado:false};
+  const d=D;
+  const acertou=ms=>{d.travado=true;somAcerto();depois(ms,()=>{if(D===d)ok()})};
+  const errou=()=>{somErro();erro()};
+  const dificil=S.mundo>=1;
+  // escrever uma palavra letra por letra (nome, ou palavra em pt/en/es)
+  function soletrar(N,idi,abertura,fim,figura){
+    let i=0;
+    cont.innerHTML=(figura?`<span class="figura">${figura}</span>`:'')+'<div class="slots">'+N.split('').map(c=>`<span class="slot">${c}</span>`).join('')+'</div><div class="tecs"></div>';
+    const slots=[...cont.querySelectorAll('.slot')];
+    const pool=[...new Set([...N.split(''),...ABC])];
+    const nl=c=>nomeLetra(c,idi);
+    const passo=()=>{slots.forEach((s,j)=>s.classList.toggle('agora',j===i));teclas(cont.querySelector('.tecs'),N[i],pool)};
+    d.repetir=()=>falar(i===0
+      ?`${abertura} ${{pt:'Primeira letra',en:'First letter',es:'Primera letra'}[idi]}: ${nl(N[0])}.`
+      :`${{pt:'Agora a letra',en:'Now',es:'Ahora la'}[idi]} ${nl(N[i])}.`,idi);
+    passo();d.repetir();
+    d.tecla=(k,btn)=>{
+      btn=btn||cont.querySelector(`[data-tecla="${k}"]`);
+      if(k===N[i]){
+        slots[i].classList.remove('agora');slots[i].classList.add('feito');tom([660+i*60],.08);
+        i++;
+        if(i===N.length){falar(N.split('').map(nl).join(', ')+'. '+fim,idi);acertou(900+N.length*450)}
+        else{passo();falar(nl(N[i]),idi)}
+      }else{
+        tremer(btn);errou();
+        falar({pt:`Essa é a ${nl(k)}. Agora é a ${nl(N[i])}.`,en:`That is ${k}. Now find ${N[i]}.`,es:`Esa es la ${nl(k)}. Ahora busca la ${nl(N[i])}.`}[idi],idi);
+      }
+    };
+  }
+  ({
+    letra(){
+      const pool=dificil?ABC:VOGAIS;const L=pick(pool);
+      cont.innerHTML='<span class="letra-d"></span><div class="tecs"></div>';
+      cont.querySelector('.letra-d').textContent=L+' '+L.toLowerCase();
+      const n=nomeLetra(L);
+      d.repetir=()=>falar({pt:`Aperte a letra ${n}`,en:`Press the letter ${L}`,es:`Presiona la letra ${n}`}[S.idioma]);
+      teclas(cont.querySelector('.tecs'),L,pool);
+      d.tecla=(k,btn)=>{
+        btn=btn||cont.querySelector(`[data-tecla="${k}"]`);
+        if(k===L){
+          if(btn)btn.style.background='var(--grama)';
+          const [pal,em]=PALAVRA[S.idioma][L];
+          cont.querySelector('.letra-d').textContent=`${L} ${em}`;
+          falar({pt:`${n}, de ${pal}!`,en:`${L} is for ${pal}!`,es:`${n}, de ${pal}!`}[S.idioma]);
+          acertou(1900);
+        }else{
+          tremer(btn);errou();
+          const e=nomeLetra(k);
+          falar({pt:`Essa é a ${e}. Procure a ${n}.`,en:`That is ${k}. Find ${L}.`,es:`Esa es la ${e}. Busca la ${n}.`}[S.idioma]);
+        }
+      };
+      d.repetir();
+    },
+    ler(){
+      const N=nomeMaiusc();let fig,certa,silabas,outras,pergunta;
+      if(N.length>=2&&Math.random()<.25){
+        fig='🦸';certa=N;silabas=null;pergunta='Onde está escrito o seu nome?';
+        outras=embaralhar(['PAPAI','MAMÃE','BOLA','GATO','LUA'].filter(w=>w!==N&&w[0]!==N[0])).slice(0,2);
+      }else{
+        const it=pick(LEITURA);fig=it[0];certa=it[1];silabas=it[2];
+        pergunta=`Onde está escrito ${certa.toLowerCase()}?`;
+        const usadas=new Set([certa[0]]);
+        outras=embaralhar(LEITURA).filter(w=>!usadas.has(w[1][0])&&usadas.add(w[1][0])).slice(0,2).map(w=>w[1]);
+      }
+      cont.innerHTML=`<span class="figura">${fig}</span><span class="silabas"></span><div class="palavras-b">`+
+        embaralhar([certa,...outras]).map(w=>`<button class="bloco pal-b" data-w="${w}">${w}</button>`).join('')+'</div>';
+      d.repetir=()=>falar(pergunta,'pt');d.repetir();
+      cont.querySelector('.palavras-b').onclick=e=>{
+        const b=e.target.closest('.pal-b');if(!b||d.travado)return;
+        const w=b.dataset.w;
+        if(w===certa){
+          b.classList.add('ok');
+          if(silabas){cont.querySelector('.silabas').textContent=silabas.join(' - ').toUpperCase();falar(silabas.join('... ')+'. '+certa.toLowerCase()+'!','pt')}
+          else{cont.querySelector('.silabas').textContent=certa.split('').join(' ');falar(`${S.nome}! Esse é você!`,'pt')}
+          acertou(2600);
+        }else{
+          tremer(b);errou();
+          falar(`Aqui está escrito ${w.toLowerCase()}. ${silabas?certa.toLowerCase():'O seu nome'} começa com ${nomeLetra(certa[0],'pt')}.`,'pt');
+        }
+      };
+    },
+    contar(){
+      const max=dificil?10:5,n=1+Math.floor(Math.random()*max);
+      const pool=[];for(let i=1;i<=max;i++)if(i!==n)pool.push(i);
+      const perto=pool.sort((a,b)=>Math.abs(a-n)-Math.abs(b-n)+Math.random()-.5).slice(0,2);
+      cont.innerHTML='<div class="mesa">'+'<span class="moeda g"></span>'.repeat(n)+'</div><div class="numeros">'+
+        embaralhar([n,...perto]).map(x=>`<button class="bloco numero" data-num="${x}">${x}</button>`).join('')+'</div>';
+      d.repetir=()=>falar({pt:'Quantas moedas tem aqui?',en:'How many coins?',es:'¿Cuántas monedas hay?'}[S.idioma]);d.repetir();
+      cont.querySelector('.numeros').onclick=e=>{
+        const b=e.target.closest('.numero');if(!b||d.travado)return;
+        if(+b.dataset.num===n){
+          b.style.background='var(--grama)';
+          falar(Array.from({length:n},(_,i)=>i+1).join(', ')+'!');
+          cont.querySelectorAll('.mesa .moeda').forEach((m,i)=>depois(600*i,()=>m.classList.add('conta')));
+          acertou(600*n+900);
+        }else{
+          tremer(b);errou();
+          falar({pt:'Vamos contar juntos, apontando cada moeda.',en:"Let's count together.",es:'Contemos juntos.'}[S.idioma]);
+        }
+      };
+    },
+    nome(){
+      const N=nomeMaiusc();
+      if(N.length<2){D=null;return montarDesafio('letra',cont,ok,erro)}
+      soletrar(N,'pt','Vamos escrever o seu nome!',S.nome+'!',null);
+    },
+    digitar(){
+      const i=S.idioma,[em,pal]=pick(DIGITAR[i]),p=pal.toLowerCase();
+      soletrar(pal,i,{pt:`Vamos escrever ${p}!`,en:`Let's type ${p}!`,es:`¡Vamos a escribir ${p}!`}[i],p+'!',em);
+    }
+  })[tipo]();
+  repetir=()=>D&&D.repetir&&D.repetir();
+}
+
+/* ---------- treinos de nome e leitura ---------- */
+function treino(tipo){
+  const id={nome:'estrelasNome',ler:'estrelasLer',digitar:'estrelasDig'}[tipo];
+  desenharEstrelas(id);
+  const cont=$({nome:'#desafioNome',ler:'#desafioLer',digitar:'#desafioDig'}[tipo]);
+  const rodada=()=>montarDesafio(tipo,cont,()=>{ganhar();estrela(id);depois(600,rodada)});
+  rodada();
+}
+
+/* ================= AVENTURA ================= */
+// monstrinhos originais: [emoji, nome, cor da aura]
+/* ================= SPRITES 16x16 (pixel art) ================= */
+// cada linha = 16 pixels; '.' = transparente; letras = cor da paleta do bicho
+const SPRITES={"brasito":{"pal":{"k":"#2a1f2d","w":"#ffffff","a":"#e8483c","b":"#b02828","c":"#ff9a1f","y":"#ffe14a","d":"#ffd27a"},
+"px":["................","..kk........kk..","..kyk......kyk..","...kkkkkkkkkk...","..kaaaaaaaaaak..","..kaawwaawwaak..","..kaawkaawkaak..","..kaaaaaaaaaak..","..kaaakkkkaaak..","...kaaaaaaaak...",".kbkkddddddkkbk.","kbbbkddddddkbbbk","..kkaddddddakk..","...kaddddddak.cc","...kaakkkkaakcyc","...kkk....kkk.c."]},
+"cascaxa":{"pal":{"k":"#2a1f2d","w":"#ffffff","a":"#5cc8f0","s":"#2e8b57","S":"#1f6b42","d":"#f4e3a1"},
+"px":["................","................",".....kkkkkk.....","....kaaaaaak....","...kaawkkwaak...","...kaaaaaaaak...","....kaakkaak....","..kkkkkkkkkkkk..",".kssSssssssSssk.",".ksSSssSSssSSsk.",".kssssSSSSssssk.",".ksSSssssssSSsk.","..kssssssssssk..","kaakkddddddkkaak","kaak.kkkkkk.kaak","kkk..........kkk"]},
+"folhapulo":{"pal":{"k":"#2a1f2d","w":"#ffffff","a":"#6ad04a","b":"#3f9a2a","d":"#d9f59a","l":"#2f7a1f","p":"#ff9ab0"},
+"px":[".......l........","......lll.......","..kkk..l...kkk..",".kwkak....kakwk.",".kaaakkkkkkaaak.","kaaaaaaaaaaaaaak","kaaaaaaaaaaaaaak","kaapaaaaaaaapaak","kaaakkkkkkkkaaak",".kaaaaaaaaaaaak.","..kaddddddddak..",".kbkddddddddkbk.","kbbkddddddddkbbk",".kkaddddddddakk.",".kbbbkk..kkbbbk.",".kkkkk....kkkkk."]},
+"morcegao":{"pal":{"k":"#2a1f2d","w":"#ffffff","a":"#8a5cd6","b":"#5a3a9a","d":"#c9b3f2"},
+"px":["................","...k........k...","..kak......kak..","..kaak....kaak..","...kaakkkkaak...","k..kaaaaaaaak..k","kbkkawkaakwakkbk","kbbkaaaaaaaakbbk","kbbbkakkkkakbbbk","kbbbbkawwakbbbbk","kbkbbkddddkbbkbk","k.kbk.kddk.kbk.k","...k..kaak..k...","......kaak......","......kkkk......","................"]},
+"polvolante":{"pal":{"k":"#2a1f2d","w":"#ffffff","a":"#ff8fc8","b":"#d9579c","p":"#ff5c8a"},
+"px":["................",".....kkkkkk.....","....kaaaaaak....","...kaaaaaaaak...","..kaaaabbaaaak..","..kaaaaaaaaaak..","..kawwaaaawwak..","..kawkaaaakwak..","..kaapaaaapaak..","..kaaakkkkaaak..","...kaaaaaaaak...",".kaakaakkaakaak.","kak.kak..kak.kak","kak.kak..kak.kak",".kk..kk..kk..kk.","................"]},
+"raposeta":{"pal":{"k":"#2a1f2d","w":"#ffffff","a":"#ff9a3d","b":"#c86a1a","d":"#fff1df"},
+"px":[".k............k.",".kk..........kk.",".kak........kak.",".kaak......kaak.",".kaaakkkkkkaaak.",".kaaaaaaaaaaaak.","kaaawwaaaawwaaak","kaaawkaaaakwaaak","kaddddakkaddddak",".kdddddkkdddddk.","..kddddddddddk..","...kaaaaaaaak...","..kaaddddddaak..","..kaaddddddaakak","..kaak....kaakdk","..kkk......kkkk."]},
+"zumbizum":{"pal":{"k":"#2a1f2d","w":"#ffffff","a":"#ffd23a","n":"#cfefff"},
+"px":["................","...kk......kk...","....k......k....","....kkkkkkkk....","...kaaaaaaaak...","..kawwaaaawwak..","..kawkaaaakwak..","..kaaaakkaaaak..","nnkkkkkkkkkkkknn","nnnkaaaaaaaaknnn","nnkkkkkkkkkkkknn","..kaaaaaaaaaak..","...kkkkkkkkkk...","....kaaaaaak....",".......kk.......",".......k........"]},
+"rexao":{"pal":{"k":"#2a1f2d","w":"#ffffff","a":"#d83a3a","b":"#9a2020","d":"#ffcf9a"},
+"px":["...kkkkkkkkkk...","..kaaaaaaaaaak..",".kaabaaaaaabaak.",".kaawwaaaawwaak.",".kaawkaaaakwaak.",".kaaaaaaaaaaaak.",".kkkkkkkkkkkkkk.",".kwkwkwkkwkwkwk.","..kaaaaaaaaaak..",".kbkddddddddkbk.","kbbkddddddddkbbk","..kaddddddddak..","..kaddddddddakkk","..kaaaaaaaaaakak","..kaak....kaak..",".kkkkk....kkkkk."]},
+"unicornio":{"pal":{"k":"#2a1f2d","w":"#ffffff","a":"#ffffff","b":"#e0d8f0","y":"#ffd23a","m":"#ff8fc8","n":"#8fd3ff","p":"#ffb3cf"},
+"px":[".......kyk......",".......kyk......","...k..kkykk..k..","..kak.kaaak.kak.","..mkaaaaaaaaakn.",".mmkawwaaawwakn.",".mmkawkaaakwakn.",".mmkaaaaaaaaakn.","..mkaapaaapaakn.","..mkaaakkkaaakn.","...kaaaaaaaaak..","..kbkaaaaaaakbk.","..kbkaaaaaaakbk.","..kaaaaaaaaaaak.","..kaak.....kaak.","..kkk......kkk.."]},
+"baleia":{"pal":{"k":"#2a1f2d","w":"#ffffff","a":"#3a7bd5","b":"#23508f","d":"#cfe8ff","n":"#8fd3ff","y":"#ffd23a"},
+"px":["....n.....y.....","...n.n...yy.....","....n...yy......","........y.......","..kkkkkkkkkk....",".kaaaaaaaaaak.kk","kaaaaaaaaaaaakbk","kawwaaaaaaaaakbk","kawkaaaaaaaaakk.","kaaaaaaaaaaaak..","kakkkkaaaaaaak..","kddddddddddddk..",".kddddddddddk...","..kkkkkkkkkk....","................","................"]},
+"dourado":{"pal":{"k":"#2a1f2d","w":"#ffffff","a":"#ffc61a","b":"#c88c00","c":"#ff9a1f","y":"#fff7c2","d":"#fff3b0"},
+"px":["................","..kk........kk..","..kyk......kyk..","...kkkkkkkkkk...","..kaaaaaaaaaak..","..kaawwaawwaak..","..kaawkaawkaak..","..kaaaaaaaaaak..","..kaaakkkkaaak..","...kaaaaaaaak...",".kbkkddddddkkbk.","kbbbkddddddkbbbk","..kkaddddddakk..","...kaddddddak.cc","...kaakkkkaakcyc","...kkk....kkk.c."]}};
+SPRITES.pikachu={"pal":{"k":"#2a1f2d","w":"#ffffff","y":"#ffd83a","o":"#e0a800","r":"#ff4a3d","b":"#8a5a2a"},"px":[".kk.............",".kkk........kk..","..kyk......kkk..","..kyyk....kyk...","...kyykkkkyyk.kk","...kyyyyyyyyk.ky","..kyykwyykwyykyk","..kyykkyykkyykyk","..krryyyyyyrrkk.","..krryykkyyrrkyk","...kyyyyyyyykyyk","..kykyyyyyykykkk","..kyyyyyyyyyykbk","..kyyyyyyyyyykk.","...kyykkkkyyk...","...kkk....kkk..."]};
+// Parceiro do treinador. Pikachu é personagem da Nintendo: ok para uso privado da família;
+// se o jogo um dia for distribuído/vendido, trocar aqui por um parceiro próprio (sprite + nome + golpe).
+const PARCEIRO={key:'pikachu',nome:'Pikachu',grito:'Pika pika!',golpe:'choque do trovão',projetil:'⚡'};
+// Nomes do elenco nos 3 idiomas, montados com palavras reais pra ele aprender junto
+// (fire → Firo, fuego → Fueguito), + o bicho nos 3 idiomas.
+const NOMES={
+  brasito:{pt:'Brasito',en:'Firo',es:'Fueguito',bicho:['dragão','dragon','dragón']},
+  cascaxa:{pt:'Cascaxá',en:'Shelly',es:'Conchita',bicho:['tartaruga','turtle','tortuga']},
+  folhapulo:{pt:'Folhapulo',en:'Leafhop',es:'Hojasalto',bicho:['sapo','frog','rana']},
+  morcegao:{pt:'Morcegão',en:'Batty',es:'Murcielón',bicho:['morcego','bat','murciélago']},
+  polvolante:{pt:'Polvolante',en:'Octo',es:'Pulpito',bicho:['polvo','octopus','pulpo']},
+  raposeta:{pt:'Raposeta',en:'Foxy',es:'Zorrita',bicho:['raposa','fox','zorro']},
+  zumbizum:{pt:'Zumbizum',en:'Buzzy',es:'Abejita',bicho:['abelha','bee','abeja']},
+  rexao:{pt:'Rexão',en:'Big Rex',es:'Rexón',bicho:['dinossauro','dinosaur','dinosaurio']},
+  dourado:{pt:'Dragão Dourado',en:'Golden Dragon',es:'Dragón Dorado',bicho:['dragão','dragon','dragón']},
+  unicornio:{pt:'Unicórnio Estelar',en:'Star Unicorn',es:'Unicornio Estelar',bicho:['unicórnio','unicorn','unicornio']},
+  baleia:{pt:'Baleia Trovão',en:'Thunder Whale',es:'Ballena Trueno',bicho:['baleia','whale','ballena']}
+};
+const nomeM=(key,i=S.idioma)=>NOMES[key][i];
+const tresNomesHTML=key=>`<div class="tres"><span>🇧🇷 ${NOMES[key].pt}</span><span>🇺🇸 ${NOMES[key].en}</span><span>🇪🇸 ${NOMES[key].es}</span></div>`;
+function falarTresNomes(key,comBicho=true){
+  const n=NOMES[key];
+  falar(n.pt,'pt',true);falar(n.en,'en',true);falar(n.es,'es',true);
+  if(comBicho){falar(`É um ${n.bicho[0]}.`,'pt',true);falar(n.bicho[1],'en',true);falar(n.bicho[2],'es',true)}
+}
+const cacheSprite={};
+function sprCv(key){
+  if(cacheSprite[key])return cacheSprite[key];
+  const sp=SPRITES[key],c=document.createElement('canvas');c.width=c.height=16;
+  const g=c.getContext('2d');
+  sp.px.forEach((linha,y)=>[...linha].forEach((ch,x)=>{if(ch!=='.'){g.fillStyle=sp.pal[ch];g.fillRect(x,y,1,1)}}));
+  return cacheSprite[key]=c;
+}
+const urlSprite={};
+const spr=(key,cls='')=>`<img class="px ${cls}" alt="" src="${urlSprite[key]||(urlSprite[key]=sprCv(key).toDataURL())}">`;
+function treinadorURL(){
+  const c=document.createElement('canvas');c.width=c.height=16;
+  desenharTreinador(c.getContext('2d'),0,0,'dir',0);
+  return c.toDataURL();
+}
+
+const MUNDO=[
+  ['🐲','Brasito','#ff6b57','brasito'],['🐢','Cascaxá','#2f8cff','cascaxa'],['🐸','Folhapulo','#2fb36b','folhapulo'],['🦇','Morcegão','#7a5cff','morcegao'],
+  ['🐙','Polvolante','#ff8fc8','polvolante'],['🦊','Raposeta','#ff9a3d','raposeta'],['🐝','Zumbizum','#ffc83d','zumbizum'],['🦖','Rexão','#ff3d3d','rexao']
+];
+const NOMES_MUNDO=['Cidade das Teias','Floresta Brilhante','Vulcão Risonho','Ilha das Nuvens'];
+const DICAS=[
+  'Dica da Coruja: guarde algumas moedas no cofrinho. Dinheiro guardado cresce!',
+  'Dica da Coruja: antes de comprar, pergunte: eu preciso, ou eu quero?',
+  'Dica da Coruja: as figurinhas grandes custam mais. Guardando, você consegue!',
+  'Dica da Coruja: um herói treina todo dia. Que tal escrever o seu nome hoje?'
+];
+let fechaSurpresa=null;
+function aparecer(quem,texto,depoisFn){
+  if(quem.startsWith('<'))$('#surpresaQuem').innerHTML=quem;else $('#surpresaQuem').textContent=quem;$('#surpresaTexto').textContent=texto;
+  $('#surpresa').hidden=false;tom([784,988,1175],.09);
+  fechaSurpresa=depoisFn||null;
+  setTimeout(()=>falar(texto,'pt'),350);
+}
+$('#surpresaOk').onclick=()=>{$('#surpresa').hidden=true;calar();const f=fechaSurpresa;fechaSurpresa=null;if(f)f()};
+
+function abrirMapa(){
+  $('#tituloMundo').textContent=`Mundo ${S.mundo+1} · ${NOMES_MUNDO[S.mundo%NOMES_MUNDO.length]}`;
+  $('#trilha').innerHTML=MUNDO.map((m,i)=>{
+    const feito=i<S.fase,atual=i===S.fase,chefe=i===MUNDO.length-1;
+    const cls=feito?'feito':atual?'atual':'trancado';
+    const rosto=feito?spr(m[3]):atual?'❓':(chefe?'👑':'🔒');
+    return `<button class="bloco no ${cls} ${chefe?'chefe':''}" data-fase="${i}" aria-label="Fase ${i+1}">${rosto}<small>${i+1}</small></button>`;
+  }).join('');
+  repetir=()=>falar('Toque na fase que está brilhando!','pt');
+  if(!S.introVista){
+    S.introVista=true;salvar();
+    aparecer('🦉',`Oi, ${S.nome||'herói'}! Eu sou a Coruja. Os monstrinhos fugiram pela cidade! Acerte os desafios para lançar a sua teia e capturar todos eles.`);
+  }else repetir();
+}
+let lutaIdx=0;
+$('#trilha').addEventListener('click',e=>{
+  const b=e.target.closest('.no');if(!b)return;
+  const i=+b.dataset.fase;
+  if(i>S.fase){tremer(b);falar('Essa fase ainda está trancada. Primeiro, a que está brilhando!','pt');return}
+  lutaIdx=i;lutaSelvagem=false;ir('batalha');
+});
+const rugido=()=>tom([180,320,140],.11,'sawtooth');
+function iniciarBatalha(){
+  const m=MUNDO[lutaIdx],chefe=!lutaSelvagem&&lutaIdx===MUNDO.length-1;
+  let vida=3;
+  const tipos=chefe?['ler','letra','nome']:embaralhar(S.mundo>=1?['letra','ler','contar','digitar']:['letra','ler','contar']).slice(0,3);
+  const mon=$('#monstro');
+  mon.hidden=true;mon.className='lutador monstro';mon.style.setProperty('--aura',m[2]);
+  $('#monstroEm').innerHTML=spr(m[3]);$('#monstroNome').textContent=nomeM(m[3]);
+  const coracoes=()=>{$('#coracoes').textContent='❤️'.repeat(vida)+'🤍'.repeat(3-vida)};coracoes();
+  $('#desafioB').innerHTML='';$('#continuar').hidden=true;
+  repetir=()=>{};
+  depois(600,()=>{
+    mon.hidden=false;mon.classList.add('entra');rugido();
+    falar(chefe?`Cuidado! O chefão ${m[1]} apareceu! Para capturar, você vai precisar escrever o seu nome!`:`Olha! Um ${m[1]} selvagem apareceu!`,'pt');
+    falar(`Vai, ${PARCEIRO.nome}!`,'pt',true);
+  });
+  const proximo=()=>{
+    if(tela!=='batalha')return;
+    mon.classList.remove('leva','ri');
+    montarDesafio(tipos[3-vida],$('#desafioB'),ataque,()=>{mon.classList.remove('ri');void mon.offsetWidth;mon.classList.add('ri');tom([500,620,500],.07,'square')});
+  };
+  depois(chefe?5200:2800,proximo);
+  function ataque(){
+    const arena=$('#arena'),t=document.createElement('span');
+    t.className='teia';t.textContent=PARCEIRO.projetil;arena.appendChild(t);
+    const pe=$('#parceiroEm');pe.classList.remove('ataca');void pe.offsetWidth;pe.classList.add('ataca');
+    tom([1400,300,1400,300],.05,'sawtooth');
+    falar(`${PARCEIRO.nome}, ${PARCEIRO.golpe}!`,'pt');
+    requestAnimationFrame(()=>t.classList.add('voa'));
+    depois(520,()=>{
+      t.remove();vida--;coracoes();
+      mon.classList.remove('leva');void mon.offsetWidth;mon.classList.add('leva');rugido();
+      falar(pick(['Acertou em cheio!','Zap! Na mosca!','Que choque!','Pow! Muito bem!']),'pt',true);
+      $('#desafioB').innerHTML='';
+      if(vida<=0)depois(1300,capturar);else depois(1500,proximo);
+    });
+  }
+  function capturar(){
+    mon.classList.add('capturado');confete();somAcerto();
+    falar(`Você capturou! Ganhou 3 moedas!`,'pt');falarTresNomes(m[3]);
+    if(!S.album.includes(lutaIdx))S.album.push(lutaIdx);
+    if(!lutaSelvagem&&lutaIdx===S.fase)S.fase++;
+    ganhar(3);salvar();
+    $('#desafioB').innerHTML=`<span class="figura">${spr(PARCEIRO.key)}✨${spr(m[3])}</span>${tresNomesHTML(m[3])}`;
+    $('#continuar').hidden=false;
+  }
+}
+$('#continuar').onclick=()=>{
+  if(lutaSelvagem){lutaSelvagem=false;voltarMundo=false;ir('mundo');return}
+  if(S.fase>=MUNDO.length){
+    S.mundo++;S.fase=0;salvar();
+    ir('mapa');
+    aparecer('🦉',`Uau! Você venceu o chefão! Agora começa o Mundo ${S.mundo+1}, com todas as letras e contas até dez!`);
+    confete();
+  }else{
+    ir('mapa');
+    if(Math.random()<.4)depois(500,()=>aparecer('🦉',pick(DICAS)));
+  }
+};
+
+function abrirAlbum(){
+  $('#albumInfo').hidden=true;
+  $('#albumConta').textContent=`${S.album.length} de ${MUNDO.length} capturados`;
+  $('#albumGrade').innerHTML=MUNDO.map((m,i)=>{
+    const tem=S.album.includes(i);
+    return `<button class="bloco no ${tem?'feito':''}" data-a="${i}" aria-label="${tem?m[1]:'Ainda não capturado'}"><span class="${tem?'':'sombra'}">${spr(m[3])}</span></button>`;
+  }).join('')+LENDARIOS.map(l=>{
+    const tem=S.lendarios.includes(l[1]);
+    return `<button class="bloco no ${tem?'feito':''}" data-l="${l[1]}" data-k="${l[3]}" aria-label="${tem?l[1]:'Lendário ainda não conquistado'}" style="${tem?'background:#fff3c4':''}"><span class="${tem?'':'sombra'}">${spr(l[3])}</span></button>`;
+  }).join('');
+  repetir=()=>falar(`Você já capturou ${S.album.length} monstrinhos!`,'pt');repetir();
+}
+function mostrarInfo(key){
+  const n=NOMES[key],box=$('#albumInfo');
+  box.innerHTML=`<span class="figura">${spr(key)}</span><div>${tresNomesHTML(key)}<p class="regra">${n.bicho[0]} · ${n.bicho[1]} · ${n.bicho[2]}</p></div>`;
+  box.hidden=false;
+}
+$('#albumGrade').addEventListener('click',e=>{
+  const l=e.target.closest('[data-l]');
+  if(l){
+    if(S.lendarios.includes(l.dataset.l)){mostrarInfo(l.dataset.k);falar('Lendário!','pt');falarTresNomes(l.dataset.k)}
+    else falar('Esse é lendário. Escolha como sonho no cofrinho e guarde moedas!','pt');
+    return;
+  }
+  const b=e.target.closest('[data-a]');if(!b)return;
+  const i=+b.dataset.a;
+  if(S.album.includes(i)){rugido();mostrarInfo(MUNDO[i][3]);calar();falarTresNomes(MUNDO[i][3])}
+  else falar('Esse ainda está escondido. Vamos para a aventura!','pt');
+});
+
+/* ================= ROTINA DO DIA ================= */
+const HABITOS=[
+  ['🪥','Escovou os dentes?','Dentes limpinhos! Muito bem!'],
+  ['🍽️','Comeu tudo?','Comeu tudo! Assim você cresce forte!'],
+  ['🛏️','Arrumou a cama?','Cama arrumada! Que capricho!'],
+  ['🧸','Guardou os brinquedos?','Brinquedos guardados! Quarto organizado!'],
+  ['🛁','Tomou banho?','Cheirosinho! Muito bem!'],
+  ['📚','Leu uma historinha?','Ler é um superpoder!']
+];
+function rotinaDeHoje(){if(S.rotina.data!==hoje())S.rotina={data:hoje(),feitos:[]};return S.rotina}
+function abrirRotina(){
+  rotinaDeHoje();desenharRotina();
+  repetir=()=>{const f=S.rotina.feitos.length;falar(f===HABITOS.length?'Você fez tudo hoje! Dia de campeão!':`Vamos ver a sua rotina de hoje. Você já fez ${f} de ${HABITOS.length}.`,'pt')};
+  repetir();
+}
+function desenharRotina(){
+  const r=rotinaDeHoje();
+  $('#habitos').innerHTML=HABITOS.map((h,i)=>{
+    const f=r.feitos.includes(i);
+    return `<button class="bloco habito ${f?'feito':''}" data-h="${i}"><span class="em">${h[0]}</span><span class="q">${h[1]}</span><span class="ok">${f?'Feito ✔':'Sim! +1'}</span></button>`;
+  }).join('');
+}
+$('#habitos').addEventListener('click',e=>{
+  const b=e.target.closest('[data-h]');if(!b)return;
+  const i=+b.dataset.h,r=rotinaDeHoje(),h=HABITOS[i];
+  if(r.feitos.includes(i)){falar(`Esse você já fez hoje! Amanhã vale de novo.`,'pt');return}
+  r.feitos.push(i);ganhar(1);somAcerto();salvar();desenharRotina();
+  if(r.feitos.length===HABITOS.length){
+    ganhar(2);confete();falar(`${h[2]} E você fez tudo! Dia de campeão! Mais duas moedas de bônus!`,'pt');
+  }else falar(h[2],'pt');
+});
+
+/* ================= MEU SONHO (lendários do cofrinho) ================= */
+const LENDARIOS=[['🐉','Dragão Dourado',25,'dourado'],['🦄','Unicórnio Estelar',40,'unicornio'],['🐋','Baleia Trovão',60,'baleia']];
+function desenharSonho(){
+  const box=$('#sonho');
+  const livres=LENDARIOS.filter(l=>!S.lendarios.includes(l[1]));
+  if(S.sonho===null||!LENDARIOS[S.sonho]){
+    S.sonho=null;
+    box.innerHTML=livres.length
+      ?'<h3>⭐ Escolha o seu sonho</h3><p class="regra">Um monstrinho lendário. Só dá para comprar com o dinheiro do cofrinho.</p><div class="opcoes-s">'+
+        LENDARIOS.map((l,i)=>S.lendarios.includes(l[1])?'':`<button class="bloco produto" data-sonho="${i}"><span class="em">${spr(l[3])}</span><small>${l[1]}</small><span class="preco"><span class="moeda"></span>${l[2]}</span></button>`).join('')+'</div>'
+      :'<h3>🏆 Você conquistou todos os lendários!</h3>';
+    return;
+  }
+  const [,nome,preco,key]=LENDARIOS[S.sonho],em=spr(key,'grande-px');
+  const pct=Math.min(100,Math.round(S.cofrinho/preco*100)),falta=Math.max(0,preco-S.cofrinho);
+  const cresce=Math.floor(S.cofrinho/5);
+  box.innerHTML=`<h3>⭐ Meu sonho: ${nome}</h3><span class="grande">${em}</span>
+    <div class="barra-s" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><i style="width:${pct}%"></i></div>
+    <p class="regra">${falta?`Faltam ${falta} no cofrinho. ${cresce?`Amanhã ele cresce +${cresce} sozinho!`:'Guarde 5 moedas e ele começa a crescer.'}`:'Você tem o suficiente!'}</p>
+    <button class="bloco ${falta?'acao':'proximo'}" data-comprar-sonho>${falta?'Quero comprar!':'Comprar com o cofrinho 🎉'}</button>`;
+}
+$('#sonho').addEventListener('click',e=>{
+  const esc=e.target.closest('[data-sonho]');
+  if(esc){
+    S.sonho=+esc.dataset.sonho;salvar();desenharSonho();
+    const [,nome,preco]=LENDARIOS[S.sonho];
+    falar(`O seu sonho é o ${nome}! Ele custa ${preco} moedas. Guarde no cofrinho e espere: o cofrinho cresce, e você consegue!`,'pt');
+    return;
+  }
+  if(!e.target.closest('[data-comprar-sonho]')||S.sonho===null)return;
+  const [,nome,preco,key]=LENDARIOS[S.sonho],em=spr(key,'grande-px');
+  if(S.cofrinho>=preco){
+    S.cofrinho-=preco;S.lendarios.push(nome);S.sonho=null;salvar();desenharCofre();
+    confete();somAcerto();depois(900,confete);
+    aparecer(em,`Você esperou, guardou, e conseguiu o ${nome}! Agora ele mora no seu álbum.`);
+  }else{
+    const falta=preco-S.cofrinho;somErro();
+    tremer(e.target.closest('[data-comprar-sonho]'));
+    falar(`Ainda faltam ${falta} moedas no cofrinho para o ${nome}. Eu sei, dá vontade de ter agora! Mas se você guardar e esperar, o cofrinho cresce, e você consegue.`,'pt');
+  }
+});
+
+/* ================= MINHA CIDADE ================= */
+// chave: [emoji, preço, pt, en, es, renda por dia]
+const PREDIOS={
+  arvore:['🌳',1,'Árvore','Tree','Árbol',0],
+  casa:['🏠',3,'Casa','House','Casa',0],
+  fonte:['⛲',4,'Fonte','Fountain','Fuente',0],
+  loja:['🏪',5,'Loja','Store','Tienda',1],
+  escola:['🏫',6,'Escola','School','Escuela',0],
+  hospital:['🏥',7,'Hospital','Hospital','Hospital',0],
+  banco:['🏦',8,'Banco','Bank','Banco',2],
+  arena:['🏟️',12,'Arena','Arena','Arena',0],
+  castelo:['🏰',20,'Castelo','Castle','Castillo',0]
+};
+const LOTES=24;
+const MISSOES=[
+  {em:'🏠',txt:'Construa a sua primeira casa.',fala:'Missão: construa a sua primeira casa. Toque num terreno vazio.',tipo:'construir',alvo:'casa',qtd:1,premio:2},
+  {em:'🌳',txt:'Plante 2 árvores.',fala:'Missão: plante duas árvores. Árvore em inglês é tree!',tipo:'construir',alvo:'arvore',qtd:2,premio:1},
+  {em:'🐷',txt:'Guarde 5 moedas no cofrinho.',fala:'Missão: guarde cinco moedas no cofrinho. Dinheiro guardado cresce!',tipo:'cofre',qtd:5,premio:2},
+  {em:'🏪',txt:'Construa uma loja. Ela te dá 1 moeda por dia!',fala:'Missão: construa uma loja. A loja te dá uma moeda todo dia. Isso é investir!',tipo:'construir',alvo:'loja',qtd:1,premio:2},
+  {em:'🇺🇸',txt:'Como se diz CASA em inglês?',fala:'Pergunta: como se diz casa em inglês?',tipo:'quiz',opcoes:['House','Tree','Ball'],certa:'House',idioma:'en',premio:2},
+  {em:'🏟️',txt:'Construa a Arena para batalhar com os monstrinhos.',fala:'Missão: construa a arena, para batalhar com os monstrinhos!',tipo:'construir',alvo:'arena',qtd:1,premio:3},
+  {em:'🇪🇸',txt:'Como se diz ÁRVORE em espanhol?',fala:'Pergunta: como se diz árvore em espanhol?',tipo:'quiz',opcoes:['Árbol','Sol','Casa'],certa:'Árbol',idioma:'es',premio:2},
+  {em:'🏫',txt:'Construa uma escola.',fala:'Missão: construa uma escola. Escola em inglês é school!',tipo:'construir',alvo:'escola',qtd:1,premio:2},
+  {em:'🤔',txt:'Uma loja te dá moedas. Um sorvete te dá moedas?',fala:'Pergunta: uma loja te dá moedas todo dia. E um sorvete, te dá moedas?',tipo:'quiz',opcoes:['Sim','Não'],certa:'Não',idioma:'pt',premio:2},
+  {em:'🏦',txt:'Construa um banco. Ele rende 2 moedas por dia!',fala:'Missão: construa um banco. Ele rende duas moedas por dia!',tipo:'construir',alvo:'banco',qtd:1,premio:3},
+  {em:'🐷',txt:'Junte 20 moedas no cofrinho.',fala:'Missão: junte vinte moedas no cofrinho. Guardando, a gente consegue coisas grandes!',tipo:'cofre',qtd:20,premio:5},
+  {em:'🏰',txt:'Construa o castelo da cidade!',fala:'Missão final: construa o castelo da cidade!',tipo:'construir',alvo:'castelo',qtd:1,premio:5}
+];
+const contarPredio=k=>S.cidade.filter(x=>x===k).length;
+function missaoFeita(m){
+  if(m.tipo==='construir')return contarPredio(m.alvo)>=m.qtd;
+  if(m.tipo==='cofre')return S.cofrinho>=m.qtd;
+  return false;
+}
+function abrirCidade(){
+  if(S.cidade.length<LOTES)S.cidade=[...S.cidade,...Array(LOTES-S.cidade.length).fill(null)];
+  if(S.rendaEm!==hoje()){
+    const r=S.cidade.reduce((s,k)=>s+(k?PREDIOS[k][5]:0),0);
+    if(S.rendaEm)S.rendaPendente+=r;
+    S.rendaEm=hoje();salvar();
+  }
+  desenharCidade();
+  repetir=()=>{const m=MISSOES[S.missao];falar(m?m.fala:'Sua cidade está completa! Parabéns, prefeito!','pt')};
+  repetir();
+}
+function desenharCidade(){
+  const m=MISSOES[S.missao];
+  const box=$('#missao');
+  if(!m){box.innerHTML='<span class="em">🎉</span><div class="txt"><b>Todas as missões</b><span>Cidade completa! Continue construindo.</span></div>'}
+  else{
+    const feita=missaoFeita(m);
+    let prog='';
+    if(m.tipo==='construir')prog=` (${Math.min(contarPredio(m.alvo),m.qtd)}/${m.qtd})`;
+    if(m.tipo==='cofre')prog=` (${Math.min(S.cofrinho,m.qtd)}/${m.qtd})`;
+    box.innerHTML=`<span class="em">${m.em}</span><div class="txt"><b>Missão ${S.missao+1} de ${MISSOES.length} · prêmio ${m.premio} moedas</b><span></span></div>`+
+      (m.tipo==='quiz'?'<div class="quiz">'+embaralhar(m.opcoes).map(o=>`<button class="bloco" data-op="${o}">${o}</button>`).join('')+'</div>'
+        :feita?'<button class="bloco proximo" data-premio>Receber prêmio 🎁</button>'
+        :m.tipo==='cofre'?'<button class="bloco acao" data-ir-cofre>Ir ao cofrinho 🐷</button>':'');
+    box.querySelector('.txt span').textContent=m.txt+prog;
+  }
+  const pend=S.rendaPendente;
+  $('#coletar').hidden=!pend;
+  $('#coletar').textContent=`💰 Coletar ${pend} ${pend===1?'moeda':'moedas'} de renda`;
+  $('#lotes').innerHTML=S.cidade.map((k,i)=>k
+    ?`<button class="bloco lote" data-lote="${i}" aria-label="${PREDIOS[k][2]}">${PREDIOS[k][0]}${pend&&PREDIOS[k][5]?'<span class="renda">💰</span>':''}</button>`
+    :`<button class="bloco lote vazio" data-lote="${i}" aria-label="Terreno vazio">+</button>`).join('');
+}
+$('#missao').addEventListener('click',e=>{
+  const m=MISSOES[S.missao];if(!m)return;
+  if(e.target.closest('[data-premio]')&&missaoFeita(m)){
+    ganhar(m.premio);confete();somAcerto();S.missao++;salvar();
+    falar(`Missão cumprida! Ganhou ${m.premio} moedas!`,'pt');
+    depois(2600,()=>{desenharCidade();repetir()});desenharCidade();return;
+  }
+  if(e.target.closest('[data-ir-cofre]')){ir('cofre');return}
+  const op=e.target.closest('[data-op]');
+  if(op&&m.tipo==='quiz'){
+    if(op.dataset.op===m.certa){
+      op.style.background='var(--grama)';somAcerto();
+      falar(m.certa,m.idioma);
+      ganhar(m.premio);confete();S.missao++;salvar();
+      depois(2200,()=>{desenharCidade();repetir()});
+    }else{tremer(op);somErro();falar('Quase! Tente outra.','pt')}
+  }
+});
+$('#coletar').onclick=()=>{
+  const p=S.rendaPendente;if(!p)return;
+  S.rendaPendente=0;ganhar(p);salvar();desenharCidade();confete();
+  falar(`A sua loja e o seu banco renderam ${p} ${p===1?'moeda':'moedas'}! Isso é investir: ter algo que te dá dinheiro todo dia.`,'pt');
+};
+let loteAberto=-1;
+$('#lotes').addEventListener('click',e=>{
+  const b=e.target.closest('[data-lote]');if(!b)return;
+  const i=+b.dataset.lote,k=S.cidade[i];
+  if(!k){
+    loteAberto=i;
+    $('#folhaTitulo').textContent='O que vamos construir?';
+    $('#catalogo').innerHTML=Object.entries(PREDIOS).map(([key,p])=>
+      `<button class="bloco produto ${S.carteira<p[1]?'longe':''}" data-predio="${key}" aria-label="${p[2]}, ${p[1]} moedas"><span class="em">${p[0]}</span><small>${p[2]}</small><span class="preco"><span class="moeda"></span>${p[1]}</span></button>`).join('');
+    $('#folha').hidden=false;falar('O que vamos construir?','pt');
+  }else{
+    const p=PREDIOS[k];
+    falar(p[2],'pt');falar(p[3],'en',true);falar(p[4],'es',true);
+    if(k==='arena'||k==='escola'){
+      loteAberto=-1;
+      $('#folhaTitulo').textContent=k==='arena'?'Arena: hora da batalha!':'Escola: hora da aula!';
+      $('#catalogo').innerHTML=`<button class="bloco produto" data-vai="${k==='arena'?'mapa':'ler'}" style="grid-column:1/-1"><span class="em">${k==='arena'?'⚔️':'📖'}</span><small>${k==='arena'?'Batalhar':'Ler palavras'}</small></button>`;
+      $('#folha').hidden=false;
+    }else{b.classList.remove('nasce');void b.offsetWidth;b.classList.add('nasce')}
+  }
+});
+$('#catalogo').addEventListener('click',e=>{
+  const v=e.target.closest('[data-vai]');
+  if(v){$('#folha').hidden=true;ir(v.dataset.vai);return}
+  const b=e.target.closest('[data-predio]');if(!b||loteAberto<0)return;
+  const key=b.dataset.predio,p=PREDIOS[key];
+  if(S.carteira<p[1]){
+    tremer(b);somErro();
+    const falta=p[1]-S.carteira;
+    falar(`Faltam ${falta} ${falta===1?'moeda':'moedas'} para ${p[2].toLowerCase()}. Jogue Pular e pegar ou a Aventura para ganhar mais!`,'pt');
+    return;
+  }
+  S.carteira-=p[1];S.cidade[loteAberto]=key;salvar();atualizarMoedas();
+  $('#folha').hidden=true;somAcerto();
+  const i=loteAberto;loteAberto=-1;
+  desenharCidade();
+  const novo=$(`#lotes [data-lote="${i}"]`);if(novo)novo.classList.add('nasce');
+  falar(`Construiu: ${p[2]}! Gastou ${p[1]} ${p[1]===1?'moeda':'moedas'}.`,'pt');falar(p[3],'en',true);falar(p[4],'es',true);
+  if(p[5])falar(`Esse prédio rende ${p[5]} por dia!`,'pt',true);
+  const m=MISSOES[S.missao];if(m&&missaoFeita(m))depois(2500,()=>falar('Missão cumprida! Pegue o seu prêmio!','pt'));
+});
+$('#fecharFolha').onclick=()=>{$('#folha').hidden=true;loteAberto=-1;calar()};
+
+/* ================= PULAR E PEGAR (plataforma) ================= */
+const TEMAS=[
+  {nome:'Cidade',ceu:'#8fd3ff',morro:'#b9e6ff',terra:'#8b5a2b',grama:'#2fb36b',tijolo:'#d9733b'},
+  {nome:'Floresta',ceu:'#c4f0cf',morro:'#9fdcae',terra:'#6b4a2b',grama:'#1f8f4e',tijolo:'#b5652f'},
+  {nome:'Vulcão',ceu:'#ffd8b0',morro:'#ffbf91',terra:'#5b3a3a',grama:'#ff7a3d',tijolo:'#a8432f'}
+];
+const SOLIDO=new Set(['G','B','?','U']);
+const EMOJI_FONTE='"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+let P=null,rafPular=null,ultimoQuadro=0;
+const ctl={esq:false,dir:false,pulo:false,puloNovo:false};
+function sorteio(seed){return()=>{seed=(seed*16807)%2147483647;return(seed-1)/2147483646}}
+function montarNivel(n){
+  const r=sorteio(1234+n*97),L=60+Math.min(n,6)*15,ROWS=10;
+  const mapa=Array.from({length:ROWS},()=>Array(L).fill(' '));
+  const buraco=new Array(L).fill(false);
+  let x=0,ultimoBuraco=-10;
+  while(x<L){
+    if(x>10&&x<L-10&&x-ultimoBuraco>7&&r()<.13){
+      const w=(n>=2&&r()<.4)?3:2;
+      for(let i=0;i<w;i++)buraco[x+i]=true;
+      ultimoBuraco=x+w;x+=w;continue;
+    }
+    mapa[8][x]=mapa[9][x]='G';x++;
+  }
+  const nome=nomeMaiusc()||'ARTHUR';
+  const reservado=new Set(),moedas=[];
+  const passo=(L-22)/nome.length;
+  for(let i=0;i<nome.length;i++){
+    let bx=Math.round(10+i*passo+passo/2);
+    while(buraco[bx]||buraco[bx-1]||buraco[bx+1])bx--;
+    mapa[5][bx]='?';for(let k=-2;k<=2;k++)reservado.add(bx+k);
+  }
+  for(let px=14;px<L-10;px+=8+Math.floor(r()*5)){
+    const w=3+Math.floor(r()*3);let ok=true;
+    for(let k=-1;k<=w;k++)if(reservado.has(px+k))ok=false;
+    if(!ok)continue;
+    const row=r()<.65?6:5;
+    for(let k=0;k<w;k++){mapa[row][px+k]='B';moedas.push({x:px+k+.5,y:row-.5})}
+  }
+  for(let gx=0;gx<L;gx++){
+    if(buraco[gx]&&!buraco[gx-1]){
+      let w=0;while(buraco[gx+w])w++;
+      for(let i=-1;i<=w;i++)moedas.push({x:gx+i+.5,y:(i>=0&&i<w)?4.5:5.5});
+    }
+  }
+  for(let gx=12;gx<L-8;gx+=13+Math.floor(r()*6)){
+    if(buraco[gx]||buraco[gx+1]||buraco[gx+2])continue;
+    for(let k=0;k<3;k++)moedas.push({x:gx+k+.5,y:7.5});
+  }
+  const inimigos=[],total=2+Math.min(n,5);
+  for(let t=0,tent=0;t<total&&tent<200;tent++){
+    const ex=16+Math.floor(r()*(L-28));
+    if(buraco[ex]||buraco[ex-1]||buraco[ex+1]||mapa[7][ex]!==' ')continue;
+    if(inimigos.some(e=>Math.abs(e.x-ex)<5))continue;
+    inimigos.push({x:ex,y:7.2,w:.8,h:.8,vx:-(1.1+Math.min(n,6)*.12),key:MUNDO[(t+n)%7][3],vivo:true});t++;
+  }
+  return {n,L,mapa,moedas:moedas.map(m=>({...m,pego:false})),inimigos,meta:L-4,nome,letras:0,tema:TEMAS[n%TEMAS.length],
+    heroi:{x:2,y:7.1,w:.7,h:.9,vx:0,vy:0,chao:false,dir:1,inv:0,coyote:0,buffer:0,seguroX:2},
+    pegas:0,capturados:0,particulas:[],fim:false,avisouEmpurrao:false};
+}
+function hudPular(){
+  $('#hudFase').textContent=`Fase ${P.n+1} · ${P.tema.nome}`;
+  $('#hudMoedas').textContent=P.pegas;
+  $('#hudNome').innerHTML=P.nome.split('').map((c,i)=>`<span class="${i<P.letras?'on':''}">${c}</span>`).join('');
+}
+function abrirPular(){
+  P=montarNivel(S.nivelPular||0);
+  $('#fimFase').hidden=true;hudPular();redimensionar();
+  repetir=()=>falar('Pule e pegue as moedas! Bata a cabeça nos blocos com interrogação para achar as letras do seu nome!','pt');
+  if(!S.pularVisto){S.pularVisto=true;salvar();repetir()}
+  else falar(`Fase ${P.n+1}! Vamos!`,'pt');
+  if(!rafPular){ultimoQuadro=performance.now();rafPular=requestAnimationFrame(quadroPular)}
+}
+const cv2=$('#cena'),g=cv2.getContext('2d');
+let tilePx=48,offY=0;
+function redimensionar(){
+  const dpr=Math.min(window.devicePixelRatio||1,2),w=cv2.clientWidth,h=cv2.clientHeight;
+  if(!w||!h)return;
+  cv2.width=Math.round(w*dpr);cv2.height=Math.round(h*dpr);
+  tilePx=Math.min(cv2.height/10,cv2.width/13);offY=cv2.height-10*tilePx;
+}
+if('ResizeObserver' in window)new ResizeObserver(redimensionar).observe($('#palco'));
+const solido=(tx,ty)=>{if(!P||tx<0||tx>=P.L)return tx<0;if(ty<0||ty>=10)return false;return SOLIDO.has(P.mapa[ty][tx])};
+function particula(x,y,txt,cor){P.particulas.push({x,y,txt,cor,t:0})}
+function passoPular(dt){
+  const h=P.heroi;
+  const alvoV=((ctl.dir||GP.dir?1:0)-(ctl.esq||GP.esq?1:0))*6.2;
+  if(GP.aNovo)ctl.puloNovo=true;
+  if(alvoV)h.dir=Math.sign(alvoV);
+  const acc=(h.chao?32:20)*dt;h.vx+=Math.max(-acc,Math.min(acc,alvoV-h.vx));
+  if(ctl.puloNovo){h.buffer=.16;ctl.puloNovo=false}
+  h.buffer-=dt;h.coyote=h.chao?.1:h.coyote-dt;
+  if(h.buffer>0&&h.coyote>0){h.vy=-16.6;h.buffer=0;h.coyote=0;h.chao=false;tom([523,784],.06,'square')}
+  if(!ctl.pulo&&!GP.a&&h.vy<-7)h.vy=-7;
+  h.vy=Math.min(h.vy+40*dt,20);
+  // eixo X
+  h.x+=h.vx*dt;
+  if(h.x<0){h.x=0;h.vx=0}
+  for(let ty=Math.floor(h.y);ty<=Math.floor(h.y+h.h-.001);ty++){
+    if(h.vx>0&&solido(Math.floor(h.x+h.w),ty)){h.x=Math.floor(h.x+h.w)-h.w-.001;h.vx=0}
+    else if(h.vx<0&&solido(Math.floor(h.x),ty)){h.x=Math.floor(h.x)+1.001;h.vx=0}
+  }
+  // eixo Y
+  h.y+=h.vy*dt;h.chao=false;
+  const x0=Math.floor(h.x),x1=Math.floor(h.x+h.w-.001);
+  if(h.vy>0){
+    const ty=Math.floor(h.y+h.h);
+    if(solido(x0,ty)||solido(x1,ty)){h.y=ty-h.h;h.vy=0;h.chao=true}
+  }else if(h.vy<0){
+    const ty=Math.floor(h.y);
+    const centro=Math.floor(h.x+h.w/2);
+    const bate=[centro,x0,x1].find(tx=>solido(tx,ty));
+    if(bate!==undefined){
+      h.y=ty+1;h.vy=0;
+      if(P.mapa[ty]&&P.mapa[ty][bate]==='?'){
+        P.mapa[ty][bate]='U';
+        if(P.letras<P.nome.length){
+          const c=P.nome[P.letras++];
+          particula(bate+.5,ty-.6,c,'#7a5cff');somAcerto();falar(nomeLetra(c,'pt'),'pt');
+          if(P.letras===P.nome.length)depois(700,()=>falar(`Você juntou todas as letras: ${S.nome||c}!`,'pt'));
+        }else{particula(bate+.5,ty-.6,'🪙');P.pegas++;somMoeda()}
+        hudPular();
+      }else tom([150],.05,'square');
+    }
+  }
+  if(h.chao&&solido(Math.floor(h.x+h.w/2),Math.floor(h.y+h.h)))h.seguroX=h.x;
+  if(h.y>11){
+    h.x=Math.max(0,h.seguroX-1.5);h.y=4;h.vx=0;h.vy=0;h.inv=1;
+    somErro();falar('Opa! De volta!','pt');
+  }
+  h.inv=Math.max(0,h.inv-dt);
+  // moedas
+  for(const m of P.moedas){
+    if(!m.pego&&Math.abs(m.x-(h.x+h.w/2))<.65&&Math.abs(m.y-(h.y+h.h/2))<.75){m.pego=true;P.pegas++;somMoeda();hudPular()}
+  }
+  // monstrinhos
+  for(const e of P.inimigos){
+    if(!e.vivo)continue;
+    e.x+=e.vx*dt;
+    const frente=e.vx<0?Math.floor(e.x):Math.floor(e.x+e.w);
+    if(!solido(frente,8)||solido(frente,7)){e.vx*=-1;e.x+=e.vx*dt*2}
+    if(h.x<e.x+e.w&&h.x+h.w>e.x&&h.y<e.y+e.h&&h.y+h.h>e.y){
+      if(h.vy>0&&h.y+h.h-e.y<.5){
+        e.vivo=false;P.capturados++;h.vy=-11;
+        particula(e.x+.4,e.y,'🕸️');tom([1200,600],.1,'sine');
+        falar(pick(['Capturou!','Teia nele!','Pow!']),'pt');
+      }else if(h.inv<=0){
+        h.vx=(h.x<e.x?-1:1)*9;h.vy=-8;h.inv=1.2;somErro();
+        if(!P.avisouEmpurrao){P.avisouEmpurrao=true;falar('Ops! Pule em cima do monstrinho!','pt')}
+      }
+    }
+  }
+  for(const p of P.particulas)p.t+=dt;
+  P.particulas=P.particulas.filter(p=>p.t<1.2);
+  if(h.x>=P.meta-.3)terminarFase();
+}
+function terminarFase(){
+  P.fim=true;confete();somAcerto();
+  const m=P.pegas,todas=P.letras===P.nome.length;
+  ganhar(m);
+  S.nivelPular=P.n+1;salvar();
+  const soletrado=P.nome.slice(0,P.letras).split('').map(c=>nomeLetra(c,'pt')).join(', ');
+  $('#fimTexto').textContent=`Fase completa! Você pegou ${m} moedas`+(todas?` e escreveu ${P.nome}!`:'.');
+  $('#fimFase').hidden=false;
+  falar(`Fase completa! Você pegou ${m} moedas. `+(todas?`E juntou as letras: ${soletrado}. ${S.nome||''}!`:'Na próxima, procure os blocos com interrogação para achar as letras do seu nome!')+' Quer guardar no cofrinho?','pt');
+}
+$('#proxFase').onclick=()=>{calar();abrirPular()};
+$('#irCofre').onclick=()=>ir('cofre');
+function desenharPular(){
+  const W=cv2.width,H=cv2.height,T=tilePx,t=P.tema,h=P.heroi;
+  const vis=W/T;
+  const cam=Math.max(0,Math.min(h.x-vis*.4,P.L-vis));
+  g.fillStyle=t.ceu;g.fillRect(0,0,W,H);
+  // morros ao fundo (paralaxe)
+  g.fillStyle=t.morro;
+  for(let i=-1;i<vis/3+2;i++){
+    const base=Math.floor(cam*.4/3)+i,mx=(base*3-cam*.4)*T;
+    g.beginPath();g.arc(mx,offY+8*T,(2+(base*7%3))*T,Math.PI,0);g.fill();
+  }
+  const c0=Math.floor(cam),c1=Math.min(P.L-1,Math.ceil(cam+vis));
+  for(let ty=0;ty<10;ty++)for(let tx=c0;tx<=c1;tx++){
+    const k=P.mapa[ty][tx];if(k===' ')continue;
+    const px=(tx-cam)*T,py=offY+ty*T;
+    if(k==='G'){g.fillStyle=t.terra;g.fillRect(px,py,T+1,T+1);if(ty===8){g.fillStyle=t.grama;g.fillRect(px,py,T+1,T*.25)}}
+    else if(k==='B'){g.fillStyle=t.tijolo;g.fillRect(px,py,T,T);g.strokeStyle='rgba(0,0,0,.25)';g.lineWidth=2;g.strokeRect(px+1,py+1,T-2,T-2);g.beginPath();g.moveTo(px,py+T/2);g.lineTo(px+T,py+T/2);g.moveTo(px+T/2,py);g.lineTo(px+T/2,py+T/2);g.stroke()}
+    else if(k==='?'||k==='U'){
+      g.fillStyle=k==='?'?'#ffc83d':'#9c7a52';g.fillRect(px+1,py+1,T-2,T-2);
+      g.strokeStyle='#1d2b4f';g.lineWidth=3;g.strokeRect(px+2,py+2,T-4,T-4);
+      if(k==='?'){g.fillStyle='#1d2b4f';g.font=`800 ${T*.7}px 'Baloo 2',sans-serif`;g.textAlign='center';g.textBaseline='middle';g.fillText('?',px+T/2,py+T*.56)}
+    }
+  }
+  // meta: mastro + castelo
+  const mx=(P.meta-cam)*T;
+  g.fillStyle='#1d2b4f';g.fillRect(mx,offY+2*T,T*.12,6*T);
+  g.fillStyle='#2fb36b';g.beginPath();g.moveTo(mx+T*.12,offY+2*T);g.lineTo(mx+T*1.1,offY+2.4*T);g.lineTo(mx+T*.12,offY+2.8*T);g.fill();
+  g.textAlign='center';g.textBaseline='middle';
+  g.font=`${T*2}px ${EMOJI_FONTE}`;g.fillText('🏰',mx+T*2.2,offY+7*T);
+  // moedas
+  const gir=Math.abs(Math.sin(performance.now()/300));
+  for(const m of P.moedas){
+    if(m.pego||m.x<cam-1||m.x>cam+vis+1)continue;
+    const cx=(m.x-cam)*T,cy=offY+m.y*T;
+    g.fillStyle='#ffc83d';g.strokeStyle='#a87400';g.lineWidth=3;
+    g.beginPath();g.ellipse(cx,cy,T*.3*(.35+.65*gir),T*.3,0,0,Math.PI*2);g.fill();g.stroke();
+  }
+  // monstrinhos
+  g.font=`${T*.9}px ${EMOJI_FONTE}`;
+  for(const e of P.inimigos){
+    if(!e.vivo)continue;
+    const cx=(e.x+e.w/2-cam)*T,cy=offY+(e.y+e.h/2)*T+Math.sin(performance.now()/150+e.x)*T*.04;
+    g.save();g.translate(cx,cy);if(e.vx>0)g.scale(-1,1);g.imageSmoothingEnabled=false;g.drawImage(sprCv(e.key),-T*.45,-T*.45,T*.9,T*.9);g.restore();
+  }
+  // herói
+  if(!(h.inv>0&&Math.floor(h.inv*10)%2)){
+    // mesmo treinador pixelado do mapa (16x16 escalado para ~1 bloco)
+    g.save();g.translate((h.x+h.w/2-cam)*T-T*.55,offY+(h.y+h.h)*T-T*1.1);g.scale(T*1.1/16,T*1.1/16);
+    g.imageSmoothingEnabled=false;
+    desenharTreinador(g,0,0,h.dir>0?'dir':'esq',h.chao?Math.floor(Math.abs(h.x)*2)%2:1);g.restore();
+  }
+  // partículas
+  for(const p of P.particulas){
+    g.globalAlpha=Math.max(0,1-p.t/1.2);
+    const px=(p.x-cam)*T,py=offY+(p.y-p.t*1.2)*T;
+    if(p.cor){g.font=`800 ${T*.9}px 'Baloo 2',sans-serif`;g.fillStyle=p.cor;g.strokeStyle='#fff';g.lineWidth=4;g.strokeText(p.txt,px,py);g.fillText(p.txt,px,py)}
+    else{g.font=`${T*.8}px ${EMOJI_FONTE}`;g.fillText(p.txt,px,py)}
+    g.globalAlpha=1;
+  }
+}
+function quadroPular(t){
+  if(tela!=='pular'){rafPular=null;ctl.esq=ctl.dir=ctl.pulo=false;return}
+  const dt=Math.min(.033,(t-ultimoQuadro)/1000||0);ultimoQuadro=t;
+  lerControle();
+  if(P&&P.fim&&GP.aNovo)$('#proxFase').click();
+  if(P&&!P.fim&&$('#painel').hidden)passoPular(dt);
+  if(P&&cv2.width)desenharPular();
+  rafPular=requestAnimationFrame(quadroPular);
+}
+const TECLAS_CTL={ArrowLeft:'esq',a:'esq',A:'esq',ArrowRight:'dir',d:'dir',D:'dir',ArrowUp:'pulo',w:'pulo',W:'pulo',' ':'pulo'};
+document.addEventListener('keydown',e=>{
+  if(tela!=='pular'||(e.target.closest&&e.target.closest('input')))return;
+  const c=TECLAS_CTL[e.key];if(!c)return;
+  e.preventDefault();
+  if(c==='pulo'&&!ctl.pulo)ctl.puloNovo=true;
+  ctl[c]=true;
+},true);
+document.addEventListener('keyup',e=>{const c=TECLAS_CTL[e.key];if(c)ctl[c]=false});
+$$('.ctl').forEach(b=>{
+  const c=b.dataset.ctl;
+  const on=e=>{e.preventDefault();if(c==='pulo'&&!ctl.pulo)ctl.puloNovo=true;ctl[c]=true;b.classList.add('ativo');try{b.setPointerCapture(e.pointerId)}catch(_){}};
+  const off=()=>{ctl[c]=false;b.classList.remove('ativo')};
+  b.addEventListener('pointerdown',on);
+  ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>b.addEventListener(ev,off));
+  b.addEventListener('contextmenu',e=>e.preventDefault());
+});
+
+/* ================= CONTROLE (gamepad Bluetooth/USB) ================= */
+// Padrão "standard": 0=A(Xbox)/X(PS) 1=B/Círculo 12..15=cruz direcional; eixos 0/1 = analógico esquerdo
+const GP={esq:false,dir:false,cima:false,baixo:false,a:false,b:false,aNovo:false,bNovo:false,ligado:false};
+function lerControle(){
+  let pads=[];try{pads=navigator.getGamepads?[...navigator.getGamepads()]:[]}catch(e){}
+  const g=pads.find(p=>p&&p.connected);
+  const antes={a:GP.a,b:GP.b};
+  if(!g){GP.esq=GP.dir=GP.cima=GP.baixo=GP.a=GP.b=false;GP.aNovo=GP.bNovo=false;marcarControle(false);return GP}
+  const bt=i=>!!(g.buttons[i]&&(g.buttons[i].pressed||g.buttons[i].value>.5));
+  const ax=i=>g.axes[i]||0;
+  GP.esq=bt(14)||ax(0)<-.5;GP.dir=bt(15)||ax(0)>.5;GP.cima=bt(12)||ax(1)<-.5;GP.baixo=bt(13)||ax(1)>.5;
+  GP.a=bt(0);GP.b=bt(1)||bt(2);
+  GP.aNovo=GP.a&&!antes.a;GP.bNovo=GP.b&&!antes.b;
+  marcarControle(true);
+  return GP;
+}
+function marcarControle(on){
+  if(GP.ligado===on)return;GP.ligado=on;
+  $$('.pilula-controle').forEach(e=>e.hidden=!on);
+  if(on){tom([523,784,1047],.08);falar('Controle conectado!','pt')}
+}
+addEventListener('gamepadconnected',()=>lerControle());
+
+/* ================= MUNDO (mapa visto de cima, estilo 16-bit) ================= */
+const MW=36,MH=26,TS=16;
+const PREDIOS_MUNDO=[
+  {nome:'CASA',x:3,y:2,w:5,h:4,porta:[5,5],vai:'rotina',telhado:'#d04838',parede:'#f8e8c8',fala:'Sua casa! Aqui fica a rotina do dia.'},
+  {nome:'ESCOLA',x:12,y:2,w:6,h:4,porta:[14,5],vai:'escola',telhado:'#3868d0',parede:'#f0f0e0',fala:'A escola! Hora de treinar letras e palavras.'},
+  {nome:'BANCO',x:24,y:2,w:5,h:4,porta:[26,5],vai:'cofre',telhado:'#e0a800',parede:'#f8f0d8',fala:'O banco! Aqui fica o seu cofrinho.'},
+  {nome:'PREFEITURA',x:3,y:17,w:5,h:4,porta:[5,20],vai:'cidade',telhado:'#8048c0',parede:'#f0e8f8',fala:'A prefeitura! Aqui você constrói a sua cidade.'},
+  {nome:'FLIPER',x:9,y:17,w:5,h:4,porta:[11,20],vai:'pular',telhado:'#20a070',parede:'#e8f8f0',fala:'O fliperama! Vamos pular e pegar moedas!'},
+  {nome:'ARENA',x:25,y:16,w:7,h:5,porta:[28,20],vai:'mapa',telhado:'#c03030',parede:'#c8c8d8',fala:'A arena! Aqui moram os chefões.'}
+];
+const CORUJA={x:18,y:8};
+let TERRENO=null,mapaCv=null;
+function construirTerreno(){
+  const t=Array.from({length:MH},()=>Array(MW).fill('.'));
+  const ret=(x0,y0,x1,y1,c)=>{for(let y=y0;y<=y1;y++)for(let x=x0;x<=x1;x++)t[y][x]=c};
+  ret(0,0,MW-1,1,'T');ret(0,MH-2,MW-1,MH-1,'T');ret(0,0,1,MH-1,'T');ret(MW-2,0,MW-1,MH-1,'T');
+  ret(2,6,33,6,'=');ret(17,6,17,23,'=');ret(2,21,33,21,'=');
+  ret(3,9,12,14,',');ret(21,9,32,13,',');ret(20,22,32,23,',');
+  ret(13,9,15,13,'~');
+  [[20,16],[21,16],[20,17],[21,17],[15,17],[15,18],[22,15]].forEach(([x,y])=>t[y][x]='T');
+  [[8,7],[11,8],[19,4],[21,4],[30,7],[32,15],[23,19],[3,15],[7,15],[18,14],[16,8],[9,22],[13,23]].forEach(([x,y])=>{if(t[y][x]==='.')t[y][x]='f'});
+  for(const b of PREDIOS_MUNDO){ret(b.x,b.y,b.x+b.w-1,b.y+b.h-1,'H');t[b.porta[1]][b.porta[0]]='D'}
+  return t;
+}
+function pintarMapa(){
+  const c=document.createElement('canvas');c.width=MW*TS;c.height=MH*TS;
+  const m=c.getContext('2d');
+  const r=(x,y,w,h,cor)=>{m.fillStyle=cor;m.fillRect(x,y,w,h)};
+  const grama=(X,Y)=>{r(X,Y,16,16,'#78c850');const s=(X*7+Y*13)%5;r(X+3+s,Y+4,1,2,'#60b040');r(X+11-s,Y+11,1,2,'#60b040')};
+  for(let y=0;y<MH;y++)for(let x=0;x<MW;x++){
+    const X=x*TS,Y=y*TS,k=TERRENO[y][x];
+    if(k==='='){r(X,Y,16,16,'#e8d098');const s=(x*5+y*3)%4;r(X+2+s,Y+3,2,1,'#d0b878');r(X+10-s,Y+12,2,1,'#d0b878');continue}
+    if(k==='~'){r(X,Y,16,16,'#4890e8');r(X+2,Y+5,5,1,'#90c8f8');r(X+9,Y+11,5,1,'#90c8f8');continue}
+    grama(X,Y);
+    if(k===','){r(X,Y,16,16,'#50a030');for(let i=0;i<4;i++){r(X+1+i*4,Y+5,1,8,'#287818');r(X+2+i*4,Y+3,1,6,'#389028');r(X+3+i*4,Y+6,1,7,'#287818')}}
+    else if(k==='f'){const cor=(x+y)%2?'#f04060':'#f8d030';r(X+6,Y+5,4,4,cor);r(X+7,Y+6,2,2,'#fff8c0');r(X+7,Y+9,2,3,'#389028')}
+    else if(k==='T'){r(X+4,Y,8,1,'#206830');r(X+2,Y+1,12,9,'#287838');r(X+1,Y+3,14,5,'#287838');r(X+4,Y+2,4,2,'#48a050');r(X+2,Y+9,12,1,'#185028');r(X+6,Y+10,4,5,'#805030');r(X+6,Y+14,4,1,'#603818')}
+  }
+  for(const b of PREDIOS_MUNDO){
+    const X=b.x*TS,Y=b.y*TS,W=b.w*TS,H=b.h*TS,teto=b.nome==='ARENA'?22:20;
+    r(X+1,Y+teto,W-2,H-teto,b.parede);r(X+1,Y+H-2,W-2,2,'rgba(0,0,0,.18)');
+    r(X,Y+2,W,teto,b.telhado);r(X+2,Y,W-4,2,b.telhado);
+    for(let i=Y+5;i<Y+teto;i+=4)r(X,i,W,1,'rgba(0,0,0,.18)');
+    r(X,Y+teto-2,W,2,'rgba(0,0,0,.3)');
+    for(let i=0;i<b.w;i++){
+      const wx=X+i*TS+4;
+      if(b.x+i===b.porta[0])continue;
+      r(wx,Y+teto+5,8,7,'#304878');r(wx+1,Y+teto+6,3,2,'#a8d0f8');
+    }
+    const dx=b.porta[0]*TS,dy=b.porta[1]*TS;
+    r(dx+3,dy+2,10,14,'#704020');r(dx+4,dy+3,8,13,'#905830');r(dx+10,dy+9,1,2,'#f8d030');
+    if(b.nome==='ARENA'){r(X+6,Y+teto+2,4,10,'#f8f8f8');r(X+W-10,Y+teto+2,4,10,'#f8f8f8');r(X+7,Y+teto+3,2,4,'#c03030');r(X+W-9,Y+teto+3,2,4,'#c03030')}
+  }
+  return c;
+}
+const PJ={x:5,y:6,mov:null}; // parceiro no mapa: ocupa o tile que o treinador acabou de deixar
+const J={x:5,y:7,dir:'baixo',mov:null,passo:0,cool:5,pausa:false,exc:0,excCb:null};
+const DIRS={cima:[0,-1],baixo:[0,1],esq:[-1,0],dir:[1,0]};
+let segurando=[],selvagens=[],rafMundo=null,ultMundo=0,falaAberta=false,falaDepois=null;
+const ehPredio=(x,y)=>TERRENO[y]&&TERRENO[y][x]==='H';
+function livre(x,y){
+  if(x<0||y<0||x>=MW||y>=MH)return false;
+  const k=TERRENO[y][x];
+  if(k==='T'||k==='~'||k==='H')return false;
+  if(x===CORUJA.x&&y===CORUJA.y)return false;
+  return true;
+}
+function predioNaPorta(x,y){return PREDIOS_MUNDO.find(b=>b.porta[0]===x&&b.porta[1]===y)}
+function gramaAlta(x,y){return TERRENO[y]&&TERRENO[y][x]===','}
+function sortearMonstrinho(){
+  const faltam=[0,1,2,3,4,5,6].filter(i=>!S.album.includes(i));
+  return pick(faltam.length&&Math.random()<.7?faltam:[0,1,2,3,4,5,6]);
+}
+function espalharSelvagens(){
+  selvagens=[];
+  const tiles=[];for(let y=0;y<MH;y++)for(let x=0;x<MW;x++)if(gramaAlta(x,y))tiles.push([x,y]);
+  for(let i=0;i<3;i++){const [x,y]=pick(tiles);selvagens.push({x,y,idx:sortearMonstrinho(),t:1+Math.random()*2,vis:0})}
+}
+function abrirMundo(){
+  if(!TERRENO){TERRENO=construirTerreno();mapaCv=pintarMapa()}
+  voltarMundo=false;
+  if(S.pos&&livre(S.pos.x,S.pos.y)){J.x=S.pos.x;J.y=S.pos.y;J.dir=S.pos.dir||'baixo'}
+  J.mov=null;J.pausa=false;J.exc=0;segurando=[];
+  {const [dx,dy]=DIRS[J.dir];const bx=J.x-dx,by=J.y-dy;
+   if(livre(bx,by)&&!predioNaPorta(bx,by)){PJ.x=bx;PJ.y=by}else{PJ.x=J.x;PJ.y=J.y}PJ.mov=null}
+  if(selvagens.length<2)espalharSelvagens();
+  $('#mundoMoedas').textContent=S.carteira;
+  redimMundo();
+  repetir=()=>falarMundo('Ande com as setas. Na grama alta aparecem monstrinhos! Entre nas portas para jogar.');
+  if(!S.mundoVisto){S.mundoVisto=true;salvar();falarMundo(`Oi, treinador ${S.nome||''}! Eu sou a Coruja. Ande com as setas. Na grama alta aparecem monstrinhos. Entre nas portas das casas para jogar!`,apresentarParceiro)}
+  else if(!S.parceiroVisto)apresentarParceiro();
+  if(!rafMundo){ultMundo=performance.now();rafMundo=requestAnimationFrame(quadroMundo)}
+}
+function apresentarParceiro(){
+  S.parceiroVisto=true;salvar();
+  aparecer(spr(PARCEIRO.key),`Este é o ${PARCEIRO.nome}, o seu parceiro! Ele vai andar com você e lutar junto nas batalhas.`,()=>falar(PARCEIRO.grito,'pt'));
+}
+function falarMundo(txt,depoisFn){
+  falaAberta=true;falaDepois=depoisFn||null;
+  $('#falaTexto').textContent=txt;$('#falaMundo').hidden=false;
+  falar(txt,'pt');
+}
+function fecharFala(){
+  if(!falaAberta)return;
+  falaAberta=false;$('#falaMundo').hidden=true;calar();
+  const f=falaDepois;falaDepois=null;if(f)f();
+}
+$('#falaMundo').addEventListener('click',fecharFala);
+function encontro(idx,sel){
+  if(J.exc)return;
+  J.exc=.9;rugido();
+  J.excCb=()=>{
+    if(sel)selvagens=selvagens.filter(s=>s!==sel);
+    const f=$('#flash');f.hidden=false;f.classList.remove('pisca');void f.offsetWidth;f.classList.add('pisca');
+    tom([880,660,880,660],.08,'square');
+    depois(800,()=>{f.hidden=true;lutaIdx=idx;lutaSelvagem=true;voltarMundo=true;salvarPos();ir('batalha')});
+  };
+}
+function salvarPos(){S.pos={x:J.x,y:J.y,dir:J.dir};salvar()}
+function chegou(){
+  const b=predioNaPorta(J.x,J.y);
+  if(b){
+    salvarPos();
+    J.pausa=true;tom([523,659],.07,'square');
+    J.y+=1;J.dir='baixo';salvarPos();J.y-=1;
+    falar(b.fala,'pt');
+    depois(500,()=>{J.pausa=false;voltarMundo=true;entrarPredio(b)});
+    return;
+  }
+  const s=selvagens.find(s=>s.x===J.x&&s.y===J.y);
+  if(s)return encontro(s.idx,s);
+  if(gramaAlta(J.x,J.y)){
+    J.cool--;
+    if(J.cool<=0&&Math.random()<.12){J.cool=6;encontro(sortearMonstrinho(),null)}
+  }
+  if(J.passo%8===0)salvarPos();
+}
+function entrarPredio(b){
+  if(b.vai!=='escola')return ir(b.vai);
+  $('#folhaTitulo').textContent='ESCOLA · o que vamos treinar?';
+  const op=[['📖','Ler palavras','ler'],['⌨️','Digitar','digitar'],['✏️','Meu nome','nome'],['🔤','Letras','letras'],['🌎','Palavras','palavras'],['🪙','Contar','contar']];
+  $('#catalogo').innerHTML=op.map(o=>`<button class="bloco produto" data-vai="${o[2]}"><span class="em">${o[0]}</span><small>${o[1]}</small></button>`).join('');
+  loteAberto=-1;$('#folha').hidden=false;
+}
+function interagir(){
+  if(falaAberta)return fecharFala();
+  const [dx,dy]=DIRS[J.dir],fx=J.x+dx,fy=J.y+dy;
+  if(fx===PJ.x&&fy===PJ.y){falarMundo(`${PARCEIRO.nome}: ${PARCEIRO.grito} ❤`);falar(PARCEIRO.grito,'pt');return}
+  if(fx===CORUJA.x&&fy===CORUJA.y){
+    const m=MISSOES[S.missao];
+    const frases=[
+      'Na grama alta aparecem monstrinhos. Acerte os desafios para capturar!',
+      m?`A sua missão da cidade: ${m.txt} Vá na prefeitura!`:'Sua cidade está completa, parabéns!',
+      ...DICAS
+    ];
+    J.dir=J.dir;falarMundo(frases[(J.falou=(J.falou||0)+1)%frases.length]);
+  }
+}
+function passoMundo(dt){
+  if(J.exc>0){J.exc-=dt;if(J.exc<=0){J.exc=0;const f=J.excCb;J.excCb=null;if(f)f()}return}
+  for(const s of selvagens){
+    s.vis+=dt;s.t-=dt;
+    if(s.t<=0){
+      s.t=1+Math.random()*1.6;
+      const [dx,dy]=pick(Object.values(DIRS));const nx=s.x+dx,ny=s.y+dy;
+      if(gramaAlta(nx,ny)&&!selvagens.some(o=>o!==s&&o.x===nx&&o.y===ny)){s.x=nx;s.y=ny}
+      if(!J.mov&&s.x===J.x&&s.y===J.y)return encontro(s.idx,s);
+    }
+  }
+  if(J.pausa||falaAberta)return;
+  if(J.mov){
+    J.mov.t+=dt/.16;
+    if(PJ.mov)PJ.mov.t=Math.min(1,J.mov.t);
+    if(J.mov.t>=1){J.x=J.mov.tx;J.y=J.mov.ty;J.mov=null;if(PJ.mov){PJ.x=PJ.mov.tx;PJ.y=PJ.mov.ty;PJ.mov=null}J.passo++;chegou()}
+    return;
+  }
+  const d=gpDir()||segurando[segurando.length-1];
+  if(!d)return;
+  J.dir=d;const [dx,dy]=DIRS[d],nx=J.x+dx,ny=J.y+dy;
+  if(livre(nx,ny)){
+    if(!(PJ.x===J.x&&PJ.y===J.y))PJ.mov={fx:PJ.x,fy:PJ.y,tx:J.x,ty:J.y,t:0};
+    J.mov={fx:J.x,fy:J.y,tx:nx,ty:ny,t:0};
+  }
+}
+const cvM=$('#mapaCv'),gm=cvM.getContext('2d');
+function redimMundo(){
+  const dpr=Math.min(window.devicePixelRatio||1,2),w=cvM.clientWidth,h=cvM.clientHeight;
+  if(!w||!h)return;cvM.width=Math.round(w*dpr);cvM.height=Math.round(h*dpr);
+}
+if('ResizeObserver' in window)new ResizeObserver(redimMundo).observe($('#palcoMundo'));
+function desenharTreinador(g,X,Y,dir,frame){
+  const r=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(X+x,Y+y,w,h)};
+  r(3,14,10,2,'rgba(0,0,0,.25)');
+  const pe=frame?1:0;
+  r(4,12-pe,3,3,'#283048');r(9,12-(1-pe),3,3,'#283048');
+  r(4,8,8,5,'#2858c8');r(3,8,1,4,'#f8c898');r(12,8,1,4,'#f8c898');
+  if(dir==='cima')r(5,8,6,4,'#f8c030');
+  r(4,3,8,5,'#f8c898');
+  r(3,1,10,3,'#e03030');
+  if(dir==='cima')r(4,3,8,4,'#583018');
+  if(dir==='baixo'){r(4,4,8,1,'#b02020');r(6,5,1,2,'#202020');r(9,5,1,2,'#202020')}
+  if(dir==='esq'){r(1,4,4,1,'#b02020');r(5,5,1,2,'#202020');r(10,4,2,3,'#583018')}
+  if(dir==='dir'){r(11,4,4,1,'#b02020');r(10,5,1,2,'#202020');r(4,4,2,3,'#583018')}
+  r(3,0,10,1,'#202020');r(2,1,1,3,'#202020');r(13,1,1,3,'#202020');
+}
+function desenharMundo(){
+  const W=cvM.width,H=cvM.height;
+  const z=Math.max(2,Math.floor(Math.min(W/(15*TS),H/(10*TS))));
+  const vw=W/z,vh=H/z;
+  let jx=J.x,jy=J.y;
+  if(J.mov){jx=J.mov.fx+(J.mov.tx-J.mov.fx)*J.mov.t;jy=J.mov.fy+(J.mov.ty-J.mov.fy)*J.mov.t}
+  const pxJ=Math.round(jx*TS),pyJ=Math.round(jy*TS);
+  const cam=(p,v,tot)=>tot<=v?(tot-v)/2:Math.max(0,Math.min(p+8-v/2,tot-v));
+  const cx=Math.round(cam(pxJ,vw,MW*TS)),cy=Math.round(cam(pyJ,vh,MH*TS));
+  gm.imageSmoothingEnabled=false;
+  gm.fillStyle='#185028';gm.fillRect(0,0,W,H);
+  gm.save();gm.scale(z,z);gm.translate(-cx,-cy);
+  gm.drawImage(mapaCv,0,0);
+  gm.font='7px "Press Start 2P",monospace';gm.textAlign='center';gm.textBaseline='middle';
+  for(const b of PREDIOS_MUNDO){
+    const tx=b.x*TS+b.w*TS/2,ty=b.y*TS+11;
+    gm.fillStyle='rgba(0,0,0,.45)';gm.fillText(b.nome,tx+1,ty+1);
+    gm.fillStyle='#ffffff';gm.fillText(b.nome,tx,ty);
+  }
+  const tempo=performance.now()/1000;
+  gm.font='13px '+EMOJI_FONTE;
+  gm.fillText('🦉',CORUJA.x*TS+8,CORUJA.y*TS+8+Math.sin(tempo*2)*1);
+  for(const s of selvagens){
+    const sx=s.x*TS+8,sy=s.y*TS+7+Math.abs(Math.sin(tempo*5+s.x))*-2;
+    gm.drawImage(sprCv(MUNDO[s.idx][3]),s.x*TS,Math.round(sy-7));
+  }
+  const andando=J.mov?Math.floor(J.mov.t*2)%2:0;
+  let qx=PJ.x,qy=PJ.y;if(PJ.mov){qx=PJ.mov.fx+(PJ.mov.tx-PJ.mov.fx)*PJ.mov.t;qy=PJ.mov.fy+(PJ.mov.ty-PJ.mov.fy)*PJ.mov.t}
+  const pxP=Math.round(qx*TS),pyP=Math.round(qy*TS-2-Math.abs(Math.sin(tempo*6))*(PJ.mov?2:1));
+  const parceiro=()=>{gm.save();if(qx>jx+.01){gm.translate(pxP*2+16,0);gm.scale(-1,1)}gm.drawImage(sprCv(PARCEIRO.key),pxP,pyP);gm.restore()};
+  if(qy<=jy)parceiro();
+  desenharTreinador(gm,pxJ,pyJ-2,J.dir,(J.passo%2)^andando);
+  if(qy>jy)parceiro();
+  if(J.exc>0){
+    gm.fillStyle='#fff';gm.fillRect(pxJ+4,pyJ-15,8,10);gm.strokeStyle='#202020';gm.lineWidth=1;gm.strokeRect(pxJ+4.5,pyJ-14.5,7,9);
+    gm.fillStyle='#d02020';gm.font='8px "Press Start 2P",monospace';gm.fillText('!',pxJ+8.5,pyJ-9.5);
+  }
+  gm.restore();
+}
+function gpDir(){return GP.cima?'cima':GP.baixo?'baixo':GP.esq?'esq':GP.dir?'dir':null}
+function quadroMundo(t){
+  if(tela!=='mundo'){rafMundo=null;segurando=[];return}
+  const dt=Math.min(.05,(t-ultMundo)/1000||0);ultMundo=t;
+  lerControle();
+  if(GP.aNovo||GP.bNovo){
+    if(!$('#folha').hidden){if(GP.bNovo){$('#folha').hidden=true;calar()}}
+    else if(GP.bNovo&&falaAberta)fecharFala();
+    else if(GP.aNovo)interagir();
+  }
+  if($('#painel').hidden&&$('#folha').hidden)passoMundo(dt);
+  if(cvM.width)desenharMundo();
+  rafMundo=requestAnimationFrame(quadroMundo);
+}
+const TECLAS_MUNDO={ArrowUp:'cima',w:'cima',W:'cima',ArrowDown:'baixo',s:'baixo',S:'baixo',ArrowLeft:'esq',a:'esq',A:'esq',ArrowRight:'dir',d:'dir',D:'dir'};
+document.addEventListener('keydown',e=>{
+  if(tela!=='mundo'||(e.target.closest&&e.target.closest('input'))||!$('#folha').hidden||!$('#painel').hidden)return;
+  if(e.key===' '||e.key==='Enter'){e.preventDefault();if(!e.repeat)interagir();return}
+  const d=TECLAS_MUNDO[e.key];if(!d)return;
+  e.preventDefault();
+  if(falaAberta){if(!e.repeat)fecharFala();return}
+  if(!segurando.includes(d))segurando.push(d);
+},true);
+document.addEventListener('keyup',e=>{const d=TECLAS_MUNDO[e.key];if(d)segurando=segurando.filter(x=>x!==d)});
+$$('[data-dpad]').forEach(b=>{
+  const d=b.dataset.dpad;
+  b.addEventListener('pointerdown',e=>{
+    e.preventDefault();b.classList.add('ativo');try{b.setPointerCapture(e.pointerId)}catch(_){}
+    if(d==='a')return interagir();
+    if(falaAberta)return fecharFala();
+    if(!segurando.includes(d))segurando.push(d);
+  });
+  const off=()=>{b.classList.remove('ativo');segurando=segurando.filter(x=>x!==d)};
+  ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>b.addEventListener(ev,off));
+  b.addEventListener('contextmenu',e=>e.preventDefault());
+});
+
+/* ================= PRÊMIOS REAIS (pagos com o cofrinho) ================= */
+const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function desenharPremios(){
+  const box=$('#premiosReais');if(!box)return;
+  if(!S.premios.length){box.innerHTML='<h3>🎁 Prêmios de verdade</h3><p class="regra">Peça para o papai ou a mamãe cadastrar prêmios na área dos pais.</p>';return}
+  const pend=S.pedidos.filter(p=>p.status==='pedido');
+  box.innerHTML='<h3>🎁 Prêmios de verdade</h3><p class="regra">São pagos com o dinheiro do cofrinho.</p><div class="grade">'+
+    S.premios.map(p=>{
+      const pct=Math.min(100,Math.round(S.cofrinho/p.preco*100)),pode=S.cofrinho>=p.preco;
+      return `<button class="bloco premio ${pode?'pode':''}" data-premio-real="${p.id}" aria-label="${esc(p.nome)}, ${p.preco} moedas"><span class="em">${esc(p.em||'🎁')}</span><b>${esc(p.nome)}</b><span class="preco"><span class="moeda"></span>${p.preco}</span><span class="barra-s"><i style="width:${pct}%"></i></span></button>`;
+    }).join('')+'</div>'+
+    (pend.length?`<p class="regra">Esperando o papai ou a mamãe entregar: ${pend.map(p=>esc(p.em)+' '+esc(p.nome)).join(', ')}</p>`:'');
+}
+$('#premiosReais').addEventListener('click',e=>{
+  const b=e.target.closest('[data-premio-real]');if(!b)return;
+  const p=S.premios.find(x=>x.id===+b.dataset.premioReal);if(!p)return;
+  if(S.cofrinho<p.preco){
+    const falta=p.preco-S.cofrinho;tremer(b);somErro();
+    falar(`${p.nome} custa ${p.preco} moedas. Faltam ${falta} no cofrinho. Guarde e espere: o cofrinho cresce, e você consegue!`,'pt');
+    return;
+  }
+  S.cofrinho-=p.preco;
+  S.pedidos.unshift({id:Date.now(),em:p.em,nome:p.nome,preco:p.preco,data:new Date().toISOString(),status:'pedido'});
+  salvar();desenharCofre();confete();somAcerto();
+  aparecer(p.em||'🎁',`Você trocou ${p.preco} moedas por: ${p.nome}! Mostre este vale para o papai ou a mamãe.`);
+  $('#surpresaTexto').insertAdjacentHTML('beforeend',`<span class="vale" style="display:block">🎟️ VALE: ${esc(p.nome)}</span>`);
+});
+function desenharPainelPremios(){
+  const ped=S.pedidos.filter(p=>p.status==='pedido');
+  const data=iso=>{try{return new Date(iso).toLocaleDateString('pt-BR')}catch(e){return ''}};
+  $('#listaPedidos').innerHTML=ped.length?ped.map(p=>`<div class="item-p"><span>${esc(p.em)} ${esc(p.nome)} · ${p.preco} moedas · ${data(p.data)}</span><button type="button" data-entregue="${p.id}">Entregue ✔</button><button type="button" data-devolver="${p.id}">Devolver moedas</button></div>`).join('')
+    :'<p class="vazio">Nenhum pedido esperando entrega.</p>';
+  $('#listaPremios').innerHTML=S.premios.length?S.premios.map(p=>`<div class="item-p"><span>${esc(p.em)} ${esc(p.nome)} · ${p.preco} moedas</span><button type="button" data-remover="${p.id}">Remover</button></div>`).join('')
+    :'<p class="vazio">Nenhum prêmio cadastrado.</p>';
+}
+$('#painel').addEventListener('click',e=>{
+  const ent=e.target.closest('[data-entregue]'),dev=e.target.closest('[data-devolver]'),rem=e.target.closest('[data-remover]');
+  if(ent){const p=S.pedidos.find(x=>x.id===+ent.dataset.entregue);if(p){p.status='entregue';p.entregueEm=new Date().toISOString()}}
+  else if(dev){const p=S.pedidos.find(x=>x.id===+dev.dataset.devolver);if(p){p.status='devolvido';S.cofrinho+=p.preco}}
+  else if(rem){S.premios=S.premios.filter(x=>x.id!==+rem.dataset.remover)}
+  else return;
+  salvar();desenharPainelPremios();atualizarMoedas();
+});
+$('#formPremio').addEventListener('submit',e=>{
+  e.preventDefault();
+  const nome=$('#premioNome').value.trim(),preco=Math.round(+$('#premioPreco').value);
+  if(!nome||!(preco>0))return;
+  S.premios.push({id:Date.now(),em:$('#premioEm').value.trim()||'🎁',nome,preco});
+  S.premios.sort((a,b)=>a.preco-b.preco);
+  salvar();desenharPainelPremios();
+  $('#premioEm').value='';$('#premioNome').value='';$('#premioPreco').value='';
+});
+
+/* ---------- barra, idioma, pais ---------- */
+function marcarIdioma(){$$('.bandeira').forEach(b=>b.setAttribute('aria-pressed',b.dataset.idioma===S.idioma))}
+$$('.bandeira').forEach(b=>b.onclick=()=>{
+  S.idioma=b.dataset.idioma;salvar();marcarIdioma();
+  const nome={pt:'Português',en:'English',es:'Español'}[S.idioma];
+  if(tela==='letras'){limpar();calar();falar(nome);depois(900,()=>{bloqueado=false;novaLetra()})}
+  else if(tela==='digitar'){limpar();calar();falar(nome);depois(900,()=>treino('digitar'))}
+  else if(tela==='palavras'||tela==='contar'){falar(nome);depois(900,()=>repetir())}
+  else falar(nome);
+});
+$$('[data-repetir]').forEach(b=>b.onclick=()=>repetir());
+$$('[data-ir]').forEach(b=>b.onclick=()=>{ir(b.dataset.ir)});
+$('#btnCasa').onclick=()=>ir(voltarMundo&&tela!=='mundo'?'mundo':'inicio');
+$('#carteira').onclick=()=>{falar(`Você tem ${S.carteira} ${S.carteira===1?'moeda':'moedas'} na carteira.`,'pt')};
+function mostrarNome(){
+  $('#oi').textContent=`Oi, ${S.nome||'campeão'}!`;
+  $('#icNome').textContent=(nomeMaiusc()||'ABC').slice(0,3);
+  $('#nomeHeroi').textContent=`${S.nome||'Treinador'} e ${PARCEIRO.nome}`;
+}
+function textoSom(){$('#btnSom').textContent=S.som?'🔊 Som ligado':'🔇 Som desligado'}
+let confirmaZerar=false;
+// trava simples: uma multiplicação que criança de 4 anos não resolve
+let respostaPortao=0;
+$('#btnPais').onclick=()=>{
+  const a=6+Math.floor(Math.random()*4),b=6+Math.floor(Math.random()*4);respostaPortao=a*b;
+  $('#portaoConta').textContent=`Quanto é ${a} × ${b}?`;$('#portaoResp').value='';
+  $('#portao').hidden=false;setTimeout(()=>$('#portaoResp').focus(),50);
+};
+$('#portaoFechar').onclick=()=>{$('#portao').hidden=true};
+$('#formPortao').addEventListener('submit',e=>{
+  e.preventDefault();
+  if(+$('#portaoResp').value!==respostaPortao){tremer($('#portaoResp'));$('#portaoResp').value='';return}
+  $('#portao').hidden=true;abrirPainel();
+});
+function abrirPainel(){$('#campoNome').value=S.nome;textoSom();confirmaZerar=false;$('#btnZerar').textContent='Zerar moedas e figurinhas';desenharPainelPremios();$('#painel').hidden=false}
+$('#fecharPainel').onclick=()=>{$('#painel').hidden=true};
+$('#painel').addEventListener('click',e=>{if(e.target.id==='painel')$('#painel').hidden=true});
+$('#campoNome').addEventListener('input',e=>{S.nome=e.target.value.trim();salvar();mostrarNome()});
+$('#btnSom').onclick=()=>{S.som=!S.som;if(!S.som)calar();salvar();textoSom()};
+$('#btnZerar').onclick=()=>{
+  if(!confirmaZerar){confirmaZerar=true;$('#btnZerar').textContent='Toque de novo para confirmar';return}
+  S.carteira=0;S.cofrinho=0;S.figurinhas=[];S.contarAcertos=0;S.jurosEm='';S.fase=0;S.mundo=0;S.album=[];S.introVista=false;S.nivelPular=0;S.pularVisto=false;S.pos=null;S.mundoVisto=false;S.parceiroVisto=false;S.cidade=[];S.missao=0;S.rendaEm='';S.rendaPendente=0;S.rotina={data:'',feitos:[]};S.sonho=null;S.lendarios=[];salvar();atualizarMoedas();
+  confirmaZerar=false;$('#btnZerar').textContent='Zerado ✔';
+};
+$('#inicio').addEventListener('click',e=>{const b=e.target.closest('[data-diz]');if(b)falar(b.dataset.diz,'pt')},true);
+
+mostrarNome();marcarIdioma();atualizarMoedas();
+$('#heroiEm').innerHTML=`<img class="px" alt="" src="${treinadorURL()}">`;
+$('#parceiroEm').innerHTML=spr(PARCEIRO.key);
+})();
+</script>
+
+</body>
+</html>
