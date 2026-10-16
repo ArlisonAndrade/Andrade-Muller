@@ -323,7 +323,7 @@ canvas#confete{position:fixed;inset:0;pointer-events:none;z-index:30}
       <h1 class="titulo">Vamos brincar?</h1>
       <p class="sub">Escolha um jogo. Cada acerto vale uma moeda.</p>
       <div class="cardapio">
-        <button class="bloco jogo grande" data-ir="mapa" data-diz="Aventura! Vamos capturar os monstrinhos!"><span class="ic">🦸🕸️</span><span><b>Aventura</b><small>capture os monstrinhos com a teia</small></span></button>
+        <button class="bloco jogo grande" data-ir="mapa" data-diz="Aventura! Vamos capturar os monstrinhos!"><span class="ic">⚡🏆</span><span><b>Aventura</b><small>8 fases e o chefão Rexão, com o Pikachu</small></span></button>
         <button class="bloco jogo grande mun" data-ir="mundo" data-diz="Explorar o mapa!"><span class="ic">🗺️🧢</span><span><b>Explorar o mapa</b><small>ande, entre nas casas e capture monstrinhos</small></span></button>
         <button class="bloco jogo grande cid" data-ir="cidade" data-diz="Minha cidade! Vamos construir!"><span class="ic">🏠🏟️</span><span><b>Minha Cidade</b><small>construa casas, loja, banco e a arena</small></span></button>
         <button class="bloco jogo grande pula" data-ir="pular" data-diz="Pular e pegar moedas!"><span class="ic">🦸🪙</span><span><b>Pular e pegar</b><small>corra, pule e ache as letras do seu nome</small></span></button>
@@ -555,6 +555,11 @@ canvas#confete{position:fixed;inset:0;pointer-events:none;z-index:30}
     </ul>
     <div class="linha-b">
       <button class="bloco acao" id="btnSom">🔊 Som ligado</button>
+    </div>
+    <h3 class="sec">🗣️ Vozes</h3>
+    <p class="vazio" id="dicaVoz"></p>
+    <div id="escolhaVozes" class="lista-pais"></div>
+    <div class="linha-b">
       <button class="bloco acao perigo" id="btnZerar">Zerar moedas e figurinhas</button>
     </div>
     <div class="linha-b"><button class="bloco acao" id="fecharPainel">Fechar</button></div>
@@ -610,21 +615,60 @@ const LANG={pt:'pt-BR',en:'en-US',es:'es-ES'};
 let vozes=[];
 function carregarVozes(){try{vozes=speechSynthesis.getVoices()||[]}catch(e){}}
 if('speechSynthesis' in window){carregarVozes();try{speechSynthesis.onvoiceschanged=carregarVozes}catch(e){}}
-function voz(idioma){
-  const alvo=LANG[idioma].toLowerCase();
-  const norm=v=>(v.lang||'').replace('_','-').toLowerCase();
-  return vozes.find(v=>norm(v)===alvo)||vozes.find(v=>norm(v).startsWith(idioma));
+// Escolhe a voz mais natural disponível: as "Natural/Neural/Online" do Edge e as "Google" do Chrome
+// soam bem melhor que as vozes antigas do Windows. Os pais podem fixar uma voz na Área dos pais.
+const vozesDoIdioma=idioma=>{
+  const alvo=LANG[idioma].toLowerCase(),norm=v=>(v.lang||'').replace('_','-').toLowerCase();
+  return vozes.filter(v=>norm(v)===alvo||norm(v).startsWith(idioma+'-')||norm(v)===idioma);
+};
+function notaVoz(v,idioma){
+  const n=v.name||'';let p=0;
+  if(/natural|neural/i.test(n))p+=100;
+  if(/online/i.test(n))p+=60;
+  if(/google/i.test(n))p+=50;
+  if(!v.localService)p+=20;
+  if((v.lang||'').replace('_','-').toLowerCase()===LANG[idioma].toLowerCase())p+=10;
+  if(/francisca|thalita|ana |aria|jenny|elvira|dalia|paloma/i.test(n+' '))p+=5;
+  if(/desktop|espeak|compact/i.test(n))p-=40;
+  return p;
 }
-function falar(texto,idioma=S.idioma,fila=false){
-  if(!S.som||!('speechSynthesis' in window))return;
+function voz(idioma){
+  const lista=vozesDoIdioma(idioma);
+  const fixa=S.vozes&&S.vozes[idioma]&&lista.find(v=>v.name===S.vozes[idioma]);
+  if(fixa)return fixa;
+  return lista.slice().sort((a,b)=>notaVoz(b,idioma)-notaVoz(a,idioma))[0];
+}
+// Fila de falas: uma frase só começa quando a anterior termina. falar() sem fila interrompe tudo
+// (é o caso de resposta a um toque da criança); falar(...,true) entra no fim da fila.
+let filaFala=[],falando=null,geracao=0,vigia=null;
+function proximaFala(){
+  clearTimeout(vigia);
+  if(!filaFala.length){falando=null;return}
+  const {texto,idioma}=filaFala.shift(),g=geracao;
   try{
-    if(!fila)speechSynthesis.cancel();
     const u=new SpeechSynthesisUtterance(texto);
     u.lang=LANG[idioma];const v=voz(idioma);if(v)u.voice=v;
-    u.rate=.88;u.pitch=1.1;speechSynthesis.speak(u);
-  }catch(e){}
+    u.rate=.95;u.pitch=1;
+    const fim=()=>{if(g!==geracao||falando!==u)return;falando=null;setTimeout(()=>{if(g===geracao&&!falando)proximaFala()},180)};
+    u.onend=fim;u.onerror=fim;
+    falando=u;speechSynthesis.speak(u);
+    // alguns navegadores às vezes não disparam onend: segue a fila mesmo assim
+    vigia=setTimeout(()=>{if(falando===u){try{speechSynthesis.cancel()}catch(e){}fim()}},2500+texto.length*110);
+  }catch(e){falando=null}
 }
-function calar(){try{speechSynthesis.cancel()}catch(e){}}
+function falar(texto,idioma=S.idioma,fila=false){
+  if(!S.som||!('speechSynthesis' in window)||!texto)return;
+  if(!fila){
+    geracao++;filaFala=[];falando=null;clearTimeout(vigia);
+    try{speechSynthesis.cancel()}catch(e){}
+    filaFala.push({texto,idioma});
+    const g=geracao;setTimeout(()=>{if(g===geracao&&!falando)proximaFala()},60);
+    return;
+  }
+  filaFala.push({texto,idioma});
+  if(!falando&&filaFala.length===1){const g=geracao;setTimeout(()=>{if(g===geracao&&!falando)proximaFala()},60)}
+}
+function calar(){geracao++;filaFala=[];falando=null;clearTimeout(vigia);try{speechSynthesis.cancel()}catch(e){}}
 
 /* ---------- sons ---------- */
 let ctx=null;
@@ -717,9 +761,9 @@ const elogio=()=>pick(ELOGIO[S.idioma]);
 let alvo='A';
 const largo=()=>matchMedia('(min-width: 720px)').matches;
 
-function pedirLetra(){
+function pedirLetra(fila=false){
   const n=nomeLetra(alvo);
-  falar({pt:`Aperte a letra ${n}`,en:`Press the letter ${alvo}`,es:`Presiona la letra ${n}`}[S.idioma]);
+  falar({pt:`Aperte a letra ${n}`,en:`Press the letter ${alvo}`,es:`Presiona la letra ${n}`}[S.idioma],S.idioma,fila);
 }
 function iniciarLetras(){
   $('#chipVogais').setAttribute('aria-pressed',S.soVogais);
@@ -736,7 +780,7 @@ function novaLetra(){
   $('#letraG').textContent=l;$('#letraP').textContent=l.toLowerCase();
   $('#dicaEm').textContent='❓';$('#dicaPal').innerHTML='&nbsp;';
   desenharEntrada();
-  pedirLetra();
+  pedirLetra(true);
 }
 function desenharEntrada(){
   const box=$('#entradaLetras');
@@ -822,10 +866,10 @@ const VOCAB=[
 const IDX={pt:1,en:2,es:3};
 const comArtigo=(it,i)=>{const [a,n]=it[IDX[i]];return (a?a+' ':'')+n};
 let rodadaPal=null;
-function perguntarPal(){
+function perguntarPal(fila=false){
   const it=rodadaPal.alvo,i=S.idioma;
   const q={pt:`Onde está ${comArtigo(it,'pt')}?`,en:`Where is ${comArtigo(it,'en')}?`,es:`¿Dónde está ${comArtigo(it,'es')}?`}[i];
-  $('#perguntaPal').textContent=q;falar(q,i);
+  $('#perguntaPal').textContent=q;falar(q,i,fila);
 }
 function novaRodadaPal(){
   limpar();
@@ -838,7 +882,7 @@ function novaRodadaPal(){
   rodadaPal={alvo:alvoIt,opcoes};
   $('#cartas').innerHTML=opcoes.map((v,n)=>`<button class="bloco carta" data-n="${n}" aria-label="${v[1][1]}">${v[0]}</button>`).join('');
   $('#tres').innerHTML='';$('#proxPal').hidden=true;
-  repetir=perguntarPal;perguntarPal();
+  repetir=()=>perguntarPal();perguntarPal(true);
 }
 $('#cartas').addEventListener('click',e=>{
   const b=e.target.closest('.carta');if(!b||bloqueado)return;
@@ -862,9 +906,9 @@ $('#proxPal').onclick=novaRodadaPal;
 
 /* ================= CONTAR ================= */
 let rodadaCont=null;
-function perguntarCont(){
+function perguntarCont(fila=false){
   const q={pt:'Quantas moedas tem aqui?',en:'How many coins?',es:'¿Cuántas monedas hay?'}[S.idioma];
-  $('#perguntaCont').textContent=q;falar(q);
+  $('#perguntaCont').textContent=q;falar(q,S.idioma,fila);
 }
 function novaRodadaCont(){
   limpar();desenharEstrelas('estrelasCont');
@@ -875,7 +919,7 @@ function novaRodadaCont(){
   rodadaCont={n};
   $('#mesa').innerHTML=Array.from({length:n},()=>'<span class="moeda g"></span>').join('');
   $('#numeros').innerHTML=embaralhar([n,...perto]).map(x=>`<button class="bloco numero" data-num="${x}">${x}</button>`).join('');
-  repetir=perguntarCont;perguntarCont();
+  repetir=()=>perguntarCont();perguntarCont(true);
 }
 $('#numeros').addEventListener('click',e=>{
   const b=e.target.closest('.numero');if(!b||bloqueado)return;
@@ -1053,10 +1097,10 @@ function montarDesafio(tipo,cont,ok,erro=()=>{}){
     const pool=[...new Set([...N.split(''),...ABC])];
     const nl=c=>nomeLetra(c,idi);
     const passo=()=>{slots.forEach((s,j)=>s.classList.toggle('agora',j===i));teclas(cont.querySelector('.tecs'),N[i],pool)};
-    d.repetir=()=>falar(i===0
+    d.repetir=f=>falar(i===0
       ?`${abertura} ${{pt:'Primeira letra',en:'First letter',es:'Primera letra'}[idi]}: ${nl(N[0])}.`
-      :`${{pt:'Agora a letra',en:'Now',es:'Ahora la'}[idi]} ${nl(N[i])}.`,idi);
-    passo();d.repetir();
+      :`${{pt:'Agora a letra',en:'Now',es:'Ahora la'}[idi]} ${nl(N[i])}.`,idi,f);
+    passo();d.repetir(true);
     d.tecla=(k,btn)=>{
       btn=btn||cont.querySelector(`[data-tecla="${k}"]`);
       if(k===N[i]){
@@ -1076,7 +1120,7 @@ function montarDesafio(tipo,cont,ok,erro=()=>{}){
       cont.innerHTML='<span class="letra-d"></span><div class="tecs"></div>';
       cont.querySelector('.letra-d').textContent=L+' '+L.toLowerCase();
       const n=nomeLetra(L);
-      d.repetir=()=>falar({pt:`Aperte a letra ${n}`,en:`Press the letter ${L}`,es:`Presiona la letra ${n}`}[S.idioma]);
+      d.repetir=f=>falar({pt:`Aperte a letra ${n}`,en:`Press the letter ${L}`,es:`Presiona la letra ${n}`}[S.idioma],S.idioma,f);
       teclas(cont.querySelector('.tecs'),L,pool);
       d.tecla=(k,btn)=>{
         btn=btn||cont.querySelector(`[data-tecla="${k}"]`);
@@ -1092,7 +1136,7 @@ function montarDesafio(tipo,cont,ok,erro=()=>{}){
           falar({pt:`Essa é a ${e}. Procure a ${n}.`,en:`That is ${k}. Find ${L}.`,es:`Esa es la ${e}. Busca la ${n}.`}[S.idioma]);
         }
       };
-      d.repetir();
+      d.repetir(true);
     },
     ler(){
       const N=nomeMaiusc();let fig,certa,silabas,outras,pergunta;
@@ -1107,7 +1151,7 @@ function montarDesafio(tipo,cont,ok,erro=()=>{}){
       }
       cont.innerHTML=`<span class="figura">${fig}</span><span class="silabas"></span><div class="palavras-b">`+
         embaralhar([certa,...outras]).map(w=>`<button class="bloco pal-b" data-w="${w}">${w}</button>`).join('')+'</div>';
-      d.repetir=()=>falar(pergunta,'pt');d.repetir();
+      d.repetir=f=>falar(pergunta,'pt',f);d.repetir(true);
       cont.querySelector('.palavras-b').onclick=e=>{
         const b=e.target.closest('.pal-b');if(!b||d.travado)return;
         const w=b.dataset.w;
@@ -1128,7 +1172,7 @@ function montarDesafio(tipo,cont,ok,erro=()=>{}){
       const perto=pool.sort((a,b)=>Math.abs(a-n)-Math.abs(b-n)+Math.random()-.5).slice(0,2);
       cont.innerHTML='<div class="mesa">'+'<span class="moeda g"></span>'.repeat(n)+'</div><div class="numeros">'+
         embaralhar([n,...perto]).map(x=>`<button class="bloco numero" data-num="${x}">${x}</button>`).join('')+'</div>';
-      d.repetir=()=>falar({pt:'Quantas moedas tem aqui?',en:'How many coins?',es:'¿Cuántas monedas hay?'}[S.idioma]);d.repetir();
+      d.repetir=f=>falar({pt:'Quantas moedas tem aqui?',en:'How many coins?',es:'¿Cuántas monedas hay?'}[S.idioma],S.idioma,f);d.repetir(true);
       cont.querySelector('.numeros').onclick=e=>{
         const b=e.target.closest('.numero');if(!b||d.travado)return;
         if(+b.dataset.num===n){
@@ -1263,7 +1307,7 @@ function abrirMapa(){
   repetir=()=>falar('Toque na fase que está brilhando!','pt');
   if(!S.introVista){
     S.introVista=true;salvar();
-    aparecer('🦉',`Oi, ${S.nome||'herói'}! Eu sou a Coruja. Os monstrinhos fugiram pela cidade! Acerte os desafios para lançar a sua teia e capturar todos eles.`);
+    aparecer('🦉',`Oi, ${S.nome||'herói'}! Eu sou a Coruja. Os monstrinhos fugiram pela cidade! Acerte os desafios e o Pikachu ataca. Vamos capturar todos eles!`);
   }else repetir();
 }
 let lutaIdx=0;
@@ -1300,7 +1344,7 @@ function iniciarBatalha(){
     t.className='teia';t.textContent=PARCEIRO.projetil;arena.appendChild(t);
     const pe=$('#parceiroEm');pe.classList.remove('ataca');void pe.offsetWidth;pe.classList.add('ataca');
     tom([1400,300,1400,300],.05,'sawtooth');
-    falar(`${PARCEIRO.nome}, ${PARCEIRO.golpe}!`,'pt');
+    falar(`${PARCEIRO.nome}, ${PARCEIRO.golpe}!`,'pt',true);
     requestAnimationFrame(()=>t.classList.add('voa'));
     depois(520,()=>{
       t.remove();vida--;coracoes();
@@ -1312,7 +1356,7 @@ function iniciarBatalha(){
   }
   function capturar(){
     mon.classList.add('capturado');confete();somAcerto();
-    falar(`Você capturou! Ganhou 3 moedas!`,'pt');falarTresNomes(m[3]);
+    falar(`Você capturou! Ganhou 3 moedas!`,'pt',true);falarTresNomes(m[3]);
     if(!S.album.includes(lutaIdx))S.album.push(lutaIdx);
     if(!lutaSelvagem&&lutaIdx===S.fase)S.fase++;
     ganhar(3);salvar();
@@ -2129,6 +2173,25 @@ $$('[data-dpad]').forEach(b=>{
   b.addEventListener('contextmenu',e=>e.preventDefault());
 });
 
+/* ---------- escolha de voz (Área dos pais) ---------- */
+const TESTE_VOZ={pt:'Oi! Vamos brincar e aprender juntos?',en:'Hi! Let\'s play and learn together!',es:'¡Hola! ¿Jugamos y aprendemos juntos?'};
+function desenharVozes(){
+  carregarVozes();
+  const natural=vozes.some(v=>/natural|neural|online/i.test(v.name));
+  $('#dicaVoz').textContent=natural?'Escolha a voz de cada idioma e toque em Testar. As marcadas com ★ são as mais naturais.'
+    :'Este navegador só tem vozes simples. No Windows, abra o jogo no Microsoft Edge: ele tem vozes "Natural", bem mais humanas, de graça.';
+  $('#escolhaVozes').innerHTML=['pt','en','es'].map(i=>{
+    const lista=vozesDoIdioma(i).sort((a,b)=>notaVoz(b,i)-notaVoz(a,i)),atual=voz(i);
+    const ops=lista.map(v=>`<option value="${esc(v.name)}" ${atual&&v.name===atual.name?'selected':''}>${notaVoz(v,i)>=50?'★ ':''}${esc(v.name)}</option>`).join('');
+    return `<div class="item-p"><span>${{pt:'🇧🇷',en:'🇺🇸',es:'🇪🇸'}[i]} <select data-voz="${i}" style="max-width:100%;font:inherit">${ops||'<option>sem voz neste navegador</option>'}</select></span><button type="button" data-testar="${i}">Testar</button></div>`;
+  }).join('');
+}
+$('#escolhaVozes').addEventListener('change',e=>{
+  const sel=e.target.closest('[data-voz]');if(!sel)return;
+  S.vozes={...(S.vozes||{}),[sel.dataset.voz]:sel.value};salvar();falar(TESTE_VOZ[sel.dataset.voz],sel.dataset.voz);
+});
+$('#escolhaVozes').addEventListener('click',e=>{const b=e.target.closest('[data-testar]');if(b)falar(TESTE_VOZ[b.dataset.testar],b.dataset.testar)});
+
 /* ================= PRÊMIOS REAIS (pagos com o cofrinho) ================= */
 const esc=t=>String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function desenharPremios(){
@@ -2216,7 +2279,7 @@ $('#formPortao').addEventListener('submit',e=>{
   if(+$('#portaoResp').value!==respostaPortao){tremer($('#portaoResp'));$('#portaoResp').value='';return}
   $('#portao').hidden=true;abrirPainel();
 });
-function abrirPainel(){$('#campoNome').value=S.nome;textoSom();confirmaZerar=false;$('#btnZerar').textContent='Zerar moedas e figurinhas';desenharPainelPremios();$('#painel').hidden=false}
+function abrirPainel(){desenharVozes();$('#campoNome').value=S.nome;textoSom();confirmaZerar=false;$('#btnZerar').textContent='Zerar moedas e figurinhas';desenharPainelPremios();$('#painel').hidden=false}
 $('#fecharPainel').onclick=()=>{$('#painel').hidden=true};
 $('#painel').addEventListener('click',e=>{if(e.target.id==='painel')$('#painel').hidden=true});
 $('#campoNome').addEventListener('input',e=>{S.nome=e.target.value.trim();salvar();mostrarNome()});

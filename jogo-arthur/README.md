@@ -30,3 +30,6 @@ Gamepad API do navegador (Bluetooth ou USB, mapeamento "standard" Xbox/PlayStati
 
 ## Prêmios reais
 Área dos pais (⚙️, abre com uma multiplicação 6–9 × 6–9): cadastro de prêmios (`S.premios`: emoji, nome, preço) e lista de pedidos (`S.pedidos`: pedido → entregue | devolvido). A criança troca só com o **cofrinho** (não com a carteira) no Banco; as moedas saem na hora e aparece um vale. "Devolver moedas" estorna para o cofrinho. Tudo no `localStorage` do aparelho — pedido feito no notebook só aparece no notebook.
+
+## Voz
+`falar()` usa uma **fila**: uma frase só começa quando a anterior termina (`onend`, com vigia de tempo pra navegador que não dispara o evento). Sem `fila` a fala interrompe tudo — usar só em resposta a toque da criança; continuação de fluxo (pergunta do desafio, golpe, captura) entra com `fila=true`. A voz é escolhida por nota (`notaVoz`): "Natural/Neural/Online" (Edge) > "Google" (Chrome) > vozes antigas do Windows; rate 0,95 e pitch 1 (pitch alterado deixava robótico). Os pais podem fixar e testar a voz de cada idioma na Área dos pais (`S.vozes`). No Windows, o **Edge** tem as vozes mais naturais.
