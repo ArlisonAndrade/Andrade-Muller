@@ -1,8 +1,9 @@
 # Jogo do Arthur
 
-Jogo pedagógico do Arthur (4 anos). Projeto à parte do Portal — só mora neste repositório por simplicidade; não é rota do `web/` nem usa Supabase.
+Jogo pedagógico do Arthur (4 anos). Projeto à parte do Portal: não usa Supabase nem mexe no FM/Bank.
 
-- **Onde joga**: publicado como página do Claude (privada), abre no Claude desktop e no app do celular.
+- **Onde joga**: **andrademuller.vercel.app/jogo** (atrás do login da família; card "Jogo do Arthur" no hub). As prévias de cada mudança saem antes por um link privado do Claude.
+- **Publicar no Portal**: editar `jogo-arthur/index.html` (fonte) e rodar `python jogo-arthur/publicar_no_portal.py`, que gera `web/public/jogo/index.html`. Não editar o gerado.
 - **Arquivo único**: `index.html` (HTML + CSS + JS, sem build, sem dependência). Para testar local, abrir o arquivo no navegador.
 - **Progresso**: fica no `localStorage` de cada aparelho (chave `jogo-arthur-v1`) — celular e notebook não compartilham.
 - **Voz**: `speechSynthesis` do navegador (pt-BR, en-US, es-ES). Não usa microfone.
