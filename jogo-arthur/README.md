@@ -39,3 +39,6 @@ Gamepad API do navegador (Bluetooth ou USB, mapeamento "standard" Xbox/PlayStati
 - **Coleção** (`S.colecao[key] = {qtd, evoluido}`): cada igual capturado = +1 nível; com `EVOLUI_COM` (10) evolui para sempre (`EVO`: nome novo nos 3 idiomas, sprite com outra cor + coroa via `sprCvEvo`; evoluído ganha +5 de nível). Tela **Minha Equipe** (prédio EQUIPE no mapa). Pikachu sobe 1 nível a cada 3 capturas (máx. 20) e nunca é perdido.
 - **Arena** (`RIVAIS`: Lucas, Bia, Davi, Mestra Lia, Campeão Téo + Equipe Rocket, que aparece depois da Bia): cada um libera o próximo. Duelo: acerto = ataque dele (dano `1 + nível/4`, corações `3 + nível/3`), erro = ataque do rival. Vitória = moedas + insígnia (`S.insignias`). Derrota = −2 moedas e 1 cópia do monstrinho que lutou; a Equipe Rocket rouba 1 cópia aleatória.
 - **Desafio novo `somar`**: dois grupos de moedas, "quantas moedas você tem agora?" — nos duelos.
+
+## Celular
+Melhor **deitado** (decisão do Arlison, 17/out/2026). Deitado (`orientation:landscape` + `max-height:520px` + `pointer:coarse`), na plataforma e no mapa o cabeçalho some (`body[data-tela]`), o jogo ocupa a tela e os botões ficam pequenos nos cantos, por cima; o 🏠 do HUD (`.sair-jogo`) sai do jogo. Em pé, os botões da plataforma vão para uma barra própria embaixo do canvas e, uma vez por sessão, aparece "Vire o celular de lado".
