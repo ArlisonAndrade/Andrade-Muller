@@ -309,6 +309,7 @@ main{flex:1;min-height:0;position:relative}
 .palco{position:relative;flex:1;width:100%;min-height:0;border:4px solid var(--tinta);border-radius:24px;overflow:hidden;background:#8fd3ff;box-sizing:border-box}
 #cena{display:block;width:100%;height:100%;touch-action:none}
 .hud{position:absolute;top:8px;left:8px;right:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;pointer-events:none}
+.sair-jogo{display:none;pointer-events:auto;width:42px;height:42px;font-size:1.3rem}
 .pilula{background:var(--papel);border:3px solid var(--tinta);border-radius:999px;padding:0 12px;font-weight:800;font-size:1.2rem;display:flex;align-items:center;gap:6px;min-height:38px;font-variant-numeric:tabular-nums}
 .pilula .moeda{width:24px;height:24px;font-size:.7rem;border-width:2px}
 .letrinhas{letter-spacing:.12em}
@@ -322,6 +323,28 @@ main{flex:1;min-height:0;position:relative}
 .ctl.pulo{width:clamp(80px,19vw,110px);height:clamp(80px,19vw,110px);background:var(--sol)}
 .ctl.ativo{transform:translateY(4px);box-shadow:0 1px 0 var(--tinta)}
 @media (hover:hover) and (pointer:fine){.controles{display:none}}
+/* toque (celular/tablet): na plataforma os botões ficam numa barra própria embaixo, sem cobrir o jogo */
+@media not ((hover:hover) and (pointer:fine)){
+  #palco{display:flex;flex-direction:column}
+  #cena{flex:1;min-height:0;height:auto}
+  #palco .controles{position:static;background:#6b4a2b;border-top:4px solid var(--tinta);padding-block:10px max(10px,env(safe-area-inset-bottom,0px))}
+  #palco .ctl{opacity:1}
+}
+/* celular DEITADO: o jogo ocupa a tela toda; cabeçalho some e os botões vão para os cantos, por cima */
+@media (orientation:landscape) and (max-height:520px) and (pointer:coarse){
+  body[data-tela="pular"] .barra,body[data-tela="mundo"] .barra{display:none}
+  body[data-tela="pular"] .app,body[data-tela="mundo"] .app{padding-block:4px}
+  #palco{display:block}
+  #cena{height:100%}
+  #palco .controles{position:absolute;background:none;border:0;padding:10px max(14px,env(safe-area-inset-right,0px)) max(10px,env(safe-area-inset-bottom,0px)) max(14px,env(safe-area-inset-left,0px))}
+  #palco .ctl,#palcoMundo .ctl{opacity:.75}
+  .sair-jogo{display:grid;place-items:center}
+  #palco .ctl{width:58px;height:58px;font-size:1.5rem}
+  #palco .ctl.pulo{width:74px;height:74px}
+  #palcoMundo .dpad .ctl{width:46px;height:46px;font-size:1.1rem;border-radius:12px}
+  #palcoMundo .ctl.pulo{width:64px;height:64px}
+  .hud .pilula{min-height:32px;font-size:1rem}
+}
 @media not ((hover:hover) and (pointer:fine)){.dica-tecla{display:none}}
 .fim{position:absolute;inset:0;display:grid;place-items:center;background:rgba(29,43,79,.4);padding:16px}
 .fim .caixa{background:var(--papel);border:4px solid var(--tinta);border-radius:28px;box-shadow:0 8px 0 var(--tinta);padding:18px 22px;max-width:440px;width:100%;box-sizing:border-box;text-align:center;animation:entra .6s cubic-bezier(.3,1.6,.5,1)}
@@ -503,6 +526,7 @@ canvas#confete{position:fixed;inset:0;pointer-events:none;z-index:30}
           <span class="pilula" id="hudFase">Fase 1</span>
           <span class="pilula"><span class="moeda"></span><span id="hudMoedas">0</span></span>
           <span class="pilula letrinhas" id="hudNome"></span>
+          <button class="bloco mini sair-jogo" type="button" aria-label="Sair do jogo">🏠</button>
           <span class="pilula dica-tecla">← → andar · espaço pular</span>
           <span class="pilula pilula-controle" hidden>🎮 A: pular</span>
         </div>
@@ -532,6 +556,7 @@ canvas#confete{position:fixed;inset:0;pointer-events:none;z-index:30}
         <canvas id="mapaCv"></canvas>
         <div class="hud">
           <span class="pilula"><span class="moeda"></span><span id="mundoMoedas">0</span></span>
+          <button class="bloco mini sair-jogo" type="button" aria-label="Sair do mapa">🏠</button>
           <span class="pilula dica-tecla">setas: andar · espaço: falar</span>
           <span class="pilula pilula-controle" hidden>🎮 A: falar · B: fechar</span>
         </div>
@@ -795,7 +820,7 @@ let tela='inicio',timers=[],bloqueado=false;
 const depois=(ms,fn)=>timers.push(setTimeout(fn,ms));
 function limpar(){timers.forEach(clearTimeout);timers=[];bloqueado=false;D=null}
 function ir(id){
-  limpar();calar();tela=id;
+  limpar();calar();tela=id;document.body.dataset.tela=id;
   $$('.tela').forEach(t=>t.hidden=t.id!==id);
   $('#btnCasa').hidden=id==='inicio';
   $('#btnCasa').textContent=voltarMundo&&id!=='mundo'?'🗺️':'🏠';
@@ -1981,7 +2006,7 @@ function montarNivel(n){
     inimigos.push({x:ex,y:7.2,w:.8,h:.8,vx:-(1.1+Math.min(n,6)*.12),key:MUNDO[(t+n)%7][3],vivo:true});t++;
   }
   return {n,L,mapa,moedas:moedas.map(m=>({...m,pego:false})),inimigos,meta:L-4,nome,letras:0,tema:TEMAS[n%TEMAS.length],
-    heroi:{x:2,y:7.1,w:.7,h:.9,vx:0,vy:0,chao:false,dir:1,inv:0,coyote:0,buffer:0,seguroX:2},
+    heroi:{x:4,y:7.1,w:.7,h:.9,vx:0,vy:0,chao:false,dir:1,inv:0,coyote:0,buffer:0,seguroX:4},
     pegas:0,capturados:0,particulas:[],fim:false,avisouEmpurrao:false};
 }
 function hudPular(){
@@ -1989,7 +2014,13 @@ function hudPular(){
   $('#hudMoedas').textContent=P.pegas;
   $('#hudNome').innerHTML=P.nome.split('').map((c,i)=>`<span class="${i<P.letras?'on':''}">${c}</span>`).join('');
 }
+const deitadoNoCelular=()=>matchMedia('(orientation: landscape) and (max-height: 520px) and (pointer: coarse)').matches;
+let avisouVirar=false;
 function abrirPular(){
+  // no celular em pé, uma vez por sessão, sugere virar (deitado se vê mais da fase)
+  if(!avisouVirar&&matchMedia('(orientation: portrait) and (pointer: coarse)').matches){
+    avisouVirar=true;depois(400,()=>aparecer('🔄','Vire o celular de lado para jogar melhor!'));
+  }
   P=montarNivel(S.nivelPular||0);
   $('#fimFase').hidden=true;hudPular();redimensionar();
   repetir=()=>falar('Pule e pegue as moedas! Bata a cabeça nos blocos com interrogação para achar as letras do seu nome!','pt');
@@ -2003,9 +2034,11 @@ function redimensionar(){
   const dpr=Math.min(window.devicePixelRatio||1,2),w=cv2.clientWidth,h=cv2.clientHeight;
   if(!w||!h)return;
   cv2.width=Math.round(w*dpr);cv2.height=Math.round(h*dpr);
-  tilePx=Math.min(cv2.height/10,cv2.width/13);offY=cv2.height-10*tilePx;
+  // tela em pé (celular): zoom maior, ao menos 7 linhas do mundo à vista (o topo é só céu)
+  tilePx=h>w?Math.min(cv2.height/7,cv2.width/9):deitadoNoCelular()?Math.min(cv2.height/8,cv2.width/15):Math.min(cv2.height/10,cv2.width/13);
+  offY=cv2.height-10*tilePx;
 }
-if('ResizeObserver' in window)new ResizeObserver(redimensionar).observe($('#palco'));
+if('ResizeObserver' in window){const ro=new ResizeObserver(redimensionar);ro.observe($('#palco'));ro.observe(cv2)}
 const solido=(tx,ty)=>{if(!P||tx<0||tx>=P.L)return tx<0;if(ty<0||ty>=10)return false;return SOLIDO.has(P.mapa[ty][tx])};
 function particula(x,y,txt,cor){P.particulas.push({x,y,txt,cor,t:0})}
 function passoPular(dt){
@@ -2092,6 +2125,9 @@ function terminarFase(){
 }
 $('#proxFase').onclick=()=>{calar();abrirPular()};
 // "Guardar no cofrinho" do fim de fase guarda de verdade as moedas que ele pegou na fase
+$$('.sair-jogo').forEach(b=>b.onclick=()=>ir(voltarMundo&&tela!=='mundo'?'mundo':'inicio'));
+// ao virar o celular, recalcula o tamanho do jogo
+addEventListener('orientationchange',()=>setTimeout(()=>{redimensionar();redimMundo()},300));
 $('#irCofre').onclick=()=>{
   const q=Math.min(P?P.pegas:0,S.carteira);
   if(q>0)guardarNoCofrinho(q);
