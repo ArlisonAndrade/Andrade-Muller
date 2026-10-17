@@ -406,7 +406,11 @@ canvas#confete{position:fixed;inset:0;pointer-events:none;z-index:30}
           <h3>👛 Carteira</h3>
           <span class="total" id="tCarteira">0</span>
           <div class="moedas-soltas" id="soltas"></div>
-          <p class="regra">Toque numa moeda para guardar no cofrinho.</p>
+          <div class="linha-b" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+            <button class="bloco proximo" id="guardar1" type="button">🐷 Guardar 1</button>
+            <button class="bloco acao" id="guardarTudo" type="button">Guardar tudo</button>
+          </div>
+          <p class="regra">Ou toque numa moeda para guardar.</p>
         </div>
         <div class="pote">
           <h3>Cofrinho</h3>
@@ -649,8 +653,11 @@ function voz(idioma){
   if(fixa)return fixa;
   return lista.slice().sort((a,b)=>notaVoz(b,idioma)-notaVoz(a,idioma))[0];
 }
-// Fila de falas: uma frase só começa quando a anterior termina. falar() sem fila interrompe tudo
-// (é o caso de resposta a um toque da criança); falar(...,true) entra no fim da fila.
+// Fila de falas. Regra: nenhuma fala é cortada no meio.
+// falar(texto)       → descarta o que estava ESPERANDO e entra; a frase que está tocando termina antes.
+// falar(texto,i,true)→ entra no fim da fila (continuação do fluxo).
+// O texto é quebrado em frases curtas, então a espera pela frase atual é pequena.
+// calar() só esvazia a fila (troca de tela); calarJa() corta na hora (som desligado).
 let filaFala=[],falando=null,geracao=0,vigia=null;
 function proximaFala(){
   clearTimeout(vigia);
@@ -660,26 +667,22 @@ function proximaFala(){
     const u=new SpeechSynthesisUtterance(texto);
     u.lang=LANG[idioma];const v=voz(idioma);if(v)u.voice=v;
     u.rate=.95;u.pitch=1;
-    const fim=()=>{if(g!==geracao||falando!==u)return;falando=null;setTimeout(()=>{if(g===geracao&&!falando)proximaFala()},180)};
+    const fim=()=>{if(g!==geracao||falando!==u)return;falando=null;setTimeout(()=>{if(g===geracao&&!falando)proximaFala()},150)};
     u.onend=fim;u.onerror=fim;
     falando=u;speechSynthesis.speak(u);
     // alguns navegadores às vezes não disparam onend: segue a fila mesmo assim
-    vigia=setTimeout(()=>{if(falando===u){try{speechSynthesis.cancel()}catch(e){}fim()}},2500+texto.length*110);
+    vigia=setTimeout(()=>{if(falando===u)fim()},3000+texto.length*120);
   }catch(e){falando=null}
 }
+const frasesDe=t=>String(t).split(/(?<=[.!?…])\s+/).map(x=>x.trim()).filter(Boolean);
 function falar(texto,idioma=S.idioma,fila=false){
   if(!S.som||!('speechSynthesis' in window)||!texto)return;
-  if(!fila){
-    geracao++;filaFala=[];falando=null;clearTimeout(vigia);
-    try{speechSynthesis.cancel()}catch(e){}
-    filaFala.push({texto,idioma});
-    const g=geracao;setTimeout(()=>{if(g===geracao&&!falando)proximaFala()},60);
-    return;
-  }
-  filaFala.push({texto,idioma});
-  if(!falando&&filaFala.length===1){const g=geracao;setTimeout(()=>{if(g===geracao&&!falando)proximaFala()},60)}
+  if(!fila)filaFala=[];
+  for(const f of frasesDe(texto))filaFala.push({texto:f,idioma});
+  if(!falando)proximaFala();
 }
-function calar(){geracao++;filaFala=[];falando=null;clearTimeout(vigia);try{speechSynthesis.cancel()}catch(e){}}
+function calar(){filaFala=[]}
+function calarJa(){geracao++;filaFala=[];falando=null;clearTimeout(vigia);try{speechSynthesis.cancel()}catch(e){}}
 
 /* ---------- sons ---------- */
 let ctx=null;
@@ -943,7 +946,7 @@ $('#numeros').addEventListener('click',e=>{
     falar(seq+'!');
     ms.forEach((m,i)=>depois(650*i,()=>m.classList.add('conta')));
     depois(650*n+200,()=>{
-      falar({pt:`${elogio()} São ${n} moedas!`,en:`${elogio()} ${n} coins!`,es:`${elogio()} ¡Son ${n} monedas!`}[S.idioma]);
+      falar({pt:`${elogio()} São ${n} moedas!`,en:`${elogio()} ${n} coins!`,es:`${elogio()} ¡Son ${n} monedas!`}[S.idioma],S.idioma,true);
       ganhar();estrela('estrelasCont');
     });
     depois(650*n+3200,novaRodadaCont);
@@ -1037,12 +1040,20 @@ function desenharCofre(){
   desenharSonho();
   desenharPremios();
 }
+function guardarNoCofrinho(qtd){
+  qtd=Math.min(qtd,S.carteira);
+  if(qtd<=0){somErro();falar('A carteira está vazia. Jogue para ganhar moedas!','pt');return false}
+  S.carteira-=qtd;S.cofrinho+=qtd;salvar();somMoeda();desenharCofre();
+  const p=$('#porco');p.classList.remove('engorda');void p.offsetWidth;p.classList.add('engorda');
+  return true;
+}
+$('#guardar1').onclick=()=>{if(guardarNoCofrinho(1)){falar(String(S.cofrinho),'pt');if(S.cofrinho%5===0)falar(`Muito bem! Com ${S.cofrinho} no cofrinho, amanhã ele cresce ${S.cofrinho/5}.`,'pt',true)}};
+$('#guardarTudo').onclick=()=>{const q=S.carteira;if(guardarNoCofrinho(q)){confete();falar(`Guardou ${q} ${q===1?'moeda':'moedas'}! Agora o cofrinho tem ${S.cofrinho}.`,'pt');if(S.cofrinho>=5)falar(`Amanhã ele cresce ${Math.floor(S.cofrinho/5)}.`,'pt',true)}};
 $('#soltas').addEventListener('click',e=>{
   if(!e.target.closest('button')||S.carteira<=0)return;
-  S.carteira--;S.cofrinho++;salvar();somMoeda();desenharCofre();
-  const p=$('#porco');p.classList.remove('engorda');void p.offsetWidth;p.classList.add('engorda');
+  guardarNoCofrinho(1);
   falar(String(S.cofrinho),'pt');
-  if(S.cofrinho%5===0)depois(700,()=>falar(`Muito bem! Com ${S.cofrinho} no cofrinho, amanhã ele cresce ${S.cofrinho/5}.`,'pt'));
+  if(S.cofrinho%5===0)falar(`Muito bem! Com ${S.cofrinho} no cofrinho, amanhã ele cresce ${S.cofrinho/5}.`,'pt',true);
 });
 $('#tirar').onclick=()=>{
   if(S.cofrinho<=0)return;
@@ -1564,7 +1575,7 @@ $('#missao').addEventListener('click',e=>{
   if(e.target.closest('[data-premio]')&&missaoFeita(m)){
     ganhar(m.premio);confete();somAcerto();S.missao++;salvar();
     falar(`Missão cumprida! Ganhou ${m.premio} moedas!`,'pt');
-    depois(2600,()=>{desenharCidade();repetir()});desenharCidade();return;
+    depois(2600,()=>{desenharCidade();const m2=MISSOES[S.missao];if(m2)falar(m2.fala,'pt',true)});desenharCidade();return;
   }
   if(e.target.closest('[data-ir-cofre]')){ir('cofre');return}
   const op=e.target.closest('[data-op]');
@@ -1573,7 +1584,7 @@ $('#missao').addEventListener('click',e=>{
       op.style.background='var(--grama)';somAcerto();
       falar(m.certa,m.idioma);
       ganhar(m.premio);confete();S.missao++;salvar();
-      depois(2200,()=>{desenharCidade();repetir()});
+      depois(2200,()=>{desenharCidade();const m2=MISSOES[S.missao];if(m2)falar(m2.fala,'pt',true)});
     }else{tremer(op);somErro();falar('Quase! Tente outra.','pt')}
   }
 });
@@ -1621,7 +1632,7 @@ $('#catalogo').addEventListener('click',e=>{
   const novo=$(`#lotes [data-lote="${i}"]`);if(novo)novo.classList.add('nasce');
   falar(`Construiu: ${p[2]}! Gastou ${p[1]} ${p[1]===1?'moeda':'moedas'}.`,'pt');falar(p[3],'en',true);falar(p[4],'es',true);
   if(p[5])falar(`Esse prédio rende ${p[5]} por dia!`,'pt',true);
-  const m=MISSOES[S.missao];if(m&&missaoFeita(m))depois(2500,()=>falar('Missão cumprida! Pegue o seu prêmio!','pt'));
+  const m=MISSOES[S.missao];if(m&&missaoFeita(m))falar('Missão cumprida! Pegue o seu prêmio!','pt',true);
 });
 $('#fecharFolha').onclick=()=>{$('#folha').hidden=true;loteAberto=-1;calar()};
 
@@ -1744,7 +1755,7 @@ function passoPular(dt){
         if(P.letras<P.nome.length){
           const c=P.nome[P.letras++];
           particula(bate+.5,ty-.6,c,'#7a5cff');somAcerto();falar(nomeLetra(c,'pt'),'pt');
-          if(P.letras===P.nome.length)depois(700,()=>falar(`Você juntou todas as letras: ${S.nome||c}!`,'pt'));
+          if(P.letras===P.nome.length)falar(`Você juntou todas as letras: ${S.nome||c}!`,'pt',true);
         }else{particula(bate+.5,ty-.6,'🪙');P.pegas++;somMoeda()}
         hudPular();
       }else tom([150],.05,'square');
@@ -1792,7 +1803,13 @@ function terminarFase(){
   falar(`Fase completa! Você pegou ${m} moedas. `+(todas?`E juntou as letras: ${soletrado}. ${S.nome||''}!`:'Na próxima, procure os blocos com interrogação para achar as letras do seu nome!')+' Quer guardar no cofrinho?','pt');
 }
 $('#proxFase').onclick=()=>{calar();abrirPular()};
-$('#irCofre').onclick=()=>ir('cofre');
+// "Guardar no cofrinho" do fim de fase guarda de verdade as moedas que ele pegou na fase
+$('#irCofre').onclick=()=>{
+  const q=Math.min(P?P.pegas:0,S.carteira);
+  if(q>0)guardarNoCofrinho(q);
+  ir('cofre');
+  if(q>0){confete();falar(`Você guardou as ${q} moedas da fase!`,'pt',true)}
+};
 function desenharPular(){
   const W=cv2.width,H=cv2.height,T=tilePx,t=P.tema,h=P.heroi;
   const vis=W/T;
@@ -2261,9 +2278,10 @@ function marcarIdioma(){$$('.bandeira').forEach(b=>b.setAttribute('aria-pressed'
 $$('.bandeira').forEach(b=>b.onclick=()=>{
   S.idioma=b.dataset.idioma;salvar();marcarIdioma();
   const nome={pt:'Português',en:'English',es:'Español'}[S.idioma];
-  if(tela==='letras'){limpar();calar();falar(nome);depois(900,()=>{bloqueado=false;novaLetra()})}
-  else if(tela==='digitar'){limpar();calar();falar(nome);depois(900,()=>treino('digitar'))}
-  else if(tela==='palavras'||tela==='contar'){falar(nome);depois(900,()=>repetir())}
+  if(tela==='letras'){limpar();calar();falar(nome);depois(300,()=>{bloqueado=false;novaLetra()})}
+  else if(tela==='digitar'){limpar();calar();falar(nome);depois(300,()=>treino('digitar'))}
+  else if(tela==='palavras'){falar(nome);perguntarPal(true)}
+  else if(tela==='contar'){falar(nome);perguntarCont(true)}
   else falar(nome);
 });
 $$('[data-repetir]').forEach(b=>b.onclick=()=>repetir());
@@ -2294,13 +2312,13 @@ function abrirPainel(){desenharVozes();$('#campoNome').value=S.nome;textoSom();c
 $('#fecharPainel').onclick=()=>{$('#painel').hidden=true};
 $('#painel').addEventListener('click',e=>{if(e.target.id==='painel')$('#painel').hidden=true});
 $('#campoNome').addEventListener('input',e=>{S.nome=e.target.value.trim();salvar();mostrarNome()});
-$('#btnSom').onclick=()=>{S.som=!S.som;if(!S.som)calar();salvar();textoSom()};
+$('#btnSom').onclick=()=>{S.som=!S.som;if(!S.som)calarJa();salvar();textoSom()};
 $('#btnZerar').onclick=()=>{
   if(!confirmaZerar){confirmaZerar=true;$('#btnZerar').textContent='Toque de novo para confirmar';return}
   S.carteira=0;S.cofrinho=0;S.figurinhas=[];S.contarAcertos=0;S.jurosEm='';S.fase=0;S.mundo=0;S.album=[];S.introVista=false;S.nivelPular=0;S.pularVisto=false;S.pos=null;S.mundoVisto=false;S.parceiroVisto=false;S.cidade=[];S.missao=0;S.rendaEm='';S.rendaPendente=0;S.rotina={data:'',feitos:[]};S.sonho=null;S.lendarios=[];salvar();atualizarMoedas();
   confirmaZerar=false;$('#btnZerar').textContent='Zerado ✔';
 };
-$('#inicio').addEventListener('click',e=>{const b=e.target.closest('[data-diz]');if(b)falar(b.dataset.diz,'pt')},true);
+
 
 mostrarNome();marcarIdioma();atualizarMoedas();
 $('#heroiEm').innerHTML=`<img class="px" alt="" src="${treinadorURL()}">`;
