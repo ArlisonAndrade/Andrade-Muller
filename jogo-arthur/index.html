@@ -322,6 +322,13 @@ main{flex:1;min-height:0;position:relative}
 .ctl.pulo{width:clamp(80px,19vw,110px);height:clamp(80px,19vw,110px);background:var(--sol)}
 .ctl.ativo{transform:translateY(4px);box-shadow:0 1px 0 var(--tinta)}
 @media (hover:hover) and (pointer:fine){.controles{display:none}}
+/* toque (celular/tablet): na plataforma os botões ficam numa barra própria embaixo, sem cobrir o jogo */
+@media not ((hover:hover) and (pointer:fine)){
+  #palco{display:flex;flex-direction:column}
+  #cena{flex:1;min-height:0;height:auto}
+  #palco .controles{position:static;background:#6b4a2b;border-top:4px solid var(--tinta);padding-block:10px max(10px,env(safe-area-inset-bottom,0px))}
+  #palco .ctl{opacity:1}
+}
 @media not ((hover:hover) and (pointer:fine)){.dica-tecla{display:none}}
 .fim{position:absolute;inset:0;display:grid;place-items:center;background:rgba(29,43,79,.4);padding:16px}
 .fim .caixa{background:var(--papel);border:4px solid var(--tinta);border-radius:28px;box-shadow:0 8px 0 var(--tinta);padding:18px 22px;max-width:440px;width:100%;box-sizing:border-box;text-align:center;animation:entra .6s cubic-bezier(.3,1.6,.5,1)}
@@ -2003,9 +2010,11 @@ function redimensionar(){
   const dpr=Math.min(window.devicePixelRatio||1,2),w=cv2.clientWidth,h=cv2.clientHeight;
   if(!w||!h)return;
   cv2.width=Math.round(w*dpr);cv2.height=Math.round(h*dpr);
-  tilePx=Math.min(cv2.height/10,cv2.width/13);offY=cv2.height-10*tilePx;
+  // tela em pé (celular): zoom maior, ao menos 7 linhas do mundo à vista (o topo é só céu)
+  tilePx=h>w?Math.min(cv2.height/7,cv2.width/9):Math.min(cv2.height/10,cv2.width/13);
+  offY=cv2.height-10*tilePx;
 }
-if('ResizeObserver' in window)new ResizeObserver(redimensionar).observe($('#palco'));
+if('ResizeObserver' in window){const ro=new ResizeObserver(redimensionar);ro.observe($('#palco'));ro.observe(cv2)}
 const solido=(tx,ty)=>{if(!P||tx<0||tx>=P.L)return tx<0;if(ty<0||ty>=10)return false;return SOLIDO.has(P.mapa[ty][tx])};
 function particula(x,y,txt,cor){P.particulas.push({x,y,txt,cor,t:0})}
 function passoPular(dt){
