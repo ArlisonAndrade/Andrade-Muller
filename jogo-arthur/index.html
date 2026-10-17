@@ -233,6 +233,43 @@ main{flex:1;min-height:0;position:relative}
 .album-info{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:center;background:var(--papel);border:4px solid var(--tinta);border-radius:24px;box-shadow:0 6px 0 var(--tinta);padding:10px 18px;width:100%;max-width:620px;box-sizing:border-box}
 .album-info .regra{font-size:1.1rem;font-weight:700;margin:6px 0 0}
 
+/* pokébolas, equipe, arena */
+.balanca{animation:balanca .5s 3}
+@keyframes balanca{25%{transform:rotate(-22deg)}75%{transform:rotate(22deg)}}
+.bolas-op{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.bola-op{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 14px;border-radius:20px;font-weight:800;min-width:110px}
+.bola-op .px{font-size:2.6rem}
+.bola-op small{font-size:.9rem;color:var(--tinta-suave)}
+.bola-op[disabled]{opacity:.35}
+.loja-bolas{width:100%;max-width:820px}
+.loja-bolas h3{margin:4px 0 2px;font-size:1.3rem;text-align:center}
+.loja-bolas .regra{margin-bottom:8px}
+.mochila{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;align-items:center}
+.mochila .pilula .px{font-size:1.6rem}
+.cartas-equipe{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:14px;width:100%;max-width:900px}
+.carta-mon{display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 8px;border-radius:22px}
+.carta-mon .px{font-size:3.6rem}
+.carta-mon b{font-size:1.1rem;line-height:1.1;text-align:center}
+.carta-mon .nv{font-weight:800;color:var(--uva)}
+.carta-mon .barra-s{width:100%;height:14px;border:2px solid var(--tinta);border-radius:999px;background:var(--papel);overflow:hidden}
+.carta-mon .barra-s i{display:block;height:100%;background:var(--uva)}
+.carta-mon.evo{background:#fff3c4}
+.carta-mon small{font-size:.85rem;color:var(--tinta-suave);font-weight:700}
+.rivais{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;width:100%;max-width:900px}
+.rival{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:22px;text-align:left}
+.rival .quem{font-size:2.6rem;line-height:1}
+.rival .px{font-size:2.6rem}
+.rival span.t{flex:1;min-width:0;display:flex;flex-direction:column}
+.rival span.t b{font-size:1.15rem}
+.rival span.t small{font-size:.9rem;color:var(--tinta-suave);font-weight:700}
+.rival.vencido{background:#c9f2d6}
+.rival.rocket{background:#2a2140;color:#fff}
+.rival.rocket span.t small{color:#d9c8ff}
+.rival[disabled]{opacity:.4}
+.soma{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:center}
+.soma .grupo{display:flex;flex-wrap:wrap;gap:8px;max-width:220px;justify-content:center;background:#9bd8a8;border:4px solid var(--tinta);border-radius:22px;padding:12px}
+.soma .mais{font-size:3rem;font-weight:800}
+
 /* rotina e sonho */
 .habitos{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;width:100%;max-width:820px}
 .habito{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:22px;text-align:left}
@@ -336,6 +373,8 @@ canvas#confete{position:fixed;inset:0;pointer-events:none;z-index:30}
         <button class="bloco jogo c3" data-ir="contar" data-diz="Contar moedas"><span class="ic">🪙</span><b>Contar</b><small>quantas moedas?</small></button>
         <button class="bloco jogo c4" data-ir="precisa" data-diz="Preciso ou quero?"><span class="ic">🤔</span><b>Preciso ou quero?</b><small>escolhas</small></button>
         <button class="bloco jogo c5" data-ir="cofre" data-diz="Cofrinho e lojinha"><span class="ic">🐷</span><b>Cofrinho</b><small>guardar e comprar</small></button>
+        <button class="bloco jogo c3" data-ir="equipe"><span class="ic">🎒</span><b>Minha Equipe</b><small>níveis e evolução</small></button>
+        <button class="bloco jogo c5" data-ir="arena"><span class="ic">🏟️</span><b>Arena</b><small>duelos e insígnias</small></button>
         <button class="bloco jogo c1" data-ir="album" data-diz="Álbum dos monstrinhos"><span class="ic">📒</span><b>Álbum</b><small>monstrinhos capturados</small></button>
       </div>
     </section>
@@ -411,6 +450,11 @@ canvas#confete{position:fixed;inset:0;pointer-events:none;z-index:30}
       </div>
       <div class="sonho" id="sonho"></div>
       <div class="premios-reais" id="premiosReais"></div>
+      <div class="loja-bolas">
+        <h3>🔴 Loja de Pokébolas</h3>
+        <p class="regra">Pagas com as moedas da carteira. A mais cara pega quase sempre.</p>
+        <div class="prateleira" id="lojaBolas"></div>
+      </div>
       <div class="loja">
         <h3>🏪 Lojinha de figurinhas</h3>
         <div class="prateleira" id="prateleira"></div>
@@ -427,7 +471,7 @@ canvas#confete{position:fixed;inset:0;pointer-events:none;z-index:30}
     <!-- BATALHA -->
     <section class="tela" id="batalha" hidden>
       <div class="arena" id="arena">
-        <div class="lutador heroi"><span class="dupla"><span class="em" id="heroiEm">🧒</span><span class="em parceiro" id="parceiroEm"></span></span><span class="nome-l" id="nomeHeroi">Treinador Arthur</span></div>
+        <div class="lutador heroi"><span class="coracoes" id="coracoesHeroi" hidden></span><span class="dupla"><span class="em" id="heroiEm">🧒</span><span class="em parceiro" id="parceiroEm"></span></span><span class="nome-l" id="nomeHeroi">Treinador Arthur</span></div>
         <div class="lutador monstro" id="monstro" hidden><span class="coracoes" id="coracoes"></span><span class="em" id="monstroEm">🐲</span><span class="nome-l" id="monstroNome"></span></div>
       </div>
       <div class="desafio" id="desafioB"></div>
@@ -518,6 +562,20 @@ canvas#confete{position:fixed;inset:0;pointer-events:none;z-index:30}
       <div class="lotes" id="lotes"></div>
     </section>
 
+    <!-- MINHA EQUIPE -->
+    <section class="tela" id="equipe" hidden>
+      <h2 class="titulo">Minha Equipe</h2>
+      <div class="mochila" id="mochila"></div>
+      <div class="cartas-equipe" id="cartasEquipe"></div>
+    </section>
+
+    <!-- ARENA -->
+    <section class="tela" id="arena" hidden>
+      <h2 class="titulo">Arena</h2>
+      <p class="sub">Vença os treinadores e ganhe insígnias. Quem perde, perde moedas e um monstrinho.</p>
+      <div class="rivais" id="rivais"></div>
+    </section>
+
     <!-- ÁLBUM -->
     <section class="tela" id="album" hidden>
       <h2 class="titulo">Álbum dos monstrinhos</h2>
@@ -546,6 +604,7 @@ canvas#confete{position:fixed;inset:0;pointer-events:none;z-index:30}
     <ul>
       <li><b>Aventura</b>: 8 fases. Cada monstrinho cai com 3 acertos (letra, leitura, contagem). O chefão da fase 8 só é capturado escrevendo o nome. Mundo 1 usa só vogais; do Mundo 2 em diante, todas as letras e contagem até 10.</li>
       <li><b>Rotina do dia</b>: escovar os dentes, comer tudo, arrumar a cama, guardar os brinquedos, tomar banho e ler uma historinha. Vale 1 moeda cada, uma vez por dia, e +2 quando faz tudo. Quem confirma é ele mesmo, então vale fazer junto com ele.</li>
+      <li><b>Pokébolas, Equipe e Arena</b>: vencer um monstrinho dá 2 moedas; para capturar, ele joga uma bola (Pokébola 3 moedas/60% · Grande 6/80% · Ultra 10/95%, compradas na loja do Banco). Cada igual capturado sobe 1 nível; com 10 iguais o monstrinho evolui. Na Arena, acerto = ataque dele (mais nível, golpe mais forte e mais corações), erro = ataque do adversário. Ganhou: moedas e insígnia. Perdeu: −2 moedas e 1 cópia do monstrinho que lutou (a Equipe Rocket rouba uma). O Pikachu nunca é perdido.</li>
       <li><b>Prêmios reais</b>: cadastre acima (emoji, nome e preço em moedas). Ele só troca com o dinheiro do <b>cofrinho</b>; as moedas saem na hora e o pedido aparece em "Pedidos de prêmio" até vocês marcarem <b>Entregue</b> ou <b>Devolver moedas</b>. Esta área abre com uma conta de multiplicação, para ele não mexer.</li>
       <li><b>Meu sonho</b> (no Cofrinho): ele escolhe um monstrinho lendário de 25, 40 ou 60 moedas, que só se compra com o cofrinho. A barra mostra quanto falta, e a voz explica que esperando o cofrinho cresce.</li>
       <li><b>Minha Cidade</b>: ele constrói em 24 terrenos com as moedas da carteira. Loja (+1 por dia) e banco (+2 por dia) ensinam que comprar algo que rende é diferente de gastar. As 12 missões em sequência misturam construir, guardar e perguntas de inglês e espanhol. A arena leva para a Aventura; a escola, para Ler palavras.</li>
@@ -609,7 +668,8 @@ const embaralhar=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(M
 const CHAVE='jogo-arthur-v1';
 const PADRAO={nome:'Arthur',idioma:'pt',carteira:0,cofrinho:0,figurinhas:[],jurosEm:'',soVogais:true,som:true,contarAcertos:0,fase:0,mundo:0,album:[],introVista:false,nivelPular:0,pularVisto:false,cidade:[],missao:0,rendaEm:'',rendaPendente:0,rotina:{data:'',feitos:[]},sonho:null,lendarios:[],
   premios:[{id:1,em:'🍦',nome:'Sorvete',preco:15},{id:2,em:'🎬',nome:'Filme com pipoca',preco:25},{id:3,em:'🌳',nome:'Passeio no parque',preco:40},{id:4,em:'🧸',nome:'Brinquedo pequeno',preco:60}],
-  pedidos:[]};
+  pedidos:[],
+  bolas:{poke:5,grande:0,ultra:0},colecao:{},insignias:[]};
 let S={...PADRAO};
 try{const s=JSON.parse(localStorage.getItem(CHAVE)||'null');if(s)S={...PADRAO,...s}}catch(e){}
 function salvar(){try{localStorage.setItem(CHAVE,JSON.stringify(S))}catch(e){}}
@@ -740,7 +800,7 @@ function ir(id){
   $('#btnCasa').hidden=id==='inicio';
   $('#btnCasa').textContent=voltarMundo&&id!=='mundo'?'🗺️':'🏠';
   ({letras:iniciarLetras,palavras:novaRodadaPal,contar:novaRodadaCont,precisa:iniciarPrecisa,cofre:abrirCofre,inicio:()=>{},
-    mundo:abrirMundo,mapa:abrirMapa,batalha:iniciarBatalha,pular:abrirPular,cidade:abrirCidade,rotina:abrirRotina,nome:()=>treino('nome'),ler:()=>treino('ler'),digitar:()=>treino('digitar'),album:abrirAlbum})[id]();
+    mundo:abrirMundo,equipe:abrirEquipe,arena:abrirArena,mapa:abrirMapa,batalha:iniciarBatalha,pular:abrirPular,cidade:abrirCidade,rotina:abrirRotina,nome:()=>treino('nome'),ler:()=>treino('ler'),digitar:()=>treino('digitar'),album:abrirAlbum})[id]();
 }
 let D=null; // desafio ativo (aventura e treinos)
 let voltarMundo=false,lutaSelvagem=false;
@@ -1028,6 +1088,7 @@ function desenharCofre(){
   $('#nCarteira').textContent=S.carteira;
   desenharSonho();
   desenharPremios();
+  desenharLojaBolas();
 }
 function guardarNoCofrinho(qtd){
   qtd=Math.min(qtd,S.carteira);
@@ -1197,6 +1258,19 @@ function montarDesafio(tipo,cont,ok,erro=()=>{}){
         }
       };
     },
+    somar(){
+      const a=1+Math.floor(Math.random()*(dificil?5:3)),b=1+Math.floor(Math.random()*(dificil?5:3)),t=a+b;
+      const pool=[];for(let i=2;i<=10;i++)if(i!==t)pool.push(i);
+      const perto=pool.sort((x,y)=>Math.abs(x-t)-Math.abs(y-t)+Math.random()-.5).slice(0,2);
+      cont.innerHTML='<div class="soma"><div class="grupo">'+'<span class="moeda g"></span>'.repeat(a)+'</div><span class="mais">+</span><div class="grupo">'+'<span class="moeda g"></span>'.repeat(b)+'</div></div><div class="numeros">'+
+        embaralhar([t,...perto]).map(x=>`<button class="bloco numero" data-num="${x}">${x}</button>`).join('')+'</div>';
+      d.repetir=f=>falar(`Você tem ${a} ${a>1?'moedas':'moeda'} e ganhou mais ${b}. Quantas moedas você tem agora?`,'pt',f);d.repetir(true);
+      cont.querySelector('.numeros').onclick=e=>{
+        const btn=e.target.closest('.numero');if(!btn||d.travado)return;
+        if(+btn.dataset.num===t){btn.style.background='var(--grama)';falar(`${a} mais ${b} é igual a ${t}!`,'pt');acertou(1800)}
+        else{tremer(btn);errou();falar('Conte todas as moedas juntas, uma por uma.','pt')}
+      };
+    },
     nome(){
       const N=nomeMaiusc();
       if(N.length<2){D=null;return montarDesafio('letra',cont,ok,erro)}
@@ -1326,56 +1400,151 @@ $('#trilha').addEventListener('click',e=>{
   const b=e.target.closest('.no');if(!b)return;
   const i=+b.dataset.fase;
   if(i>S.fase){tremer(b);falar('Essa fase ainda está trancada. Primeiro, a que está brilhando!','pt');return}
-  lutaIdx=i;lutaSelvagem=false;ir('batalha');
+  lutaIdx=i;lutaSelvagem=false;duelo=null;ir('batalha');
 });
 const rugido=()=>tom([180,320,140],.11,'sawtooth');
+let duelo=null; // {rival, meu} quando a batalha é um duelo da arena
 function iniciarBatalha(){
-  const m=MUNDO[lutaIdx],chefe=!lutaSelvagem&&lutaIdx===MUNDO.length-1;
-  let vida=3;
-  const tipos=chefe?['ler','letra','nome']:embaralhar(S.mundo>=1?['letra','ler','contar','digitar']:['letra','ler','contar']).slice(0,3);
+  const emDuelo=!!duelo,r=emDuelo?duelo.rival:null;
+  const key=emDuelo?r.mon:MUNDO[lutaIdx][3];
+  const idxM=MUNDO.findIndex(x=>x[3]===key),cor=idxM>=0?MUNDO[idxM][2]:'#ffc83d';
+  const chefe=!emDuelo&&!lutaSelvagem&&lutaIdx===MUNDO.length-1;
+  const meu=emDuelo?duelo.meu:PARCEIRO.key,P=Math.max(1,nivelDe(meu));
+  // nível é força: no duelo, mais nível = golpe mais forte e mais corações
+  const vidaMax=emDuelo?2+Math.ceil(r.nivel/2):3,meuMax=emDuelo?3+Math.floor(P/3):0,dano=emDuelo?1+Math.floor(P/4):1;
+  let vida=vidaMax,minhaVida=meuMax,ultimoTipo='',passo=0,tentativas=0;
+  const tiposAventura=chefe?['ler','letra','nome']:embaralhar(S.mundo>=1?['letra','ler','contar','digitar']:['letra','ler','contar']).slice(0,3);
+  const poolDuelo=r&&r.dificil?['letra','ler','contar','digitar','somar']:['letra','ler','contar','somar'];
+  const proximoTipo=()=>{
+    if(!emDuelo)return tiposAventura[Math.min(passo,2)];
+    let t;do{t=pick(poolDuelo)}while(t===ultimoTipo&&poolDuelo.length>1);return ultimoTipo=t;
+  };
   const mon=$('#monstro');
-  mon.hidden=true;mon.className='lutador monstro';mon.style.setProperty('--aura',m[2]);
-  $('#monstroEm').innerHTML=spr(m[3]);$('#monstroNome').textContent=nomeM(m[3]);
-  const coracoes=()=>{$('#coracoes').textContent='❤️'.repeat(vida)+'🤍'.repeat(3-vida)};coracoes();
+  mon.hidden=true;mon.className='lutador monstro';mon.style.setProperty('--aura',cor);
+  $('#monstroEm').innerHTML=spr(key);
+  $('#monstroNome').textContent=emDuelo?`${r.em} ${r.nome} · ${nomeM(key)} Nv ${r.nivel}`:nomeM(key);
+  $('#parceiroEm').innerHTML=imgDe(meu);
+  $('#nomeHeroi').textContent=`${S.nome||'Treinador'} e ${nomeDe(meu)}${emDuelo?' · Nv '+P:''}`;
+  const coracoes=()=>{
+    $('#coracoes').textContent='❤️'.repeat(Math.max(0,vida))+'🤍'.repeat(Math.max(0,vidaMax-vida));
+    const h=$('#coracoesHeroi');h.hidden=!emDuelo;
+    if(emDuelo)h.textContent='💚'.repeat(Math.max(0,minhaVida))+'🤍'.repeat(Math.max(0,meuMax-minhaVida));
+  };coracoes();
   $('#desafioB').innerHTML='';$('#continuar').hidden=true;
   repetir=()=>{};
   depois(600,()=>{
     mon.hidden=false;mon.classList.add('entra');rugido();
-    falar(chefe?`Cuidado! O chefão ${m[1]} apareceu! Para capturar, você vai precisar escrever o seu nome!`:`Olha! Um ${m[1]} selvagem apareceu!`,'pt');
-    falar(`Vai, ${PARCEIRO.nome}!`,'pt',true);
+    if(emDuelo)falar(`${r.nome} te desafiou! ${r.fala}`,'pt');
+    else falar(chefe?`Cuidado! O chefão ${m1()} apareceu! Para capturar, você vai precisar escrever o seu nome!`:`Olha! Um ${m1()} selvagem apareceu!`,'pt');
+    falar(`Vai, ${nomeDe(meu)}!`,'pt',true);
   });
+  function m1(){return MUNDO[lutaIdx][1]}
   const proximo=()=>{
     if(tela!=='batalha')return;
     mon.classList.remove('leva','ri');
-    montarDesafio(tipos[3-vida],$('#desafioB'),ataque,()=>{mon.classList.remove('ri');void mon.offsetWidth;mon.classList.add('ri');tom([500,620,500],.07,'square')});
+    montarDesafio(proximoTipo(),$('#desafioB'),ataque,()=>{
+      mon.classList.remove('ri');void mon.offsetWidth;mon.classList.add('ri');tom([500,620,500],.07,'square');
+      if(!emDuelo)return;
+      // no duelo, errar deixa o adversário atacar
+      minhaVida--;coracoes();
+      const he=$('#parceiroEm');he.classList.remove('errou');void he.offsetWidth;he.classList.add('errou');
+      falar(`O ${nomeM(key)} atacou!`,'pt',true);
+      if(minhaVida<=0){if(D)D.travado=true;depois(1200,perder)}
+    });
   };
-  depois(chefe?5200:2800,proximo);
+  depois(chefe||emDuelo?5200:2800,proximo);
   function ataque(){
     const arena=$('#arena'),t=document.createElement('span');
-    t.className='teia';t.textContent=PARCEIRO.projetil;arena.appendChild(t);
+    t.className='teia';t.textContent=meu===PARCEIRO.key?PARCEIRO.projetil:'💥';arena.appendChild(t);
     const pe=$('#parceiroEm');pe.classList.remove('ataca');void pe.offsetWidth;pe.classList.add('ataca');
     tom([1400,300,1400,300],.05,'sawtooth');
-    falar(`${PARCEIRO.nome}, ${PARCEIRO.golpe}!`,'pt',true);
+    falar(meu===PARCEIRO.key?`${PARCEIRO.nome}, ${PARCEIRO.golpe}!`:`${nomeDe(meu)}, ataque!`,'pt',true);
     requestAnimationFrame(()=>t.classList.add('voa'));
     depois(520,()=>{
-      t.remove();vida--;coracoes();
+      t.remove();vida=Math.max(0,vida-dano);passo++;coracoes();
       mon.classList.remove('leva');void mon.offsetWidth;mon.classList.add('leva');rugido();
-      falar(pick(['Acertou em cheio!','Zap! Na mosca!','Que choque!','Pow! Muito bem!']),'pt',true);
+      falar(pick(['Acertou em cheio!','Na mosca!','Que golpe!','Pow! Muito bem!']),'pt',true);
       $('#desafioB').innerHTML='';
-      if(vida<=0)depois(1300,capturar);else depois(1500,proximo);
+      if(vida<=0)depois(1300,emDuelo?vencer:venceuSelvagem);else depois(1500,proximo);
     });
   }
-  function capturar(){
-    mon.classList.add('capturado');confete();somAcerto();
-    falar(`Você capturou! Ganhou 3 moedas!`,'pt',true);falarTresNomes(m[3]);
-    if(!S.album.includes(lutaIdx))S.album.push(lutaIdx);
+  // ---- fim de luta fora da arena: vence e tenta capturar com a bola ----
+  function venceuSelvagem(){
     if(!lutaSelvagem&&lutaIdx===S.fase)S.fase++;
-    ganhar(3);salvar();
-    $('#desafioB').innerHTML=`<span class="figura">${spr(PARCEIRO.key)}✨${spr(m[3])}</span>${tresNomesHTML(m[3])}`;
+    ganhar(2);salvar();
+    falar(`Você venceu! Ganhou 2 moedas. Agora jogue uma bola para capturar!`,'pt',true);
+    escolherBola();
+  }
+  function escolherBola(){
+    const tem=BOLAS.some(b=>(S.bolas[b.id]||0)>0);
+    $('#desafioB').innerHTML=tem
+      ?'<p class="balao">Escolha a bola:</p><div class="bolas-op">'+BOLAS.map(b=>`<button class="bloco bola-op" data-bola="${b.id}" ${(S.bolas[b.id]||0)>0?'':'disabled'}>${bolaImg(b.id)}${b.nome}<small>${'★'.repeat(b.estrelas)} · você tem ${S.bolas[b.id]||0}</small></button>`).join('')+'</div>'
+      :'<p class="balao">Você não tem bolas! Compre na loja do Banco para capturar.</p>';
+    if(!tem){falar('Você não tem bolas! Compre na loja do Banco.','pt',true);$('#continuar').hidden=false;return}
+    $('#desafioB').querySelector('.bolas-op').onclick=e=>{
+      const btn=e.target.closest('[data-bola]');if(!btn||btn.disabled)return;
+      $('#desafioB').innerHTML='';jogarBola(BOLAS.find(b=>b.id===btn.dataset.bola));
+    };
+  }
+  function jogarBola(b){
+    S.bolas[b.id]--;salvar();
+    const arena=$('#arena'),t=document.createElement('span');
+    t.className='teia';t.innerHTML=bolaImg(b.id);arena.appendChild(t);
+    falar(`Vai, ${b.nome}!`,'pt');tom([900,500],.08,'sine');
+    requestAnimationFrame(()=>t.classList.add('voa'));
+    depois(520,()=>{
+      t.remove();
+      $('#monstroEm').innerHTML=`<span class="balanca" style="display:inline-block">${bolaImg(b.id)}</span>`;
+      [0,500,1000].forEach(ms=>depois(ms,()=>tom([220],.06,'square')));
+      depois(1700,()=>{
+        if(Math.random()<b.chance){
+          tom([660,880,1100],.09);confete();somAcerto();
+          const evoluiu=adicionarCaptura(key);
+          if(!S.album.includes(lutaIdx))S.album.push(lutaIdx);salvar();
+          const c=S.colecao[key];
+          falar(`Pegou! Agora você tem ${c.qtd} ${nomeM(key)}.`,'pt',true);falarTresNomes(key,false);
+          $('#desafioB').innerHTML=`<span class="figura">${spr(PARCEIRO.key)}✨${imgDe(key)}</span>${tresNomesHTML(key)}<p class="regra">Nível ${nivelDe(key)} · ${c.evoluido?'evoluído ★':`${c.qtd}/${EVOLUI_COM} para evoluir`}</p>`;
+          $('#continuar').hidden=false;
+          if(evoluiu)depois(2500,()=>celebrarEvolucao(key));
+        }else{
+          tentativas++;
+          $('#monstroEm').innerHTML=spr(key);mon.classList.remove('leva');void mon.offsetWidth;mon.classList.add('leva');
+          if(tentativas>=2){
+            falar(`Ah não! O ${nomeM(key)} escapou e fugiu!`,'pt');
+            depois(900,()=>{mon.hidden=true});
+            $('#desafioB').innerHTML='<p class="balao">Fugiu! Na próxima, tente uma bola mais forte.</p>';
+            $('#continuar').hidden=false;
+          }else{falar('Ah não! Escapou da bola! Tente de novo.','pt');escolherBola()}
+        }
+      });
+    });
+  }
+  // ---- fim de duelo ----
+  function vencer(){
+    confete();somAcerto();ganhar(r.premio);
+    const nova=!S.insignias.includes(r.id);if(nova)S.insignias.push(r.id);salvar();
+    falar(r.id==='rocket'?'A Equipe Rocket está decolando de novo!':`Você venceu ${r.nome}!`,'pt',true);
+    falar(`Ganhou ${r.premio} moedas${nova?' e uma insígnia nova':''}!`,'pt',true);
+    $('#desafioB').innerHTML=`<p class="balao">🏆 Vitória! +${r.premio} moedas${nova?' · 🏅 insígnia nova':''}</p>`;
+    mon.classList.add('capturado');$('#continuar').hidden=false;
+  }
+  function perder(){
+    somErro();
+    const multa=Math.min(2,S.carteira);S.carteira-=multa;
+    let perdido=null;
+    if(r.id==='rocket'){
+      const meus=Object.keys(S.colecao);if(meus.length){perdido=pick(meus);perderCopia(perdido)}
+    }else if(meu!==PARCEIRO.key){perdido=meu;perderCopia(meu)}
+    salvar();atualizarMoedas();
+    const txt=r.id==='rocket'&&perdido?`A Equipe Rocket roubou um ${nomeM(perdido)}!`:perdido?`Você perdeu um ${nomeM(perdido)}.`:'';
+    falar(`Ah não, você perdeu o duelo. ${multa?`Perdeu ${multa} ${multa>1?'moedas':'moeda'}.`:''} ${txt}`,'pt',true);
+    falar('Não desista! Capture mais, fique mais forte e volte!','pt',true);
+    $('#desafioB').innerHTML=`<p class="balao">Derrota. ${multa?`−${multa} moedas.`:''} ${txt}<br>Treine e volte mais forte!</p>`;
     $('#continuar').hidden=false;
   }
 }
 $('#continuar').onclick=()=>{
+  if(duelo){duelo=null;ir('arena');return}
   if(lutaSelvagem){lutaSelvagem=false;voltarMundo=false;ir('mundo');return}
   if(S.fase>=MUNDO.length){
     S.mundo++;S.fase=0;salvar();
@@ -1416,6 +1585,134 @@ $('#albumGrade').addEventListener('click',e=>{
   const i=+b.dataset.a;
   if(S.album.includes(i)){rugido();mostrarInfo(MUNDO[i][3]);calar();falarTresNomes(MUNDO[i][3])}
   else falar('Esse ainda está escondido. Vamos para a aventura!','pt');
+});
+
+/* ================= POKÉBOLAS, EQUIPE E EVOLUÇÃO ================= */
+// Pokébola é marca da Nintendo: ok no jogo privado da família (mesma ressalva do Pikachu).
+const BOLAS=[
+  {id:'poke',nome:'Pokébola',preco:3,chance:.6,estrelas:1,cima:'#e83030',marca:null},
+  {id:'grande',nome:'Grande Bola',preco:6,chance:.8,estrelas:2,cima:'#3070e0',marca:'#e83030'},
+  {id:'ultra',nome:'Ultra Bola',preco:10,chance:.95,estrelas:3,cima:'#2a2a2a',marca:'#ffd23a'}
+];
+const EVOLUI_COM=10;
+const EVO={
+  brasito:{pt:'Brasidragão',en:'Blazedrake',es:'Fuegodragón'},cascaxa:{pt:'Cascotanque',en:'Shelltank',es:'Conchatanque'},
+  folhapulo:{pt:'Folhagigante',en:'Leafgiant',es:'Hojagigante'},morcegao:{pt:'Morcegaláctico',en:'Batstar',es:'Murciestrella'},
+  polvolante:{pt:'Polvorei',en:'Octoking',es:'Pulporrey'},raposeta:{pt:'Raposábia',en:'Foxsage',es:'Zorrasabia'},
+  zumbizum:{pt:'Zumbitrovão',en:'Buzzbolt',es:'Abejatrueno'},rexao:{pt:'Rexorei',en:'Rex King',es:'Rexrey'}
+};
+const cacheBola={};
+function bolaCv(id){
+  if(cacheBola[id])return cacheBola[id];
+  const b=BOLAS.find(x=>x.id===id),c=document.createElement('canvas');c.width=c.height=16;const g=c.getContext('2d');
+  for(let y=0;y<16;y++)for(let x=0;x<16;x++){
+    const d=Math.hypot(x-7.5,y-7.5);if(d>7.3)continue;
+    let cor=d>6.3?'#2a1f2d':y<7?b.cima:y<9?'#2a1f2d':'#f8f8f8';
+    if(b.marca&&y>=2&&y<=5&&(x===4||x===11))cor=b.marca;
+    const dc=Math.hypot(x-7.5,y-7.5);if(dc<2.6)cor=dc<1.6?'#ffffff':'#2a1f2d';
+    if(y<7&&d<=6.3&&x>=4&&x<=5&&y>=2&&y<=3&&!b.marca)cor='#ffb0b0';
+    g.fillStyle=cor;g.fillRect(x,y,1,1);
+  }
+  return cacheBola[id]=c;
+}
+const urlBola={};
+const bolaImg=id=>`<img class="px" alt="" src="${urlBola[id]||(urlBola[id]=bolaCv(id).toDataURL())}">`;
+// evoluído: mesma arte com outra cor e uma coroa
+const cacheEvo={},urlEvo={};
+function sprCvEvo(key){
+  if(cacheEvo[key])return cacheEvo[key];
+  const c=document.createElement('canvas');c.width=c.height=16;const g=c.getContext('2d');
+  try{g.filter='hue-rotate(40deg) saturate(1.5)'}catch(e){}
+  g.drawImage(sprCv(key),0,0);g.filter='none';
+  g.fillStyle='#ffd23a';[[5,0],[8,0],[10,0]].forEach(([x,y])=>g.fillRect(x,y,1,1));g.fillRect(5,1,6,1);
+  return cacheEvo[key]=c;
+}
+function imgDe(key,cls=''){
+  const c=S.colecao&&S.colecao[key];
+  if(c&&c.evoluido)return `<img class="px ${cls}" alt="" src="${urlEvo[key]||(urlEvo[key]=sprCvEvo(key).toDataURL())}">`;
+  return spr(key,cls);
+}
+function nomeDe(key,i='pt'){
+  if(key===PARCEIRO.key)return PARCEIRO.nome;
+  const c=S.colecao[key];return c&&c.evoluido&&EVO[key]?EVO[key][i]:NOMES[key][i];
+}
+function nivelParceiro(){const tot=Object.values(S.colecao).reduce((a,c)=>a+c.qtd,0);return Math.min(20,1+Math.floor(tot/3))}
+function nivelDe(key){
+  if(key===PARCEIRO.key)return nivelParceiro();
+  const c=S.colecao[key];return c?c.qtd+(c.evoluido?5:0):0;
+}
+// cada cópia igual = +1 nível; com EVOLUI_COM iguais, evolui (para sempre)
+function adicionarCaptura(key){
+  const c=S.colecao[key]||(S.colecao[key]={qtd:0,evoluido:false});
+  c.qtd++;const evoluiu=!c.evoluido&&c.qtd>=EVOLUI_COM;if(evoluiu)c.evoluido=true;
+  salvar();return evoluiu;
+}
+function perderCopia(key){
+  const c=S.colecao[key];if(!c)return;
+  c.qtd--;if(c.qtd<=0){if(c.evoluido)c.qtd=1;else delete S.colecao[key]}
+  salvar();
+}
+function celebrarEvolucao(key){
+  confete();depois(700,confete);tom([523,659,784,1047,1319],.12);
+  aparecer(imgDe(key),`Uau! O seu ${NOMES[key].pt} evoluiu! Agora ele é o ${EVO[key].pt}! Ele ficou muito mais forte.`,()=>{falar(EVO[key].en,'en');falar(EVO[key].es,'es',true)});
+}
+function desenharLojaBolas(){
+  const box=$('#lojaBolas');if(!box)return;
+  box.innerHTML=BOLAS.map(b=>`<button class="bloco produto ${S.carteira<b.preco?'longe':''}" data-comprar-bola="${b.id}" aria-label="${b.nome}, ${b.preco} moedas"><span class="em">${bolaImg(b.id)}</span><small style="font-weight:800">${b.nome}</small><small>${'★'.repeat(b.estrelas)} · tem ${S.bolas[b.id]||0}</small><span class="preco"><span class="moeda"></span>${b.preco}</span></button>`).join('');
+}
+$('#lojaBolas').addEventListener('click',e=>{
+  const btn=e.target.closest('[data-comprar-bola]');if(!btn)return;
+  const b=BOLAS.find(x=>x.id===btn.dataset.comprarBola);
+  if(S.carteira<b.preco){tremer(btn);somErro();falar(`A ${b.nome} custa ${b.preco} moedas. Faltam ${b.preco-S.carteira}.`,'pt');return}
+  S.carteira-=b.preco;S.bolas[b.id]=(S.bolas[b.id]||0)+1;salvar();desenharCofre();somMoeda();
+  falar(`Comprou uma ${b.nome}! ${b.estrelas===3?'Ela pega quase sempre.':b.estrelas===2?'Ela pega mais que a Pokébola.':'Ela é a mais barata.'}`,'pt');
+});
+function abrirEquipe(){
+  const tot=Object.values(S.colecao).reduce((a,c)=>a+c.qtd,0);
+  $('#mochila').innerHTML=BOLAS.map(b=>`<span class="pilula">${bolaImg(b.id)} ${S.bolas[b.id]||0}</span>`).join('')+
+    `<span class="pilula">🏅 ${S.insignias.length} ${S.insignias.length===1?'insígnia':'insígnias'}</span>`;
+  const cartas=[PARCEIRO.key,...Object.keys(S.colecao).sort((a,b)=>nivelDe(b)-nivelDe(a))].map(k=>{
+    const c=S.colecao[k],ehP=k===PARCEIRO.key;
+    const prog=ehP?`<small>parceiro · sobe com as capturas</small>`:c.evoluido?`<small>evoluído ★ · ${c.qtd} capturados</small>`
+      :`<span class="barra-s"><i style="width:${Math.min(100,c.qtd/EVOLUI_COM*100)}%"></i></span><small>${c.qtd}/${EVOLUI_COM} para evoluir</small>`;
+    return `<button class="bloco carta-mon ${c&&c.evoluido?'evo':''}" data-mon="${k}">${imgDe(k)}<b>${nomeDe(k)}</b><span class="nv">Nível ${nivelDe(k)}</span>${prog}</button>`;
+  }).join('');
+  $('#cartasEquipe').innerHTML=cartas;
+  repetir=()=>falar(tot?`Você tem ${tot} ${tot===1?'monstrinho':'monstrinhos'} e o ${PARCEIRO.nome}. Capture iguais para ficarem mais fortes!`:`Por enquanto é só você e o ${PARCEIRO.nome}. Vamos capturar monstrinhos na grama alta!`,'pt');
+  repetir();
+}
+$('#cartasEquipe').addEventListener('click',e=>{
+  const b=e.target.closest('[data-mon]');if(!b)return;const k=b.dataset.mon;
+  if(k===PARCEIRO.key){falar(`${PARCEIRO.grito} Nível ${nivelDe(k)}.`,'pt');return}
+  const c=S.colecao[k];
+  falar(`${nomeDe(k)}. Nível ${nivelDe(k)}.`,'pt');falar(nomeDe(k,'en'),'en',true);falar(nomeDe(k,'es'),'es',true);
+  if(!c.evoluido)falar(`Faltam ${EVOLUI_COM-c.qtd} iguais para evoluir.`,'pt',true);
+});
+// ---- arena ----
+const RIVAIS=[
+  {id:'lucas',nome:'Lucas',em:'👦',mon:'folhapulo',nivel:2,premio:3,fala:'Vamos ver quem é mais forte!'},
+  {id:'bia',nome:'Bia',em:'👧',mon:'cascaxa',nivel:3,premio:4,fala:'Minha tartaruga é rapidinha!'},
+  {id:'davi',nome:'Davi',em:'🧒',mon:'raposeta',nivel:4,premio:5,fala:'Eu treinei muito!',dificil:true},
+  {id:'lia',nome:'Mestra Lia',em:'👩',mon:'zumbizum',nivel:6,premio:6,fala:'Zum zum! Prepare-se!',dificil:true},
+  {id:'teo',nome:'Campeão Téo',em:'🧔',mon:'rexao',nivel:8,premio:10,fala:'Só os melhores chegam até aqui!',dificil:true},
+  {id:'rocket',nome:'Equipe Rocket',em:'🦹',mon:'morcegao',nivel:5,premio:8,fala:'Prepare-se para encrenca! Viemos roubar os seus monstrinhos!',dificil:true}
+];
+const rivalLiberado=i=>RIVAIS[i].id==='rocket'?S.insignias.includes('bia'):i===0||S.insignias.includes(RIVAIS[i-1].id);
+function abrirArena(){
+  $('#rivais').innerHTML=RIVAIS.map((r,i)=>{
+    const ok=rivalLiberado(i),venceu=S.insignias.includes(r.id);
+    return `<button class="bloco rival ${venceu?'vencido':''} ${r.id==='rocket'?'rocket':''}" data-rival="${i}" ${ok?'':'disabled'}><span class="quem">${ok?r.em:'🔒'}</span><span class="t"><b>${r.nome}</b><small>${ok?`${nomeM(r.mon)} Nv ${r.nivel} · prêmio ${r.premio} moedas${venceu?' · 🏅':''}`:r.id==='rocket'?'aparece depois de vencer a Bia':'vença o anterior'}</small></span>${ok?spr(r.mon):''}</button>`;
+  }).join('');
+  repetir=()=>falar('Escolha um treinador para duelar. Quanto mais forte o seu monstrinho, mais fácil vencer!','pt');repetir();
+}
+$('#rivais').addEventListener('click',e=>{
+  const b=e.target.closest('[data-rival]');if(!b||b.disabled)return;
+  const r=RIVAIS[+b.dataset.rival];
+  $('#folhaTitulo').textContent=`Quem vai duelar contra ${r.nome}?`;
+  const meus=[PARCEIRO.key,...Object.keys(S.colecao).sort((a,b2)=>nivelDe(b2)-nivelDe(a))];
+  $('#catalogo').innerHTML=meus.map(k=>`<button class="bloco produto" data-lutar="${k}" data-rival-i="${b.dataset.rival}"><span class="em">${imgDe(k)}</span><small style="font-weight:800">${nomeDe(k)}</small><small>Nível ${nivelDe(k)}</small></button>`).join('');
+  loteAberto=-1;$('#folha').hidden=false;
+  falar(`Quem vai duelar contra ${r.nome}? O ${nomeM(r.mon)} dele é nível ${r.nivel}.`,'pt');
 });
 
 /* ================= ROTINA DO DIA ================= */
@@ -1606,6 +1903,8 @@ $('#lotes').addEventListener('click',e=>{
 $('#catalogo').addEventListener('click',e=>{
   const v=e.target.closest('[data-vai]');
   if(v){$('#folha').hidden=true;ir(v.dataset.vai);return}
+  const lt=e.target.closest('[data-lutar]');
+  if(lt){$('#folha').hidden=true;duelo={rival:RIVAIS[+lt.dataset.rivalI],meu:lt.dataset.lutar};lutaSelvagem=false;ir('batalha');return}
   const b=e.target.closest('[data-predio]');if(!b||loteAberto<0)return;
   const key=b.dataset.predio,p=PREDIOS[key];
   if(S.carteira<p[1]){
@@ -1917,7 +2216,8 @@ const PREDIOS_MUNDO=[
   {nome:'BANCO',x:24,y:2,w:5,h:4,porta:[26,5],vai:'cofre',telhado:'#e0a800',parede:'#f8f0d8',fala:'O banco! Aqui fica o seu cofrinho.'},
   {nome:'PREFEITURA',x:3,y:17,w:5,h:4,porta:[5,20],vai:'cidade',telhado:'#8048c0',parede:'#f0e8f8',fala:'A prefeitura! Aqui você constrói a sua cidade.'},
   {nome:'FLIPER',x:9,y:17,w:5,h:4,porta:[11,20],vai:'pular',telhado:'#20a070',parede:'#e8f8f0',fala:'O fliperama! Vamos pular e pegar moedas!'},
-  {nome:'ARENA',x:25,y:16,w:7,h:5,porta:[28,20],vai:'mapa',telhado:'#c03030',parede:'#c8c8d8',fala:'A arena! Aqui moram os chefões.'}
+  {nome:'ARENA',x:25,y:16,w:7,h:5,porta:[28,20],vai:'arena',telhado:'#c03030',parede:'#c8c8d8',fala:'A arena! Aqui você duela com outros treinadores.'},
+  {nome:'EQUIPE',x:19,y:2,w:4,h:4,porta:[20,5],vai:'equipe',telhado:'#e05050',parede:'#fff0f0',fala:'O centro dos seus monstrinhos!'}
 ];
 const CORUJA={x:18,y:8};
 let TERRENO=null,mapaCv=null;
@@ -2024,7 +2324,7 @@ function encontro(idx,sel){
     if(sel)selvagens=selvagens.filter(s=>s!==sel);
     const f=$('#flash');f.hidden=false;f.classList.remove('pisca');void f.offsetWidth;f.classList.add('pisca');
     tom([880,660,880,660],.08,'square');
-    depois(800,()=>{f.hidden=true;lutaIdx=idx;lutaSelvagem=true;voltarMundo=true;salvarPos();ir('batalha')});
+    depois(800,()=>{f.hidden=true;lutaIdx=idx;lutaSelvagem=true;duelo=null;voltarMundo=true;salvarPos();ir('batalha')});
   };
 }
 function salvarPos(){S.pos={x:J.x,y:J.y,dir:J.dir};salvar()}
@@ -2304,11 +2604,14 @@ $('#campoNome').addEventListener('input',e=>{S.nome=e.target.value.trim();salvar
 $('#btnSom').onclick=()=>{S.som=!S.som;if(!S.som)calarJa();salvar();textoSom()};
 $('#btnZerar').onclick=()=>{
   if(!confirmaZerar){confirmaZerar=true;$('#btnZerar').textContent='Toque de novo para confirmar';return}
-  S.carteira=0;S.cofrinho=0;S.figurinhas=[];S.contarAcertos=0;S.jurosEm='';S.fase=0;S.mundo=0;S.album=[];S.introVista=false;S.nivelPular=0;S.pularVisto=false;S.pos=null;S.mundoVisto=false;S.parceiroVisto=false;S.cidade=[];S.missao=0;S.rendaEm='';S.rendaPendente=0;S.rotina={data:'',feitos:[]};S.sonho=null;S.lendarios=[];salvar();atualizarMoedas();
+  S.carteira=0;S.cofrinho=0;S.figurinhas=[];S.contarAcertos=0;S.jurosEm='';S.fase=0;S.mundo=0;S.album=[];S.introVista=false;S.nivelPular=0;S.pularVisto=false;S.pos=null;S.mundoVisto=false;S.parceiroVisto=false;S.cidade=[];S.missao=0;S.rendaEm='';S.rendaPendente=0;S.rotina={data:'',feitos:[]};S.sonho=null;S.lendarios=[];S.bolas={poke:5,grande:0,ultra:0};S.colecao={};S.insignias=[];salvar();atualizarMoedas();
   confirmaZerar=false;$('#btnZerar').textContent='Zerado ✔';
 };
 
 
+if(!S.colecao||typeof S.colecao!=='object')S.colecao={};
+if(!S.bolas)S.bolas={poke:5,grande:0,ultra:0};
+if(!Object.keys(S.colecao).length&&S.album.length){S.album.forEach(i=>{if(MUNDO[i])S.colecao[MUNDO[i][3]]={qtd:1,evoluido:false}});salvar()}
 mostrarNome();marcarIdioma();atualizarMoedas();
 $('#heroiEm').innerHTML=`<img class="px" alt="" src="${treinadorURL()}">`;
 $('#parceiroEm').innerHTML=spr(PARCEIRO.key);
