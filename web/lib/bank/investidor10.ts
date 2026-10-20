@@ -49,6 +49,9 @@ export type ResultadoSync = {
   patrimonio: number | null;
   ativos: number;
   alteracoes: AlteracaoSync[];
+  /** Rentabilidade por cotas (TWR) que o próprio Investidor10 mostra, em %. */
+  rentabilidadeTotal?: number | null;
+  rentabilidade12M?: number | null;
 };
 
 type PosicaoI10 = {
@@ -95,7 +98,7 @@ function aplicadoDe(classe: string, item: ItemBruto, quantidade: number, valor: 
 /** Lê a carteira inteira e confere contra o resumo. Lança erro se algo não bater. */
 export async function lerCarteiraInvestidor10(walletId: number) {
   const [metricas, classes] = await Promise.all([
-    buscarJson<{ applied?: string; equity?: string }>(
+    buscarJson<{ applied?: string; equity?: string; profit_twr?: string; profit_twr_12m?: string }>(
       `summary/metrics/${walletId}?type=without-earnings&raw=1`,
     ),
     buscarJson<Array<{ type: string; value: number }>>(
@@ -146,10 +149,17 @@ export async function lerCarteiraInvestidor10(walletId: number) {
     throw new Error(`Aplicado não fecha: soma R$ ${somaAplicado.toFixed(2)} contra R$ ${aplicadoResumo.toFixed(2)} do resumo.`);
   }
 
+  // Rentabilidade: a do Investidor10 é por cotas (TWR) e não sai da posição de
+  // hoje — sobre o custo ela encolhe a cada aporte. Vem pronta no resumo; se
+  // faltar, fica null e a página cai no cálculo próprio.
+  const rentabilidade = (v: unknown) => (Number.isFinite(num(v)) ? num(v) : null);
+
   return {
     posicoes,
     patrimonio: patrimonioResumo,
     aplicado: Number.isFinite(aplicadoResumo) ? aplicadoResumo : somaAplicado,
+    rentabilidadeTotal: rentabilidade(metricas.profit_twr),
+    rentabilidade12M: rentabilidade(metricas.profit_twr_12m),
   };
 }
 
@@ -186,6 +196,8 @@ export async function sincronizarInvestidor10(
       patrimonio: r.patrimonio,
       ativos: r.ativos,
       alteracoes: r.alteracoes,
+      rentabilidade_total: r.rentabilidadeTotal ?? null,
+      rentabilidade_12m: r.rentabilidade12M ?? null,
       origem,
     });
     return r;
@@ -414,6 +426,8 @@ export async function sincronizarInvestidor10(
     patrimonio: round2(carteira.patrimonio),
     ativos: carteira.posicoes.length,
     alteracoes,
+    rentabilidadeTotal: carteira.rentabilidadeTotal,
+    rentabilidade12M: carteira.rentabilidade12M,
   });
 }
 

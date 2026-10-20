@@ -58,6 +58,7 @@ export default async function PaginaInvestimentos() {
     { data: proventos },
     { data: parametrosFamilia },
     { data: ultimaSync },
+    { data: rentabilidadeI10 },
   ] = await Promise.all([
     supabase
       .from("posicao_ativos")
@@ -88,6 +89,17 @@ export default async function PaginaInvestimentos() {
       .from("sincronizacoes_investidor10")
       .select("executado_em, ok, erro")
       .eq("entidade_id", ENTIDADE_FAMILIA)
+      .order("executado_em", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    // Rentabilidade do Investidor10 (por cotas) da última rodada que a trouxe —
+    // uma rodada que falhou não apaga o número da anterior.
+    supabase
+      .from("sincronizacoes_investidor10")
+      .select("rentabilidade_total, rentabilidade_12m")
+      .eq("entidade_id", ENTIDADE_FAMILIA)
+      .eq("ok", true)
+      .not("rentabilidade_12m", "is", null)
       .order("executado_em", { ascending: false })
       .limit(1)
       .maybeSingle(),
@@ -142,8 +154,18 @@ export default async function PaginaInvestimentos() {
     .filter((p) => p.data >= corte12M)
     .reduce((s, p) => s + Number(p.valor), 0);
   const lucroTotal = ganhoCapital + proventosTotal;
-  const rentabTotal = aplicadoCorretora > 0 ? (lucroTotal / aplicadoCorretora) * 100 : null;
-  const rentab12M = rentabilidade12M(
+  // Rentabilidade = a do Investidor10, por cotas (TWR). O cálculo próprio é
+  // sobre o custo e encolhe a cada aporte (20/out/2026: 8,55% × 14,22% em 12M,
+  // 11,17% × 28,51% no total) — fica só de reserva pra antes da 1ª rodada.
+  const twrTotal = rentabilidadeI10?.rentabilidade_total;
+  const twr12M = rentabilidadeI10?.rentabilidade_12m;
+  const rentabTotal =
+    twrTotal != null
+      ? Number(twrTotal)
+      : aplicadoCorretora > 0
+        ? (lucroTotal / aplicadoCorretora) * 100
+        : null;
+  const rentab12M = twr12M != null ? Number(twr12M) : rentabilidade12M(
     (snapshots ?? []).map((s) => ({
       competencia: String(s.competencia),
       valor_aplicado: Number(s.valor_aplicado),
