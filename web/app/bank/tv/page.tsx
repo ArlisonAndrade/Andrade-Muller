@@ -24,6 +24,8 @@ import { SlideArQueVem, SlideConstruimos, SlideEscolhas, SlideRegua, SlideRenda 
 import { montarDivisaoDoMes } from "@/lib/bank/divisao-mes";
 import { hojeSP } from "@/lib/bank/agente/datas";
 import { CONTEUDO_REUNIAO } from "@/lib/bank/tv/conteudo-reuniao";
+import { BotoesBalanco } from "@/components/bank/tv/botoes-balanco";
+import { ENTIDADE_FAMILIA } from "@/lib/bank/tipos";
 
 export const metadata = { title: "Modo TV" };
 
@@ -196,9 +198,15 @@ export default async function PaginaModoTv({ searchParams }: { searchParams: Pro
   // Divisão dos pagamentos do mês da reunião (a foto de hoje do Planejamento —
   // ele não guarda histórico): base do slide "Pra onde vai a renda".
   const competenciaHoje = `${hojeSP().slice(0, 7)}-01`;
-  const [d, divisao] = await Promise.all([
+  const [d, divisao, { data: balancoEnviado }] = await Promise.all([
     montarTrimestre(supabase, trimestre),
     montarDivisaoDoMes(supabase, competenciaHoje),
+    supabase
+      .from("balancos_trimestrais")
+      .select("enviado_em")
+      .eq("entidade_id", ENTIDADE_FAMILIA)
+      .eq("trimestre", trimestre)
+      .maybeSingle(),
   ]);
   const { plano } = d;
 
@@ -236,6 +244,14 @@ export default async function PaginaModoTv({ searchParams }: { searchParams: Pro
               {rotuloTrimestre(trimestreVizinho(trimestre, 1))} ›
             </Link>
           </div>
+          {/* Balanço em PDF pro grupo — só de trimestre fechado (25/out/2026). */}
+          {d.fechado && (
+            <BotoesBalanco
+              trimestre={trimestre}
+              sigla={`${trimestre.slice(-1)}T${trimestre.slice(2, 4)}`}
+              enviadoEm={balancoEnviado?.enviado_em ?? null}
+            />
+          )}
         </div>
       ),
     },

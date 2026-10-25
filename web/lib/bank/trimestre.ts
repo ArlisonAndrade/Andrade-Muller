@@ -75,6 +75,8 @@ export type DadosTrimestre = {
     // Mesma régua no trimestre anterior, pra mostrar a tendência até a meta.
     mediaAnterior: number | null;
     categoriaMaisPesou: { nome: string; gasto: number } | null;
+    /** Semana a semana (gráfico do balanço em PDF). */
+    lista: Array<{ inicio: string; gasto: number; meta: number }>;
   };
   jornada: Jornada;
   // Carteira a mercado mês a mês, da primeira foto até o fim do trimestre
@@ -249,6 +251,9 @@ export async function montarTrimestre(supabase: SupabaseClient, trimestre: strin
       meta: semanasDoTri.length ? (semanasDoTri[semanasDoTri.length - 1].meta as number) : null,
       mediaAnterior: mediaDe(semanasDoAnterior),
       categoriaMaisPesou: categoriaTopo && categoriaTopo[1] > 0 ? { nome: categoriaTopo[0], gasto: categoriaTopo[1] } : null,
+      lista: semanasDoTri
+        .map((s) => ({ inicio: s.inicio, gasto: s.gasto, meta: s.meta as number }))
+        .sort((a, b) => a.inicio.localeCompare(b.inicio)),
     },
     arthur: { atual: arthur.atual, meta: obterMetaArthur() },
     jornada,
@@ -308,7 +313,7 @@ export function balancoDoTrimestre(d: DadosTrimestre): { certos: ItemBalanco[]; 
     });
   }
   if (d.plano.sequencia > 0) {
-    certos.push({ emoji: "🔥", texto: `${d.plano.sequencia} ${d.plano.sequencia === 1 ? "mês" : "meses"} seguidos com o aporte cumprido.` });
+    certos.push({ emoji: "🔥", texto: d.plano.sequencia === 1 ? "1 mês com o aporte cumprido." : `${d.plano.sequencia} meses seguidos com o aporte cumprido.` });
   }
   if (d.divida.parcelasPagas > 0) {
     certos.push({
