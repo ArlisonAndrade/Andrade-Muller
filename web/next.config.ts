@@ -8,6 +8,8 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/bank/balanco": ["./lib/bank/balanco/fontes/**", "./lib/bank/balanco/brasao.png"],
     "/api/bank/agente/balanco": ["./lib/bank/balanco/fontes/**", "./lib/bank/balanco/brasao.png"],
+    "/api/bank/agente/decisao": ["./lib/bank/balanco/fontes/**", "./lib/bank/balanco/brasao.png"],
+    "/api/bank/agente/decisoes": ["./lib/bank/balanco/fontes/**", "./lib/bank/balanco/brasao.png"],
   },
   // Jogo do Arthur: página estática em public/jogo/ (gerada por
   // jogo-arthur/publicar_no_portal.py). O rewrite só deixa o endereço curto;

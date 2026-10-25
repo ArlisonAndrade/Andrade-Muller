@@ -5,6 +5,7 @@ import { hojeSP } from "@/lib/bank/agente/datas";
 import { DOUTRINA_ARKAD } from "@/lib/bank/agente/arkad";
 import { montarDivisaoDoMes } from "@/lib/bank/divisao-mes";
 import { agregarPorClasse, type Cotacao, type PosicaoDetalhada } from "@/lib/bank/calculos-investimentos";
+import { lerDecisoes } from "@/lib/bank/balanco/decisoes";
 import {
   balancoDoTrimestre,
   mesesDoTrimestre,
@@ -80,6 +81,11 @@ export type DadosBalanco = {
   certos: ItemBalanco[];
   ajustes: ItemBalanco[];
   reuniao: { realizada: boolean; compromissos: Compromisso[] };
+  /** Decisões pedidas no grupo, com a resposta de cada um (null = não respondeu). */
+  decisoes: {
+    pessoas: string[];
+    perguntas: Array<{ numero: number; texto: string; respostas: Array<string | null>; divergente: boolean }>;
+  } | null;
   compromissosAnteriores: Compromisso[];
   proximo: string[];
   parecer: string[];
@@ -104,7 +110,7 @@ export async function montarBalanco(supabase: SupabaseClient, trimestre: string)
   const fimISO = ultimoDia(meses[2]);
   const hoje = hojeSP();
 
-  const [d, posicoes, cotacoes, parcelas, retiradas, sync, metaReserva, divisao] = await Promise.all([
+  const [d, posicoes, cotacoes, parcelas, retiradas, sync, metaReserva, divisao, estadoDecisoes, decisoesAnteriores] = await Promise.all([
     montarTrimestre(supabase, trimestre),
     supabase
       .from("posicao_ativos")
@@ -138,6 +144,8 @@ export async function montarBalanco(supabase: SupabaseClient, trimestre: string)
       .eq("chave", "meta_reserva_emergencia")
       .maybeSingle(),
     montarDivisaoDoMes(supabase, `${hoje.slice(0, 7)}-01`),
+    lerDecisoes(supabase, trimestre),
+    lerDecisoes(supabase, anterior),
   ]);
   for (const r of [posicoes, cotacoes, parcelas, retiradas, sync, metaReserva]) {
     if (r.error) throw new Error(`Balanço: ${r.error.message}`);
@@ -309,7 +317,29 @@ export async function montarBalanco(supabase: SupabaseClient, trimestre: string)
     certos,
     ajustes,
     reuniao: { realizada: reuniaoRealizada, compromissos: d.reuniao?.compromissos ?? [] },
-    compromissosAnteriores: d.compromissosAnteriores,
+    decisoes: estadoDecisoes.perguntas.length
+      ? {
+          pessoas: estadoDecisoes.pessoas.map((p) => p.nome),
+          perguntas: estadoDecisoes.perguntas.map((p) => {
+            const respostas = estadoDecisoes.pessoas.map((pessoa) => {
+              const i = p.respostas.get(pessoa.id);
+              return i == null ? null : (p.opcoes[i] ?? null);
+            });
+            const dadas = respostas.filter((r): r is string => r != null);
+            return { numero: p.numero, texto: p.texto, respostas, divergente: new Set(dadas).size > 1 };
+          }),
+        }
+      : null,
+    // Sem reunião no trimestre anterior, o que se confere agora são as
+    // decisões que cada um tomou no grupo.
+    compromissosAnteriores: d.compromissosAnteriores.length
+      ? d.compromissosAnteriores
+      : decisoesAnteriores.perguntas.map((p) => ({
+          texto: `${p.texto} ${decisoesAnteriores.pessoas
+            .map((pessoa) => `${pessoa.nome}: ${p.respostas.has(pessoa.id) ? p.opcoes[p.respostas.get(pessoa.id)!] : "não decidiu"}`)
+            .join(" · ")}`,
+          cumprido: null,
+        })),
     proximo: proximoTxt,
     parecer: [],
   };

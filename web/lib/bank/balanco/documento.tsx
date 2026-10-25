@@ -43,8 +43,8 @@ Font.registerHyphenationCallback((palavra) => [palavra]);
 // Lido como bytes: um caminho "C:\..." o react-pdf tenta abrir como URL.
 const BRASAO = { data: readFileSync(path.join(PASTA, "brasao.png")), format: "png" as const };
 
-/** As fontes do PDF são o recorte latino: a seta do Modo TV vira palavra. */
-const limpo = (texto: string) => texto.replace(/\s*→\s*/g, " para ");
+/** As fontes do PDF são o recorte latino: sem a seta →, que vira ›. */
+const limpo = (texto: string) => texto.replace(/\s*→\s*/g, " › ");
 
 const COR = {
   tinta: "#1c2733",
@@ -437,8 +437,38 @@ export function DocumentoBalanco({ d }: { d: DadosBalanco }) {
                 TRIMESTRE FECHADO SEM REUNIÃO FAMILIAR
               </Text>
             </View>
-            <Text style={s.sub}>Nenhum compromisso foi registrado para o {d.proximaSigla}. As decisões deste trimestre ficaram em aberto.</Text>
+            {!d.decisoes && (
+              <Text style={s.sub}>Nenhum compromisso foi registrado para o {d.proximaSigla}. As decisões deste trimestre ficaram em aberto.</Text>
+            )}
           </>
+        )}
+
+        {d.decisoes && (
+          <View style={{ marginBottom: 6 }}>
+            <Text style={[s.sub, { marginBottom: 8 }]}>As decisões foram pedidas pelo Arkad no grupo e respondidas individualmente.</Text>
+            <View style={[s.cabecalho, { paddingHorizontal: 4 }]}>
+              <Text style={[s.cabTexto, { width: "52%" }]}>DECISÃO</Text>
+              {d.decisoes.pessoas.map((p) => (
+                <Text key={p} style={[s.cabTexto, { flex: 1 }]}>{p.toUpperCase()}</Text>
+              ))}
+            </View>
+            {d.decisoes.perguntas.map((q) => (
+              <View key={q.numero} style={[s.linhaTab, { paddingHorizontal: 4 }]} wrap={false}>
+                <View style={{ width: "52%", paddingRight: 8 }}>
+                  <Text>
+                    <Text style={{ fontWeight: 700 }}>{q.numero}. </Text>
+                    {limpo(q.texto)}
+                  </Text>
+                  {q.divergente && <Text style={{ fontSize: 7.6, color: COR.negativo, marginTop: 2 }}>Respostas diferentes: decidir juntos.</Text>}
+                </View>
+                {q.respostas.map((r, k) => (
+                  <Text key={k} style={{ flex: 1, paddingRight: 4, fontWeight: r ? 600 : 400, color: r ? COR.marinho : COR.suave }}>
+                    {r ? limpo(r) : "Sem resposta"}
+                  </Text>
+                ))}
+              </View>
+            ))}
+          </View>
         )}
 
         <Text style={[s.h2, { marginTop: 14 }]}>Compromissos do trimestre anterior</Text>
