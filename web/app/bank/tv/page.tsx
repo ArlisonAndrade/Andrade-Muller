@@ -148,20 +148,27 @@ function Marco({
 
 function ListaBalanco({ itens, vazio }: { itens: ItemBalanco[]; vazio: string }) {
   if (itens.length === 0) return <p className="text-2xl text-white/80">{vazio}</p>;
+  // "O que deu certo" chega a ter 10 itens, e em uma coluna com texto 2xl
+  // estourava a tela (pedido do Arlison, 25/out/2026). Até 4 itens fica como
+  // era; acima disso vira duas colunas, e acima de 8 o texto também diminui.
+  const colunas = itens.length > 4;
+  const denso = itens.length > 8;
   return (
-    <ul className="flex flex-col gap-4">
+    <ul className={colunas ? "grid grid-cols-1 gap-3 lg:grid-cols-2" : "flex flex-col gap-4"}>
       {itens.map((i, n) => (
         <li
           key={n}
-          className="flex gap-4 rounded-[18px] bg-white/10 px-5 py-4"
+          className={`flex gap-4 rounded-[18px] bg-white/10 ${colunas ? "px-5 py-3" : "px-5 py-4"}`}
           style={{ animation: "fade-slide-in 0.4s ease-out both", animationDelay: `${n * 120}ms` }}
         >
-          <span className="text-3xl" aria-hidden>
+          <span className={denso ? "text-2xl" : "text-3xl"} aria-hidden>
             {i.emoji}
           </span>
           <div>
-            <p className="text-2xl">{i.texto}</p>
-            {i.proximoPasso && <p className="mt-1 text-lg text-white/70">→ {i.proximoPasso}</p>}
+            <p className={denso ? "text-lg" : colunas ? "text-xl" : "text-2xl"}>{i.texto}</p>
+            {i.proximoPasso && (
+              <p className={`mt-1 text-white/70 ${denso ? "text-base" : "text-lg"}`}>→ {i.proximoPasso}</p>
+            )}
           </div>
         </li>
       ))}
