@@ -59,7 +59,7 @@ export function mensagemSemReuniao(d: DadosBalanco): string | null {
 }
 
 /** O grupo é o chat_id negativo cadastrado em telegram_membros (mesma regra dos resumos). */
-async function chatDoGrupo(supabase: SupabaseClient): Promise<number> {
+export async function chatDoGrupo(supabase: SupabaseClient): Promise<number> {
   const { data, error } = await supabase
     .from("telegram_membros")
     .select("telegram_chat_id")
@@ -78,7 +78,7 @@ async function chatDoGrupo(supabase: SupabaseClient): Promise<number> {
  * Uma chamada por mensagem, em ordem: o nó do Telegram não repassa o binário
  * adiante, então texto e arquivo em sequência numa chamada só não dá.
  */
-async function postarNoGrupo(campos: Record<string, string | Blob>, oQue: string, nomeArquivo = "arquivo.pdf") {
+export async function postarNoGrupo(campos: Record<string, string | Blob>, oQue: string, nomeArquivo = "arquivo.pdf") {
   const segredo = process.env.BANK_AGENTE_SECRET;
   if (!segredo) throw new Error("BANK_AGENTE_SECRET não configurada.");
   const corpo = new FormData();
@@ -120,14 +120,32 @@ export async function enviarBalancoNoGrupo(supabase: SupabaseClient, trimestre: 
   return { sigla: dados.sigla, nome, enviadoEm };
 }
 
-const escapar = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+export const escapar = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const siglaDe = (trimestre: string) => `${trimestre.slice(-1)}T${trimestre.slice(2, 4)}`;
+
+/** A linha do trimestre em `balancos_trimestrais` (nasce no dia 5, antes do parecer). */
+export async function garantirLinhaDoBalanco(supabase: SupabaseClient, trimestre: string) {
+  const { error } = await supabase
+    .from("balancos_trimestrais")
+    .upsert({ entidade_id: ENTIDADE_FAMILIA, trimestre }, { onConflict: "entidade_id,trimestre", ignoreDuplicates: true });
+  if (error) throw new Error(`Balanço: ${error.message}`);
+}
 
 /**
  * As decisões do trimestre no grupo: a cobrança (quem falta responder o quê,
  * pelo nome) e uma mensagem com botões por pergunta. Cada um responde por si.
+ * `somentePendentes`: no dia 15 e no dia 25, só volta a pergunta que alguém
+ * ainda não respondeu (os botões das mensagens antigas continuam valendo).
  */
-export async function enviarPerguntasNoGrupo(supabase: SupabaseClient, trimestre: string, prazo = "hoje, às 21h") {
+export async function enviarPerguntasNoGrupo(
+  supabase: SupabaseClient,
+  trimestre: string,
+  {
+    prazo = "hoje, às 21h",
+    titulo,
+    somentePendentes = false,
+  }: { prazo?: string; titulo?: string; somentePendentes?: boolean } = {},
+) {
   const [estado, chatId] = await Promise.all([lerDecisoes(supabase, trimestre), chatDoGrupo(supabase)]);
   if (estado.perguntas.length === 0) throw new Error(`Não há perguntas cadastradas para o ${siglaDe(trimestre)}.`);
   if (estado.fechadasEm) throw new Error(`As decisões do ${siglaDe(trimestre)} já fecharam.`);
@@ -135,15 +153,21 @@ export async function enviarPerguntasNoGrupo(supabase: SupabaseClient, trimestre
   const foraDoFormato = estado.perguntas.find((p) => p.opcoes.length < 3 || p.opcoes.length > 4);
   if (foraDoFormato) throw new Error(`A pergunta ${foraDoFormato.numero} precisa ter 3 ou 4 opções.`);
 
+  const pendentes = new Set(estado.faltam.flatMap((f) => f.numeros));
+  const aMandar = somentePendentes ? estado.perguntas.filter((p) => pendentes.has(p.numero)) : estado.perguntas;
+  if (aMandar.length === 0) return;
+
   const abertura = [
-    `<b>Família, antes do balanço do ${siglaDe(trimestre)} eu preciso das decisões de cada um.</b>`,
-    `São ${estado.perguntas.length} perguntas, e cada um responde por si, nos botões. Dá pra mudar a resposta até o balanço sair.`,
+    `<b>${titulo ?? `Família, antes do balanço do ${siglaDe(trimestre)} eu preciso das decisões de cada um.`}</b>`,
+    somentePendentes
+      ? "As perguntas que ainda faltam estão de novo aqui embaixo. Cada um responde por si, nos botões."
+      : `São ${estado.perguntas.length} perguntas, e cada um responde por si, nos botões. Dá pra mudar a resposta até o balanço sair.`,
     linhasDeCobranca(estado).join("\n"),
-    `<b>Prazo: ${prazo}.</b> Quando os dois responderem, o balanço sai com as decisões. Se o prazo chegar antes, sai com o que houver, e pergunta sem resposta entra como não decidida.`,
+    `<b>Prazo: ${prazo}.</b> O balanço sai com as decisões de cada um. Pergunta sem resposta no prazo entra como não decidida.`,
   ].join("\n\n");
   await postarNoGrupo({ tipo: "mensagem", chat_id: String(chatId), mensagem: abertura }, "a cobrança");
 
-  for (const p of estado.perguntas) {
+  for (const p of aMandar) {
     await postarNoGrupo(
       {
         tipo: "pergunta",
@@ -155,27 +179,35 @@ export async function enviarPerguntasNoGrupo(supabase: SupabaseClient, trimestre
     );
   }
 
+  await garantirLinhaDoBalanco(supabase, trimestre);
   await supabase
     .from("balancos_trimestrais")
     .update({ perguntas_enviadas_em: new Date().toISOString() })
     .eq("entidade_id", ENTIDADE_FAMILIA)
-    .eq("trimestre", trimestre);
+    .eq("trimestre", trimestre)
+    .is("perguntas_enviadas_em", null);
 }
 
 /**
- * Fecha as decisões e manda o balanço com elas: quando os dois terminam de
- * responder, ou no prazo (21h), com o que houver. Fecha uma vez só — marca
+ * Fecha as decisões e manda o balanço com elas. Fecha uma vez só — marca
  * antes de enviar, pra dois cliques quase juntos não mandarem dois PDFs.
+ * Sem `forcar`, só fecha se as perguntas já foram pro grupo (é o prazo das
+ * 21h); com `forcar` (dia 25 com reunião feita ou sem perguntas), fecha sempre.
  */
-export async function fecharDecisoes(supabase: SupabaseClient, trimestre: string): Promise<boolean> {
-  const { data, error } = await supabase
+export async function fecharDecisoes(
+  supabase: SupabaseClient,
+  trimestre: string,
+  { forcar = false }: { forcar?: boolean } = {},
+): Promise<boolean> {
+  if (forcar) await garantirLinhaDoBalanco(supabase, trimestre);
+  let consulta = supabase
     .from("balancos_trimestrais")
     .update({ decisoes_fechadas_em: new Date().toISOString() })
     .eq("entidade_id", ENTIDADE_FAMILIA)
     .eq("trimestre", trimestre)
-    .not("perguntas_enviadas_em", "is", null)
-    .is("decisoes_fechadas_em", null)
-    .select("id");
+    .is("decisoes_fechadas_em", null);
+  if (!forcar) consulta = consulta.not("perguntas_enviadas_em", "is", null);
+  const { data, error } = await consulta.select("id");
   if (error) throw new Error(`Fechar decisões: ${error.message}`);
   if (!data || data.length === 0) return false;
   await enviarBalancoNoGrupo(supabase, trimestre, { comMensagem: false });

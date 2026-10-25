@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ENTIDADE_FAMILIA } from "@/lib/bank/tipos";
+import { balancoJaPodeSair, dataCurta } from "@/lib/bank/balanco/calendario";
 
 // Decisões do trimestre no Telegram (pedido do Arlison, 25/out/2026: as
 // decisões entram antes do balanço, e cada um responde por si). As perguntas
@@ -160,11 +161,17 @@ export async function registrarDecisao(
   const depois = await lerDecisoes(supabase, pergunta.trimestre);
   const acao = anterior == null ? "decidiu" : "mudou a resposta";
   const linhas = [`${nome} ${acao} na pergunta ${pergunta.numero}: ${opcoes[indice]}.`];
+  // Antes do dia 25 a decisão completa só fica guardada: o balanço tem dia.
+  const saiAgora = balancoJaPodeSair(pergunta.trimestre);
   if (depois.completas) {
-    linhas.push("As decisões estão completas. O balanço com as decisões de cada um vem em seguida.");
+    linhas.push(
+      saiAgora
+        ? "As decisões estão completas. O balanço com as decisões de cada um vem em seguida."
+        : `As decisões estão completas. O balanço sai no dia ${dataCurta(pergunta.trimestre, 25)}, com elas.`,
+    );
   } else {
     const falta = depois.faltam.map((f) => `${f.pessoa.nome} (${f.numeros.join(", ")})`).join(" · ");
     linhas.push(`Falta: ${falta}.`);
   }
-  return { texto: linhas.join("\n"), completou: depois.completas && !antes.completas, trimestre: pergunta.trimestre };
+  return { texto: linhas.join("\n"), completou: saiAgora && depois.completas && !antes.completas, trimestre: pergunta.trimestre };
 }

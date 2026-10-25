@@ -101,7 +101,16 @@ const ultimoDia = (aaaamm: number) => {
 };
 const siglaDe = (trimestre: string) => `${trimestre.slice(-1)}T${trimestre.slice(2, 4)}`;
 
-export async function montarBalanco(supabase: SupabaseClient, trimestre: string): Promise<DadosBalanco> {
+/**
+ * `parecer: false` monta só os números (convocação do dia 5, cobrança do dia
+ * 15): o parecer do Arkad é escrito no dia 25, com as decisões já tomadas, e
+ * fica guardado — escrevê-lo antes congelaria um texto sem elas.
+ */
+export async function montarBalanco(
+  supabase: SupabaseClient,
+  trimestre: string,
+  { parecer = true }: { parecer?: boolean } = {},
+): Promise<DadosBalanco> {
   const meses = mesesDoTrimestre(trimestre);
   const anterior = trimestreVizinho(trimestre, -1);
   const proximo = trimestreVizinho(trimestre, 1);
@@ -221,7 +230,9 @@ export async function montarBalanco(supabase: SupabaseClient, trimestre: string)
   const cresceu = d.carteiraInicio != null ? d.carteiraFim - d.carteiraInicio : null;
   const pagasNoTri = listaParcelas.filter((p) => p.paga && p.paga_em && String(p.paga_em) >= inicioISO && String(p.paga_em) <= fimISO);
   const reservaAtual = d.carteira.porFinalidade.find((f) => f.finalidade === "reserva_emergencia")?.valor ?? 0;
-  const reuniaoRealizada = d.reuniao != null && d.reuniao.compromissos.length > 0;
+  // Reunião feita = a família registrou: compromissos no Modo TV ou o botão
+  // "Já fizemos" da convocação do dia 5 (os dois gravam a linha do trimestre).
+  const reuniaoRealizada = d.reuniao != null;
 
   // ---- O que deu certo / o que ajustar: o mesmo balanço do Modo TV, mais o
   // que só faz sentido por escrito (aporte tirado da reserva, reunião).
@@ -343,7 +354,7 @@ export async function montarBalanco(supabase: SupabaseClient, trimestre: string)
     proximo: proximoTxt,
     parecer: [],
   };
-  dados.parecer = await parecerGuardado(supabase, dados);
+  dados.parecer = parecer ? await parecerGuardado(supabase, dados) : [];
   return dados;
 }
 
