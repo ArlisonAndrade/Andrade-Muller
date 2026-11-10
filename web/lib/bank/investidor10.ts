@@ -70,13 +70,36 @@ const num = (v: unknown) => {
   return Number.isFinite(n) ? n : NaN;
 };
 
-async function buscarJson<T>(caminho: string): Promise<T> {
+/**
+ * Desde 02/nov/2026 o proxy do Investidor10 só responde quando o `Referer` é a
+ * própria página pública da carteira, COM o hash do link — sem ele (ou com o
+ * Referer no domínio só) devolve 301 "Acesso não autorizado". O hash vive em
+ * `parametros_plano.investidor10_wallet_hash` e nunca aparece em erro nem em
+ * log: quem o tem abre a carteira inteira.
+ */
+const refererDaCarteira = (walletId: number, hash: string) =>
+  `https://investidor10.com.br/wallet/public/${walletId}?h=${hash}`;
+
+async function buscarJson<T>(caminho: string, referer: string): Promise<T> {
   const resposta = await fetch(`${BASE}/${caminho}`, {
     cache: "no-store",
-    headers: { "User-Agent": "Mozilla/5.0 (AndradeMullerBank)", Accept: "application/json" },
+    headers: {
+      "User-Agent": "Mozilla/5.0 (AndradeMullerBank)",
+      Accept: "application/json",
+      Referer: referer,
+    },
   });
   if (!resposta.ok) {
-    throw new Error(`Investidor10 respondeu ${resposta.status} em ${caminho.split("?")[0]}`);
+    const onde = caminho.split("?")[0];
+    // 301 aqui não é redirecionamento: é a recusa do proxy. Quase sempre o
+    // link público foi regenerado e o hash guardado ficou velho.
+    if (resposta.status === 301) {
+      throw new Error(
+        `Investidor10 recusou o acesso em ${onde} — o link público da carteira provavelmente mudou. ` +
+          "Pegue o link novo em Investidor10 → Carteira → Compartilhar e atualize o hash.",
+      );
+    }
+    throw new Error(`Investidor10 respondeu ${resposta.status} em ${onde}`);
   }
   return (await resposta.json()) as T;
 }
@@ -96,13 +119,16 @@ function aplicadoDe(classe: string, item: ItemBruto, quantidade: number, valor: 
 }
 
 /** Lê a carteira inteira e confere contra o resumo. Lança erro se algo não bater. */
-export async function lerCarteiraInvestidor10(walletId: number) {
+export async function lerCarteiraInvestidor10(walletId: number, hash: string) {
+  const referer = refererDaCarteira(walletId, hash);
   const [metricas, classes] = await Promise.all([
     buscarJson<{ applied?: string; equity?: string; profit_twr?: string; profit_twr_12m?: string }>(
       `summary/metrics/${walletId}?type=without-earnings&raw=1`,
+      referer,
     ),
     buscarJson<Array<{ type: string; value: number }>>(
       `summary/donutchart/${walletId}/all?groupBy=type`,
+      referer,
     ),
   ]);
 
@@ -116,6 +142,7 @@ export async function lerCarteiraInvestidor10(walletId: number) {
   for (const { type: classe, value: valorClasse } of classes) {
     const lista = await buscarJson<{ total?: number; data?: ItemBruto[] }>(
       `summary/actives/${walletId}/${encodeURIComponent(classe)}?raw=1&selected_wallet_currency=BRL&api_version=v2`,
+      referer,
     );
     const itens = lista.data ?? [];
     if (lista.total != null && lista.total !== itens.length) {
@@ -205,19 +232,24 @@ export async function sincronizarInvestidor10(
   const falha = (erro: string) =>
     registrar({ ok: false, erro, aplicado: null, patrimonio: null, ativos: 0, alteracoes: [] });
 
-  const { data: parametro, error: erroParametro } = await supabase
+  const { data: parametros, error: erroParametro } = await supabase
     .from("parametros_plano")
-    .select("valor")
+    .select("chave, valor, valor_texto")
     .eq("entidade_id", entidadeId)
-    .eq("chave", "investidor10_wallet_id")
-    .maybeSingle();
+    .in("chave", ["investidor10_wallet_id", "investidor10_wallet_hash"]);
   if (erroParametro) return falha(`Banco: ${erroParametro.message}`);
-  const walletId = Number(parametro?.valor);
+  const walletId = Number((parametros ?? []).find((p) => p.chave === "investidor10_wallet_id")?.valor);
+  const hash = (parametros ?? []).find((p) => p.chave === "investidor10_wallet_hash")?.valor_texto ?? "";
   if (!walletId) return falha("Carteira do Investidor10 não configurada (parametros_plano.investidor10_wallet_id).");
+  if (!hash) {
+    return falha(
+      "Hash do link público não configurado (parametros_plano.investidor10_wallet_hash) — a API recusa o acesso sem ele.",
+    );
+  }
 
   let carteira: Awaited<ReturnType<typeof lerCarteiraInvestidor10>>;
   try {
-    carteira = await lerCarteiraInvestidor10(walletId);
+    carteira = await lerCarteiraInvestidor10(walletId, hash);
   } catch (e) {
     return falha(e instanceof Error ? e.message : "Falha ao ler o Investidor10.");
   }
